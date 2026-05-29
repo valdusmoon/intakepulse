@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="48" viewBox="0 0 280 48">
+  <rect width="280" height="48" fill="#0F1628"/>
+  <rect x="4" y="4" width="40" height="40" rx="10" fill="rgba(255,255,255,0.12)"/>
+  <rect x="13" y="13" width="23" height="7" rx="2.5" fill="white"/>
+  <rect x="13" y="13" width="7" height="23" rx="2.5" fill="white"/>
+  <text x="58" y="31" font-family="Sora, system-ui, sans-serif" font-weight="600" font-size="22" fill="white" letter-spacing="-0.4">CraftCapture</text>
+</svg>

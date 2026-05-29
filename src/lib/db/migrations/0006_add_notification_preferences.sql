@@ -1,0 +1,1 @@
+ALTER TABLE "companies" ADD COLUMN "notification_preferences" jsonb DEFAULT '{"newLead":true,"newContact":true,"quoteResponded":true,"contractSigned":true,"nudgeReminders":true}'::jsonb NOT NULL;

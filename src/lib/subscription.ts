@@ -1,0 +1,90 @@
+import { eq } from "drizzle-orm";
+
+import { db } from "@/lib/db";
+import { companies } from "@/lib/db/schema/companies";
+
+export async function hasActiveSubscription(
+  clerkUserId: string
+): Promise<{ hasAccess: boolean; reason?: string; status?: string }> {
+  const company = await db.query.companies.findFirst({
+    where: eq(companies.clerkUserId, clerkUserId),
+    columns: { subscriptionStatus: true, trialEndsAt: true, canceledAt: true },
+  });
+
+  if (!company) return { hasAccess: false, reason: "Company not found" };
+
+  const { subscriptionStatus, trialEndsAt, canceledAt } = company;
+  const now = new Date();
+
+  if (!subscriptionStatus) {
+    return { hasAccess: false, reason: "No subscription found. Start your 14-day free trial!", status: "none" };
+  }
+
+  if (subscriptionStatus === "active") {
+    if (canceledAt && canceledAt < now) {
+      return { hasAccess: false, reason: "Your subscription has ended. Please reactivate to continue.", status: "active_expired" };
+    }
+    return { hasAccess: true, status: "active" };
+  }
+
+  if (subscriptionStatus === "trialing") {
+    if (!trialEndsAt) {
+      return { hasAccess: false, reason: "Trial end date not set. Please contact support.", status: "trialing_invalid" };
+    }
+    const gracePeriod = 60 * 1000;
+    if (trialEndsAt.getTime() + gracePeriod > now.getTime()) {
+      return { hasAccess: true, status: "trialing" };
+    }
+    return { hasAccess: false, reason: "Your trial has ended. Please subscribe to continue.", status: "trialing_expired" };
+  }
+
+  if (subscriptionStatus === "canceled") {
+    if (canceledAt && canceledAt > now) {
+      return { hasAccess: true, status: "canceled_with_access" };
+    }
+    return { hasAccess: false, reason: "Your subscription has ended. Please reactivate to continue.", status: "canceled" };
+  }
+
+  if (subscriptionStatus === "past_due") {
+    return { hasAccess: false, reason: "Your payment failed. Please update your payment method.", status: "past_due" };
+  }
+
+  if (subscriptionStatus === "unpaid") {
+    return { hasAccess: false, reason: "Your subscription is unpaid. Please update your payment method.", status: "unpaid" };
+  }
+
+  if (subscriptionStatus === "incomplete" || subscriptionStatus === "incomplete_expired") {
+    return { hasAccess: false, reason: "Please complete your subscription setup.", status: subscriptionStatus };
+  }
+
+  return { hasAccess: false, reason: "Invalid subscription status. Please contact support.", status: subscriptionStatus };
+}
+
+// For use in public routes where we have a company object, not a clerkUserId
+export function isCompanySubscriptionActive(company: {
+  subscriptionStatus: string | null;
+  trialEndsAt: Date | null;
+  canceledAt: Date | null;
+}): boolean {
+  const { subscriptionStatus, trialEndsAt, canceledAt } = company;
+  const now = new Date();
+  const GRACE_MS = 60 * 1000;
+
+  if (!subscriptionStatus) return false;
+
+  if (subscriptionStatus === "active") {
+    if (canceledAt && canceledAt < now) return false;
+    return true;
+  }
+
+  if (subscriptionStatus === "trialing") {
+    if (!trialEndsAt) return false;
+    return trialEndsAt.getTime() + GRACE_MS > now.getTime();
+  }
+
+  if (subscriptionStatus === "canceled") {
+    return !!(canceledAt && canceledAt > now);
+  }
+
+  return false;
+}
