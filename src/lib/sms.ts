@@ -1,6 +1,6 @@
-import twilio from "twilio";
+// SMS provider will be replaced with Telnyx in Session 3.
+// Kill switch pattern preserved — set SMS_FEATURE_ENABLED=true when Telnyx is wired up.
 
-// Master kill switch — set SMS_FEATURE_ENABLED=true in env when ready
 const SMS_ENABLED = process.env.SMS_FEATURE_ENABLED === "true";
 
 function formatPhone(phone: string): string | null {
@@ -10,15 +10,8 @@ function formatPhone(phone: string): string | null {
   return null;
 }
 
-function getClient() {
-  const sid = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  if (!sid || !token) throw new Error("Twilio credentials not configured");
-  return twilio(sid, token);
-}
-
 /**
- * Send an SMS from the CraftCapture notifications number to a painter's phone.
+ * Send an SMS from the IntakePulse business number to a prospect or owner.
  * Silently no-ops if SMS_FEATURE_ENABLED is not "true".
  */
 export async function sendSms(to: string, body: string): Promise<void> {
@@ -33,35 +26,16 @@ export async function sendSms(to: string, body: string): Promise<void> {
     return;
   }
 
-  const from = process.env.TWILIO_PHONE_NUMBER;
-  if (!from) {
-    console.warn("[SMS] TWILIO_PHONE_NUMBER not set");
-    return;
-  }
-
-  try {
-    const client = getClient();
-    await client.messages.create({ body, from, to: phone });
-  } catch (err) {
-    // Log but never throw — SMS failure should never break the main flow
-    console.error("[SMS] Failed to send:", err);
-  }
+  // Telnyx implementation added in Session 3
+  console.warn("[SMS] Telnyx provider not yet configured");
 }
 
 // ─── Message templates ────────────────────────────────────────────────────────
 
-export function smsNewLead(name: string, phone: string): string {
-  return `New lead: ${name} (${phone}). Log in to CraftCapture to follow up.`;
+export function smsMissedCallRecovery(businessName: string, intakeUrl: string): string {
+  return `Hi! Sorry we missed your call at ${businessName}. Can you answer a few quick questions so we can help faster? ${intakeUrl}`;
 }
 
-export function smsScheduleConfirmed(name: string, date: string): string {
-  return `Job scheduled: ${name} on ${date}.`;
-}
-
-export function smsQuoteResponded(name: string, action: "accepted" | "declined"): string {
-  return `Quote ${action}: ${name} has ${action} their quote. Log in to CraftCapture.`;
-}
-
-export function smsContractSigned(name: string): string {
-  return `Contract signed: ${name} just signed their contract. Log in to CraftCapture.`;
+export function smsFollowup(businessName: string, intakeUrl: string): string {
+  return `Following up from ${businessName} — we still want to help. Takes 2 minutes: ${intakeUrl}`;
 }

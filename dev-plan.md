@@ -1,604 +1,604 @@
-# CraftCapture - Development Plan & Roadmap
+# IntakePulse — Development Plan
 
-**Product Name:** CraftCapture
-**Last Updated:** April 2, 2026
-**Status:** Phase 0 — AI Spike (Pre-Development)
-**Tech Stack:** Next.js 15, Tailwind/Shadcn, Drizzle ORM, Supabase PostgreSQL, Clerk Auth, Stripe, OpenAI (GPT-4o+), Inngest, Vercel, GitHub
-**Pricing:** $79/month single tier (expand tiers later as product grows)
+**Product:** IntakePulse — Missed-call recovery and AI-powered intake infrastructure for high-ticket service businesses.
+**Last Updated:** 2026-05-29
+**Status:** Session 0 complete ✓ — Session 1 (Database Schema) next
 
----
-
-## Executive Summary
-
-A **painting contractor lead capture and quoting platform** targeting 87,000–178,000 painting businesses in the US. Core differentiators: homeowner-facing lead capture widget, AI-powered photo-to-estimate, AI color visualization, and automated follow-up — all at a price point under $100/month.
-
-**V1 MVP Goal:** Lean lead capture + AI estimate testing + basic painter dashboard. Validate the AI angle first before building the full platform.
-
-**V2+ Vision:** Full lead-to-payment workflow, missed-call text-back (Twilio), scheduling, invoicing, job pipeline, crew management, multi-trade expansion (flooring, exterior remodeling).
+### V1 Scope Decisions
+- **Verticals:** Restoration only in V1. Architecture uses JSON vertical config so any new vertical is a seed script, not a code change.
+- **Follow-ups:** 1 follow-up text only in V1 (structured for multiple later). Multiple texts require opt-in consent flow — defer to V2.
+- **Intake form:** Submit on completion only — no auto-save per step. Simple is better for V1.
+- **Lead sources:** `missed_call` (Telnyx webhook → SMS → form), `embed` (HTML widget on business site), `email` (link in email signature / Google Business), `manual` (owner adds in dashboard).
+**Stack:** Next.js 15, Tailwind/Shadcn, Drizzle ORM, Supabase PostgreSQL, Clerk Auth, Stripe, OpenAI (GPT-4o), Inngest, Resend, Telnyx
 
 ---
 
-## Existing Boilerplate (Already in Repo)
+## What We're Starting With
 
-The starter template provides:
-- Clerk authentication (sign-up, sign-in, webhook sync)
-- Supabase + Drizzle ORM with users table and migrations
-- Stripe subscription billing (checkout, portal, webhooks)
-- Protected dashboard layout with authenticated routes
-- Marketing landing page shell (header, footer, hero)
-- Legal pages (terms, privacy, refunds)
-- Onboarding page shell
-- Toast system, error boundary, logger, theme provider
-- ESLint, Prettier, TypeScript config
-- Vercel deployment config
+CraftCapture V1 (painting contractor lead capture app) copied into this repo. All CraftCapture infrastructure is live and working — Clerk, Supabase/Drizzle, Stripe webhooks, Inngest, Resend, OpenAI. The domain layer (painting-specific) gets deleted and replaced with IntakePulse logic. ~60% of the code transfers directly.
 
----
-
-# PHASE 0: AI SPIKE — VALIDATE BEFORE BUILDING
-
-> **Purpose:** Before writing any product code, prove that GPT-4o (or newer models) can analyze wall/room photos and produce estimates within ±20% accuracy. Also test OpenAI image generation for color visualization. If neither works well enough, the product still works without AI — but we need to know now.
-
-## 0.1 Wall/Room Photo Estimate Test Utility
-
-### Environment & Dependencies
-- [x] Install OpenAI SDK: `npm install openai`
-- [x] Add `OPENAI_API_KEY` to `.env.example` and `.env.local`
-- [x] Create `/src/lib/openai.ts` — OpenAI client singleton
-
-### AI Estimate API Route
-- [x] Create `POST /api/ai/estimate` route
-- [x] Accept: image (base64 or URL), structured form data (room type, rough dimensions, surface condition, number of coats)
-- [x] Send image + structured prompt to GPT-4o vision
-- [x] Prompt engineering: ask model to identify:
-  - Room type (bedroom, living room, kitchen, bathroom, exterior wall, etc.)
-  - Approximate wall surface area (sq ft) from visual cues
-  - Surface condition (good, fair, needs prep)
-  - Number of surfaces/walls visible
-  - Ceiling height estimate
-  - Architectural features (trim, crown molding, windows, doors)
-- [x] Combine AI visual analysis with user-provided dimensions for cross-validation
-- [x] Calculate estimate range using:
-  - Labor rate: $1.50–$3.50/sq ft (based on surface condition + room type)
-  - Paint cost: $25–$75/gallon, ~350 sq ft/gallon coverage
-  - Prep work multiplier (1.0x good, 1.3x fair, 1.6x needs work)
-  - Number of coats multiplier
-- [x] Return JSON: `{ estimateRange: { low, high }, confidence, breakdown, roomAnalysis }`
-- [x] Frame output as "preliminary estimate range" — never a single number
-- [x] Include confidence score (low/medium/high) based on image quality + dimension availability
-
-### AI Estimate Test UI
-- [x] Create `/src/app/(authenticated)/tools/estimate-test/page.tsx`
-- [x] **Guided multi-photo capture** — prompt user to take specific shots in order:
-  1. "Stand in the doorway — take a wide shot of the whole room"
-  2. "Take a straight-on photo of each wall you want painted" (up to 4)
-  3. "Take a photo of the ceiling if it's being painted" (optional)
-- [x] Each photo slot has a label/instruction card so the homeowner knows exactly what to shoot
-- [x] Per-slot capture: camera button (mobile, `capture="environment"`) + file upload (desktop)
-- [x] Photo preview thumbnails with remove/retake per slot
-- [x] Minimum 1 photo required, encourage 3-5 for better accuracy
-- [x] Structured input form (supplements photos, does NOT replace them):
-  - Room type dropdown (bedroom, living room, kitchen, bathroom, hallway, exterior, other)
-  - Surface type (drywall, plaster, wood, brick, stucco)
-  - Current condition (good, fair, needs prep work)
-  - Number of coats (1, 2, 3)
-  - Include ceiling? (yes/no)
-  - Include trim? (yes/no)
-- [x] All photos sent together in a single GPT-4o vision request — model cross-references them to build a fuller picture of the room
-- [x] Submit button → show loading state → display results
-- [x] Results display:
-  - Estimate range (e.g., "$1,200 – $1,800")
-  - Confidence indicator (low/medium/high)
-  - Breakdown (labor, materials, prep)
-  - Room analysis from AI (surfaces detected, coverage areas, any flags)
-- [x] Test multiple sessions back-to-back and compare results
-- [x] Log all test results to console/local storage for accuracy tracking
-
-### Estimate Test UI — Redesign (based on ChatGPT architecture review)
-- [x] Job type selector: Interior Rooms / Exterior / Single Surface
-- [x] Interior flow: room-by-room cards (1 photo per room), condition per room, optional notes + dimensions, global coats + surface type, per-room estimate → rolled up total
-- [x] Exterior flow: facade cards (Front/Back/Left/Right), 1 photo per side, global condition/material/stories/coats, per-facade estimate → total
-- [x] Single surface flow: 1 photo, surface type, condition, optional dimensions + notes
-- [x] Per-unit API calls (one per room/facade) — aggregate results client-side
-- [x] Results view: total range at top, per-unit confidence-scored cards, AI notes per unit
-- [x] API: add optional `notes` and `dimensions` fields to EstimateRequest, incorporate into prompt
-
-### Estimate Test UI — V2 Redesign (homeowner-optimized, low-friction)
-- [x] Replace "coats" selector with homeowner-friendly repaint intent (refresh / full repaint / color change / dark to light) — maps to 1/2/3 coats internally
-- [x] Move ceiling/trim per-room checkboxes to a single post-photo "What's included?" step (walls only / walls+ceiling / walls+trim / full room)
-- [x] Default interior surface type to Drywall, remove from per-room UI
-- [x] Exterior: one side at a time (Front → Back → Left → Right) with progress dots, skip by advancing without photo
-- [x] Add 4th mode: "Describe Your Project" — conversational chat, photos optional, AI asks ≤3 follow-up questions then estimates
-- [x] New API route: `POST /api/ai/chat-estimate` — extracts structured inputs from conversation, runs same pricing engine, returns assumptions list
-- [x] Simplified room cards: photo + room type + condition only (details collapsible)
-- [x] Reusable `RadioOption` component for scope/intent selection steps
-
-### Accuracy Testing Protocol
-> **Deferred** — shipping AI estimates in V1 with "ballpark only" disclaimer. Will tune accuracy iteratively post-launch with real job data.
+**Key reuse wins:**
+- `subscription.ts` — transfers unchanged (just update `companies` import path to `businesses`)
+- Stripe webhook handler — transfers unchanged
+- Resend email client — transfers unchanged
+- OpenAI client — transfers unchanged
+- Auth middleware pattern — add `/api/telnyx(.*)` to public routes, keep everything else
+- Lead query layer (pagination, search, filters) — rename columns, keep logic
+- Onboarding multi-step form — swap content, keep structure
 
 ---
 
-## 0.2 Phase 0 Decision Checkpoint
+# SESSION 0: HOUSEKEEPING (Run First, Before Any Schema Work)
 
-- [x] **AI Estimates:** Ship in V1 with heavy "ballpark only" disclaimer. Estimate UI built, tested manually, good enough to validate with real users. Will refine post-launch.
-- [x] Update dev plan — proceeding to Phase 1.
+> Quick fixes to remove CraftCapture identity from the repo. Takes ~15 minutes. Do this before writing a single line of IntakePulse code.
 
-> **Color Visualization:** Deferred to V1.5. Add it after MVP ships if it feels low-effort at that point. Test utility can be built quickly then — don't invest time now.
+## 0.1 Rename Package and Service Identity
+- [x] `package.json` — rename `"your-app-name"` → `"intakepulse"`
+- [x] `src/lib/inngest/client.ts` — rename id `"craftcapture"` → `"intakepulse"`, name → `"IntakePulse"`
+- [x] `src/middleware.ts` — add `/api/telnyx(.*)` to `isPublicRoute` matcher (Telnyx webhooks must not hit Clerk auth)
+- [x] `src/lib/sms.ts` — update comment from "CraftCapture notifications number" to reflect IntakePulse
 
----
+## 0.2 Delete CraftCapture-Specific Files
+> Delete all painting/quoting/contracting/scheduling domain code. Do not touch infrastructure files.
 
-# PHASE 1: V1 MVP — LEAN LEAD CAPTURE PLATFORM
+**API routes to delete:**
+- [x] `src/app/api/quotes/` (entire directory)
+- [x] `src/app/api/contracts/` (entire directory)
+- [x] `src/app/api/schedule/` (entire directory)
+- [x] `src/app/api/staff/` (entire directory)
+- [x] `src/app/api/visualize/route.ts`
+- [x] `src/app/api/qr/route.ts`
 
-> **Goal:** Get a working product that painters can use to capture leads from homeowners, view them in a dashboard, and optionally get AI-powered estimates. Ship fast, validate with 5-10 beta users.
+**Dashboard pages to delete:**
+- [x] `src/app/(authenticated)/dashboard/schedule/` (entire directory)
+- [x] `src/app/(authenticated)/dashboard/leads/[id]/quote/page.tsx`
+- [x] `src/app/(authenticated)/dashboard/leads/[id]/contract/page.tsx`
+- [x] `src/app/(authenticated)/dashboard/leads/[id]/job-photos.tsx`
+- [x] `src/app/(authenticated)/dashboard/leads/leads-kanban.tsx`
 
-## 1.1 Database Schema & Architecture
+**Public pages to delete:**
+- [x] `src/app/q/` (quote respond flow)
+- [x] `src/app/contract/` (contract signing flow)
+- [x] `src/app/review/` (review request redirect)
+- [x] `src/app/features/page.tsx`
+- [x] `src/app/_backups/` (entire directory)
+- [x] `src/app/quote/` (CraftCapture lead form — will be replaced by `src/app/intake/`)
 
-### Core Tables
-- [x] `companies` table — painter business profiles
-  - id (uuid, pk)
-  - clerk_user_id (text, unique, fk to users)
-  - business_name (text)
-  - owner_name (text)
-  - owner_email (text)
-  - owner_phone (text)
-  - business_phone (text)
-  - address, city, state, zip (text)
-  - logo_url (text, nullable)
-  - website_url (text, nullable)
-  - service_area (text) — "Greater Austin area" etc.
-  - default_hourly_rate (decimal, nullable)
-  - default_sqft_rate (decimal, nullable)
-  - timezone (text, default 'America/New_York')
-  - onboarding_completed (boolean, default false)
-  - created_at, updated_at (timestamps)
+**Schema files to delete:**
+- [x] `src/lib/db/schema/quotes.ts`
+- [x] `src/lib/db/schema/contracts.ts`
+- [x] `src/lib/db/schema/lead-photos.ts`
+- [x] `src/lib/db/schema/staff.ts`
 
-- [x] `leads` table — homeowner submissions
-  - id (uuid, pk)
-  - company_id (uuid, fk to companies)
-  - homeowner_name (text)
-  - homeowner_email (text, nullable)
-  - homeowner_phone (text)
-  - address (text, nullable)
-  - city, state, zip (text, nullable)
-  - service_type (text) — interior, exterior, both, cabinet, deck, etc.
-  - description (text, nullable) — homeowner's description of the job
-  - room_type (text, nullable)
-  - estimated_sqft (integer, nullable)
-  - number_of_rooms (integer, nullable)
-  - preferred_timeline (text, nullable) — ASAP, within 2 weeks, flexible, etc.
-  - source (text) — 'widget', 'qr', 'direct_link', 'manual'
-  - status (text) — 'new', 'contacted', 'quoted', 'scheduled', 'won', 'lost'
-  - ai_estimate_low (integer, nullable) — cents
-  - ai_estimate_high (integer, nullable) — cents
-  - ai_confidence (text, nullable) — 'low', 'medium', 'high'
-  - quoted_amount (integer, nullable) — cents, painter's actual quote
-  - notes (text, nullable) — painter's private notes
-  - created_at, updated_at (timestamps)
+**Query files to delete:**
+- [x] `src/lib/db/queries/quotes.ts`
+- [x] `src/lib/db/queries/contracts.ts`
+- [x] `src/lib/db/queries/lead-photos.ts`
+- [x] `src/lib/db/queries/staff.ts`
 
-- [x] `lead_photos` table — photos uploaded by homeowner
-  - id (uuid, pk)
-  - lead_id (uuid, fk to leads)
-  - photo_url (text) — Supabase storage URL
-  - photo_type (text) — 'room', 'wall', 'exterior', 'damage', 'other'
-  - ai_analysis (jsonb, nullable) — stored AI vision response
-  - created_at (timestamp)
+**Lib files to delete:**
+- [x] `src/lib/inngest/functions/quote-nudge.ts`
+- [x] `src/lib/inngest/functions/quote-expiration.ts`
+- [x] `src/lib/inngest/functions/contract-nudge.ts`
+- [x] `src/lib/leads/estimate.ts`
+- [x] `src/lib/quotes/` (entire directory)
+- [x] `src/lib/storage.ts` (Supabase photo storage — not needed for V1)
 
-- [ ] `visualizations` table — AI color renders
-  - id (uuid, pk)
-  - lead_id (uuid, fk to leads, nullable)
-  - lead_photo_id (uuid, fk to lead_photos)
-  - original_photo_url (text)
-  - rendered_photo_url (text)
-  - target_color_hex (text)
-  - target_color_name (text, nullable)
-  - cost_cents (integer) — track API cost per render
-  - created_at (timestamp)
+**Component files to delete:**
+- [x] `src/components/quotes/` (entire directory)
+- [x] `src/components/marketing/` (entire directory — will rewrite for IntakePulse)
 
-> **follow_ups table — dropped for V1.** Single confirmation email tracked via `confirmation_sent_at` on the leads table. Multi-touch drip deferred to V1.5 (needs Twilio A2P anyway).
-> **visualizations table — dropped for V1.** Deferred to V1.5.
-
-### Schema Setup
-- [x] Create schema files in `/src/lib/db/schema/` — companies.ts, leads.ts, lead-photos.ts
-- [x] Update `/src/lib/db/schema/index.ts` to export all tables
-- [x] Run `db:generate` and `db:push` to apply schema to local `painter_app_dev`
-- [x] Create query files in `/src/lib/db/queries/` — companies.ts, leads.ts, lead-photos.ts
-
-### Supabase Storage Setup
-- [x] `lead-photos` bucket created, anon upload policy, image/* MIME restriction, 5MB file size limit
-- [x] `src/lib/storage.ts` — uploadLeadPhoto with canvas compression (max 1600px, JPEG 85%)
-- [x] Photos uploaded browser → Supabase directly (bypasses Vercel 4.5MB limit)
-- [x] Photo URLs stored in `lead_photos` table
+## 0.3 Remove Unused Packages
+- [x] `npm uninstall twilio @react-pdf/renderer qrcode pdf-lib`
+- [x] Remove `@types/qrcode` from devDependencies in `package.json`
+- [x] Confirm `npm run build` (or `typecheck`) still passes after deletions
 
 ---
 
-## 1.2 Company Onboarding Flow
+# SESSION 1: DATABASE SCHEMA
 
-### Onboarding Page Redesign
-- [x] Redesign `/src/app/(authenticated)/onboarding/page.tsx`
-- [x] Multi-step form (3 steps):
-  1. **Business Info:** business name, owner name, phone, service area
-  2. **Rates:** default sqft rate (optional)
-  3. **Setup Complete:** generate shareable lead capture link, show QR code, copy link, download QR
-- [x] Form validation with proper error messages
-- [x] Save to `companies` table on completion via `POST /api/company`
-- [x] Set `onboarding_completed = true`
-- [x] Redirect to dashboard
-- [x] Pre-fill name/phone from Clerk user
+> Write the 8 new Drizzle schema files. No UI. No API routes. Just schema, migrate, and confirm zero TypeScript errors.
 
-### Company Profile Settings
-- [x] Create `/src/app/(authenticated)/dashboard/settings/page.tsx`
-- [x] Edit business info (all fields from onboarding)
-- [ ] Logo upload (Supabase storage) — deferred
-- [x] View/copy shareable lead capture link
-- [x] Download QR code (PNG)
-- [x] Manage subscription (Stripe portal link — already in boilerplate)
+## 1.1 New Schema Files
 
----
+**`src/lib/db/schema/businesses.ts`** (replaces `companies.ts`)
+- [ ] `id` uuid pk
+- [ ] `clerkUserId` text unique
+- [ ] `businessName`, `ownerName`, `ownerEmail`, `ownerPhone` text
+- [ ] `vertical` text default `'restoration'` — V1 hardcoded to restoration; field exists for future vertical expansion
+- [ ] `telnyxPhoneNumber` text nullable — provisioned Telnyx number
+- [ ] `forwardingNumber` text nullable — where calls forward to
+- [ ] `callTimeoutSeconds` integer default 20 — seconds before missed-call triggers
+- [ ] `serviceArea`, `timezone`, `websiteUrl` text
+- [ ] `onboardingCompleted` boolean default false
+- [ ] Stripe fields: `stripeCustomerId`, `stripeSubscriptionId`, `stripePriceId`, `subscriptionStatus`, `trialEndsAt`, `currentPeriodStart`, `currentPeriodEnd`, `canceledAt`
+- [ ] `createdAt`, `updatedAt` timestamps
 
-## 1.3 Homeowner Lead Capture Form (Public)
+**`src/lib/db/schema/leads.ts`** (replace current leads.ts)
+- [ ] `id` uuid pk
+- [ ] `businessId` uuid fk → businesses
+- [ ] `callerName` text nullable — filled once intake completed
+- [ ] `callerPhone` text notNull — from Telnyx call event
+- [ ] `callerEmail` text nullable
+- [ ] `source` text — `'missed_call' | 'embed' | 'email' | 'manual'`
+- [ ] `callStatus` text — `'initiated' | 'ringing' | 'answered' | 'missed'`
+- [ ] `status` text — `'sms_sent' | 'intake_started' | 'intake_completed' | 'qualified' | 'converted' | 'lost'`
+- [ ] `urgencyScore` integer nullable — 1-10, denormalized from ai_assessments for list view performance
+- [ ] `qualityScore` integer nullable — 1-100, denormalized from ai_assessments for list view performance
+- [ ] `estimatedValueLow` integer nullable — cents, denormalized for list display
+- [ ] `estimatedValueHigh` integer nullable — cents, denormalized for list display
+- [ ] `intakeAnswers` jsonb nullable — full answer object `{ damage_type: "water", water_category: "cat_2", flooring: "hardwood", ... }`, keyed to vertical config question keys
+- [ ] `smsConsent` boolean default false notNull — TCPA compliance, must be true before any follow-up SMS fires
+- [ ] `notes` text nullable
+- [ ] `followupPausedAt` timestamp nullable
+- [ ] `convertedAt` timestamp nullable
+- [ ] `createdAt`, `updatedAt`, `deletedAt` timestamps
 
-> This is the **core product surface** — the form homeowners interact with. Must be mobile-optimized, fast, and dead simple.
+**`src/lib/db/schema/calls.ts`**
+- [ ] `id` uuid pk
+- [ ] `businessId` uuid fk → businesses
+- [ ] `leadId` uuid nullable fk → leads (linked once missed-call fires)
+- [ ] `telnyxCallControlId` text unique — used for performing actions on an active call
+- [ ] `telnyxCallLegId` text unique nullable — present in `call.hangup` payload; needed to match hangup events to call records (different from callControlId)
+- [ ] `callerPhone` text
+- [ ] `calledNumber` text — the Telnyx number that was called
+- [ ] `status` text — `'initiated' | 'ringing' | 'answered' | 'missed' | 'voicemail'`
+- [ ] `answeredAt`, `endedAt`, `missedAt` timestamps nullable
+- [ ] `durationSeconds` integer nullable
+- [ ] `rawPayload` jsonb — store full Telnyx webhook payload
+- [ ] `createdAt` timestamp
 
-### Public Lead Form Page
-- [x] Create `/src/app/quote/[companyId]/page.tsx` — public, no auth required
-- [x] Fetch company info (business name, phone, service area) for branding
-- [x] Mobile-first responsive design
-- [x] Multi-step form flow:
-  1. **Contact:** name, phone (required), email, address (optional)
-  2. **Project:** service type, description + hint bullets, photos (optional, up to 5), timeline
-  3. **Processing:** spinner with rotating messages
-  4. **Results:** AI estimate range + confidence + assumptions + company contact info
-- [x] Progress indicator dots
-- [x] Photos: file picker (multi-select), preview pill with names, up to 5 images
-- [x] On submission: create lead → run AI estimate sync → show results (or fallback "request received" if AI fails)
+**`src/lib/db/schema/smsEvents.ts`**
+- [ ] `id` uuid pk
+- [ ] `businessId` uuid fk → businesses
+- [ ] `leadId` uuid nullable fk → leads
+- [ ] `direction` text — `'outbound' | 'inbound'`
+- [ ] `toPhone`, `fromPhone` text
+- [ ] `body` text
+- [ ] `telnyxMessageId` text unique nullable
+- [ ] `status` text — `'queued' | 'sent' | 'delivered' | 'failed'`
+- [ ] `rawPayload` jsonb nullable
+- [ ] `createdAt` timestamp
 
-### Lead Form API Routes
-- [x] `POST /api/leads/public` — create lead (partial or full), rate-limited (10/IP/hour, in-memory)
-- [x] `PATCH /api/leads/public/[leadId]` — update contact info or project details, run AI on demand
-- [x] `GET /api/leads/public/company/[companyId]` — company name + phone + service area for branding
-- [x] Phone validated via `libphonenumber-js`, normalized to E.164 stored in DB
-- [x] Email required, validated via regex + common typo detection (gmail.con etc.)
-- [x] Partial lead save on contact step "Continue" — captures name/phone/email before project details
-- [x] Back button re-patches contact info if edited after partial save
-> Photo upload to Supabase deferred — photos sent as base64 to AI directly, no storage for now.
-> Inngest `lead.created` event deferred — using sync flow for V1.
+**`intake_answers` table — eliminated.** Collapsed into `intakeAnswers jsonb` column on `leads`. 8 rows per lead with a join every render is over-normalized for V1. JSONB is queryable in Postgres if analytics are needed later.
 
-### Shareable Link & QR Code
-- [x] Generate unique URL: `{APP_URL}/quote/{companyId}`
-- [x] QR code generation via `qrcode` npm package (in onboarding step 3)
-- [x] Downloadable QR as PNG
+**`src/lib/db/schema/verticalConfigs.ts`**
+- [ ] `id` uuid pk
+- [ ] `vertical` text unique — `'restoration' | 'pi_law' | 'hvac'`
+- [ ] `displayName` text
+- [ ] `questions` jsonb — array of `{ key, label, type, options?, required, conditional? }`
+- [ ] `scoringRules` jsonb — array of rule objects: `{ answerKey, answerValue, urgencyBonus?, qualityBonus?, valueBonus? }`. The generic scoring engine reads these and applies them — no vertical-specific code. Adding a new vertical = writing new rules as JSON, zero code changes.
+- [ ] `aiPromptTemplate` text — system prompt for GPT reasoning pass. Receives already-computed scores + answers. Returns reasoning text only, never scores. Vertical-specific context (e.g. "delamination risk", "statute of limitations") lives here as data, not code.
+- [ ] `createdAt`, `updatedAt` timestamps
 
----
+**`src/lib/db/schema/followups.ts`**
+- [ ] `id` uuid pk
+- [ ] `leadId` uuid fk → leads
+- [ ] `businessId` uuid fk → businesses
+- [ ] `sequence` integer — position in sequence (1, 2, 3…); V1 only uses sequence=1
+- [ ] `scheduledAt` timestamp — when Inngest should fire
+- [ ] `sentAt` timestamp nullable
+- [ ] `canceledAt` timestamp nullable
+- [ ] `cancelReason` text nullable — `'replied' | 'intake_completed' | 'manual_stop'`
+- [ ] `createdAt` timestamp
 
-## 1.4 Painter Dashboard — Leads View
+**`src/lib/db/schema/aiAssessments.ts`**
+> Kept separate from leads for query performance. Scores are denormalized onto leads for the list view. This table holds the heavy reasoning text and raw GPT-4o blob which are only loaded when viewing a single lead detail.
+- [ ] `id` uuid pk
+- [ ] `leadId` uuid fk → leads unique — one assessment per lead
+- [ ] `urgencyReasoning` text — plain-English explanation (e.g. "Cat 2 water with hardwood floors — delamination risk within 48 hours")
+- [ ] `qualityReasoning` text
+- [ ] `recommendedActions` jsonb — array of action strings
+- [ ] `rawResponse` jsonb — full GPT-4o API response (heavy blob, never loaded in list queries)
+- [ ] `model` text — model version used, for auditing
+- [ ] `createdAt` timestamp
 
-### Leads List Page
-- [x] Create `/src/app/(authenticated)/dashboard/leads/page.tsx`
-- [x] Table view: name, phone, email, service type, AI estimate, status badge, time ago
-- [x] Status badge colors (new=blue, contacted=yellow, quoted=purple, scheduled=indigo, won=green, lost=gray)
-- [x] "NEW" badge for leads under 24h old with status=new
-- [x] Live search by name/phone/email (debounced 300ms, updates URL)
-- [x] Filter by status (auto-updates URL on change)
-- [x] Pagination (25 per page, next page link)
-- [x] Click-to-call phone links, click-to-email links
-- [x] Dashboard nav (Home, Leads) with company name + Clerk UserButton
+## 1.2 Schema Index & Migration
+- [ ] Rewrite `src/lib/db/schema/index.ts` — export all 7 new tables, remove old exports
+- [ ] Rewrite `src/lib/db/queries/index.ts` to match
+- [ ] Create stub query files: `businesses.ts`, `leads.ts`, `calls.ts`, `smsEvents.ts`, `followups.ts`, `aiAssessments.ts`
+- [ ] Run `npm run db:generate` — generate migration
+- [ ] Run `npm run db:push` — apply to local dev database
+- [ ] Run `npm run typecheck` — confirm zero TypeScript errors before moving on
 
-### Lead Detail Page
-- [x] Create `/src/app/(authenticated)/dashboard/leads/[id]/page.tsx`
-- [x] Full contact info (phone click-to-call, email click-to-email, address)
-- [x] Job details (service type, timeline, description)
-- [x] AI estimate display with confidence badge + disclaimer
-- [x] Status selector (click to change, auto-saves via PATCH)
-- [x] Private notes editor (saves on button click)
-- [x] Quoted amount input (saves on blur)
-- [x] Photo gallery — thumbnails load inline, click opens full-size in new tab
-- [ ] Follow-up history — deferred to V1.5
-
-### Lead API Routes
-- [x] `GET /api/leads` — list leads for authenticated company (search, filter, paginate)
-- [x] `GET /api/leads/[id]` — lead detail (auth-gated, company ownership check)
-- [x] `PATCH /api/leads/[id]` — update status, notes, quoted amount
-- [x] `POST /api/leads` — manual lead creation (painter-side, email optional, source=manual, photos + optional AI estimate)
-- [x] `DELETE /api/leads/[id]` — hard delete with ownership check
-- [x] `/dashboard/leads/new` — manual lead creation form: contact, job details, photo upload (up to 5), optional AI estimate checkbox (disabled until description filled), private notes
-- [x] Delete button on lead detail (inline confirm → delete → redirect)
-
----
-
-## 1.5 AI Integration (Based on Phase 0 Results)
-
-### Photo-to-Estimate
-- [x] AI estimate runs synchronously on lead creation (public form + manual form)
-- [x] Results stored in `leads` table (`ai_estimate_low`, `ai_estimate_high`, `ai_confidence`)
-- [x] Displayed on lead detail page with "Ballpark only — verify on-site" disclaimer
-- [x] Photos sent as base64 directly to GPT-4o (no Supabase storage needed for AI)
-- [x] Graceful degradation — lead saved even if AI estimate fails
-> Inngest async trigger deferred — sync is sufficient for V1.
-> `lead_photos.ai_analysis` jsonb storage deferred — no Supabase yet.
-> API cost tracking deferred — add when billing matters.
-
-### Color Visualization
-> Deferred to V1.5. Quick-add after MVP ships if lift feels low.
-
----
-
-## 1.6 Dashboard Home & Analytics
-
-### Dashboard Home Page
-- [x] Redesign `/src/app/(authenticated)/dashboard/page.tsx`
-- [x] KPI cards: leads this month, last 7 days, conversion rate (quoted→won), revenue won
-- [x] Recent leads list (last 5, click-through to detail)
-- [x] Quick actions: "+ Add lead", "View all leads"
-> Share lead form link moved to Settings page. Notification bell deferred to V1.5.
-
-### Analytics Page (Basic)
-> Deferred to V1.5 — KPI cards on dashboard home are sufficient for MVP.
-
-### Company Settings Page
-- [x] Create `/src/app/(authenticated)/dashboard/settings/page.tsx`
-- [x] Edit business info (name, owner, phones, service area, website)
-- [x] Lead form link with ExternalLink + Copy icon buttons
-- [x] QR code preview + Download PNG + Print PDF (`/api/qr` route, `pdf-lib`)
+## 1.3 Seed Vertical Configs
+- [ ] Create `scripts/seed-verticals.ts`
+- [ ] Seed restoration vertical: questions (damage type, affected rooms, flooring, insurance, time since damage, severity), scoring rules (Cat 2/3 water, hardwood, active leak, insurance confirmed), AI prompt template
+- [ ] Run seed script: `npx tsx scripts/seed-verticals.ts`
 
 ---
 
-## 1.7 Notifications & Basic Follow-Up
+# SESSION 2: AUTH, BILLING, ONBOARDING
 
-### New Lead Notification
-- [x] Install Resend SDK
-- [x] `src/lib/resend.ts` — Resend client + FROM_EMAIL
-- [x] `src/lib/email/email-client.ts` — emailClient wrapper with `EMAIL_ENABLED` flag (logs when disabled, sends when true)
-- [x] `src/lib/email/notifications.ts` — sendNewLeadNotification + sendHomeownerConfirmation
-- [x] Painter email: name, phone, email, service type, description, AI estimate, "View in dashboard" button
-- [x] Fires on public form submission (PATCH with runEstimate + POST fallback)
-- [x] Gated by `confirmationSentAt` to prevent double-sends
-- [x] `EMAIL_ENABLED` env var — true locally for testing, true in Vercel prod
-- [x] Minimal painter nudge on partial save (contact only) — name + dashboard link, no contact details to avoid typo confusion
-- [x] Skip option on project step — homeowner can skip AI estimate and just submit contact info
-- [x] "Request project details" email — painter sends homeowner a pre-filled quote form link from lead detail or table; hidden if lead already has description
+> Port Clerk and Stripe. Minimal changes — rename `companies` → `businesses`, update painting-specific fields, update price IDs.
 
-### Homeowner Confirmation
-- [x] Sends on same trigger as painter notification (full form submission)
-- [x] Includes AI estimate range if generated, painter phone, "within 24 hours" message
-- [x] Uses `Promise.allSettled` — email failure never breaks lead submission
+## 2.1 Update Clerk Webhook
+- [ ] `src/app/api/webhooks/clerk/route.ts` — update `companies` insert to `businesses` insert
+- [ ] Remove `paintTier`, `defaultSqftRate` from initial insert
+- [ ] Add `vertical: null`, `forwardingNumber: null` placeholders
 
-> SMS notification to painter: deferred to V1.5 (Twilio)
-> Multi-touch drip: deferred to V1.5
-> Inngest: deferred — sync send is fine for V1
+## 2.2 Update Stripe Webhook
+- [ ] `src/app/api/stripe/webhook/route.ts` — update all `companies` table references → `businesses`
+- [ ] Update price ID logic for 3-tier pricing ($299/$499/$799)
+- [ ] Update `subscription.ts` — change import from `companies` → `businesses`
 
----
+## 2.3 Update Subscription Banner
+- [ ] `src/components/dashboard/subscription-banner.tsx` — update copy from CraftCapture → IntakePulse
+- [ ] Update trial messaging ("recover leads" vs. "capture leads")
 
-## 1.8 Marketing Landing Page
+## 2.4 Rewrite Onboarding
+- [ ] Rewrite `src/app/(authenticated)/onboarding/page.tsx`
+- [ ] Step 1 — Business info: name, owner, phone, service area
+- [ ] Step 2 — Vertical selection: Restoration only in V1 (pre-selected, non-editable), with placeholder cards for PI Law / HVAC showing "Coming soon"
+- [ ] Step 3 — Phone config: forwarding number, call timeout (slider 10–45s)
+- [ ] Step 4 — Setup complete: instructions to contact IntakePulse to get a number assigned, link to dashboard
+- [ ] Update `POST /api/company/route.ts` → `POST /api/business/route.ts` (or update existing route)
+- [ ] Remove QR code step entirely
 
-### Landing Page Content
-- [x] Redesign `/src/app/page.tsx` for painting contractor audience
-- [x] Hero section with interactive QuoteWidget demo
-- [x] Features section (homeowner form, AI estimates, lead pipeline, manual entry)
-- [x] How it works (3 steps)
-- [x] Pricing section: $79/month, 14-day free trial
-- [x] FAQ section
-- [x] Social proof / testimonials section
-- [x] Footer with legal links
-- [x] Sora + Inter fonts via next/font/google
-- [x] Scroll reveal animations
-- [x] Updated metadata (title + description)
+## 2.5 Update Company/Business API
+- [ ] Rename `src/app/api/company/route.ts` → `src/app/api/business/route.ts`
+- [ ] Update all field names to match new businesses schema
+- [ ] Update `src/lib/db/queries/businesses.ts` with `getBusinessByClerkId`, `updateBusiness`
 
-### Branding
-- [x] Decide on product name — CraftDesk
-- [x] Favicon + logo (all sizes: favicon.ico, favicon.svg, apple-touch-icon, og:image, icon-192, icon-512)
+## 2.6 Update Dashboard Layout
+- [ ] `src/app/(authenticated)/dashboard/layout.tsx` — update nav links (remove Schedule, remove Quotes)
+- [ ] Nav: Dashboard, Leads, Settings, Billing
+- [ ] Update `src/components/dashboard/NavLinks.tsx`
 
-### SEO Basics
-- [x] Proper meta tags on root layout (title, description, og:image, icons)
-- [x] `robots.txt` and `sitemap.xml`
-- [ ] Semantic HTML structure
-- [ ] Fast page load (no heavy JS on landing page)
+## 2.7 Update Settings Page
+- [ ] `src/app/(authenticated)/dashboard/settings/page.tsx` — remove QR code, remove lead form link
+- [ ] Add: Telnyx phone number display (editable text field — owner pastes in number provisioned manually via Telnyx console)
+- [ ] Add: forwarding number edit, call timeout slider
+- [ ] Add: SMS template editor (missed-call message body)
+- [ ] Add: vertical display (read-only for now)
 
----
-
-## 1.9 Stripe Billing — Single Tier
-
-### Billing Configuration
-- [x] Create Stripe product: "PainterApp Pro" at $79/month
-- [x] Create Stripe price ID, add to env as `NEXT_PUBLIC_STRIPE_PRICE_ID`
-- [x] 14-day free trial (card required upfront)
-- [x] Update checkout route to use new price ID
-- [x] Billing page shows: current plan, trial status, next billing date
-- [x] Stripe customer portal for self-service management
-- [x] Webhook handlers: checkout.session.completed, subscription.updated, subscription.deleted, invoice.payment_failed
-
-### Access Control
-- [x] Subscription banner on all dashboard pages (trial countdown, expired, canceled, payment failed)
-- [x] Add Lead button disabled with tooltip when no active subscription
-- [x] /dashboard/leads/new blocked (disabled button, not redirect)
-- [x] /quote/[companyId] shows "temporarily unavailable" when company not subscribed
-- [x] POST /api/leads and POST /api/leads/public gated (403 if inactive)
-- [x] Middleware: Stripe webhook + public leads routes added to allowlist
+## 2.8 Telnyx Number Provisioning (V1 Manual Ops Process)
+> V1 does NOT programmatically provision numbers. Full Telnyx Numbers API provisioning is a V2 feature.
+- [ ] Document ops runbook: log into Telnyx console → buy number → assign to TeXML app → paste number into business settings
+- [ ] Settings page has a "Your IntakePulse Number" field where the owner enters the provisioned number
+- [ ] This populates `businesses.telnyxPhoneNumber` — used by call/SMS webhooks to look up the business
+- [ ] Programmatic provisioning via Telnyx Numbers API deferred to V2
 
 ---
 
-## 1.10 Infrastructure & Deployment
+# SESSION 3: TELNYX INTEGRATION
 
-### Inngest Setup
-- [x] Install Inngest: `npm install inngest`
-- [x] Create `/src/lib/inngest/client.ts`
-- [x] Create `/src/app/api/inngest/route.ts` — Inngest serve endpoint
-- [x] Create functions:
-  - `src/lib/inngest/functions/quote-expiration.ts` — daily, expires overdue quotes
-  - `src/lib/inngest/functions/quote-nudge.ts` — daily, 48h follow-up nudge (painter + homeowner)
-  - `src/lib/inngest/functions/contract-nudge.ts` — daily, 72h follow-up nudge (painter + homeowner)
+> Build the telecom layer. Use Telnyx test mode throughout. Get missed-call → SMS → intake link chain working end-to-end before touching the intake form UI.
 
-### Deployment Checklist
-- [x] All env vars configured in Vercel
-- [x] Supabase production project created
-- [x] Database schema pushed to production
-- [x] Supabase storage buckets created in production
-- [x] Stripe live mode keys
-- [x] Clerk production instance
-- [x] Inngest production keys
-- [x] Resend production keys + verified domain
-- [x] OpenAI API key with billing enabled
-- [x] Custom domain configured (when ready)
-- [x] Vercel deployment successful, smoke test passing
+## 3.1 Telnyx Client
+- [ ] Install: `npm install @telnyx/node-client` (or use raw fetch — evaluate)
+- [ ] `src/lib/telnyx/client.ts` — Telnyx API client singleton
+- [ ] `src/lib/telnyx/webhooks.ts` — HMAC-SHA256 signature verification (NOT svix — different pattern)
+- [ ] Add env vars to `src/lib/env.ts`: `TELNYX_API_KEY`, `TELNYX_APP_ID`, `TELNYX_WEBHOOK_SECRET`
+- [ ] Add to `.env.example`
 
-### V1 Launch Testing
-- [x] End-to-end test: sign up → onboard → share link → homeowner submits form → painter sees lead
-- [x] AI estimate test with real photos through production pipeline
-- [x] Billing flow: trial → checkout → active subscription
-- [ ] Mobile test: lead form works perfectly on iPhone + Android
-- [x] Email notifications arriving
-- [ ] Follow-up emails triggering on schedule
-- [ ] Rate limiting working on public endpoints
+## 3.2 Rewrite SMS Layer
+- [ ] Rewrite `src/lib/sms.ts` — swap Twilio for Telnyx, keep `sendSms(to, body)` interface
+- [ ] Update env var checks: `TELNYX_API_KEY`, `TELNYX_PHONE_NUMBER` (or per-business)
+- [ ] Keep `SMS_FEATURE_ENABLED` kill switch
+- [ ] New message templates: `smsMissedCallRecovery(businessName, intakeUrl)`, `smsFollowup(businessName, intakeUrl)`, `smsReply(body)` (inbound)
 
----
+## 3.3 Call Webhook Handler
+- [ ] Create `src/app/api/telnyx/call/route.ts`
+- [ ] Verify Telnyx signature on every request
+- [ ] Handle `call.initiated` — create call record
+- [ ] Handle `call.answered` — update call status, stop missed-call timer
+- [ ] Handle `call.hangup` — if never answered: mark missed, fire Inngest `call.missed` event
+- [ ] Look up business by `to` phone number (Telnyx number)
+- [ ] Create lead record on missed call with `callerPhone` from event
 
-# PHASE 2: V1.5 — TRACTION FEATURES
+## 3.4 SMS Webhook Handler
+- [ ] Create `src/app/api/telnyx/sms/route.ts`
+- [ ] Verify Telnyx signature
+- [ ] Handle inbound SMS — look up lead by `from` phone, store in `sms_events`
+- [ ] If inbound reply: cancel pending followups (fire Inngest `sms.reply` event)
 
-> **Goal:** Features that increase retention and differentiation. Build after V1 has 5-10 paying users.
-
-## 2.1 Missed-Call Text-Back (Twilio)
-- [ ] Twilio account setup + A2P 10DLC brand registration (10-15 day process)
-- [ ] Purchase Twilio phone numbers (one per painter)
-- [ ] Call forwarding setup: Twilio number → painter's cell
-- [ ] Missed call detection → auto-SMS to caller with lead form link
-  - "Hi! Thanks for calling [Business Name]. We're currently on a job. Get a quick quote here: [link]"
-- [ ] SMS webhook handling for responses
-- [ ] Twilio number management in company settings
-- [ ] Add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` to env
-- [ ] Database: add `twilio_phone_number` to companies table
-- [ ] Inngest function: `call.missed` → send text-back
-
-## 2.2 SMS Notifications for Painters
-- [ ] New lead SMS alert to painter (not just email)
-- [ ] Quick-reply SMS: painter can text back status updates
-- [ ] SMS opt-in/out for painter notifications
-
-## 2.3 Embeddable Website Widget
-- [ ] JavaScript snippet painters can add to their existing website
-- [ ] Floating button → opens lead form in modal/slide-in
-- [ ] Customizable button color/text
-- [ ] Widget builder in dashboard settings
-- [ ] CDN-hosted widget JS for fast loading
-- [ ] CORS-enabled API for cross-origin form submission
-
-## 2.4 Improved Color Visualization
-- [ ] If OpenAI quality insufficient: migrate to Replicate (ControlNet SDXL + SAM)
-- [ ] Multiple color options per photo (generate 3 variations)
-- [ ] Shareable visualization link (painter sends to homeowner)
-- [ ] Color visualization in public lead form (homeowner uploads photo → picks colors → wow factor)
-- [ ] Popular paint brand color matching (Sherwin-Williams, Benjamin Moore presets)
-
-## 2.5 Enhanced Estimate Builder
-- [ ] Manual estimate calculator alongside AI estimates
-- [ ] Room-by-room line items
-- [ ] Customizable rates per surface type
-- [ ] Material calculator (gallons needed based on sqft + coats)
-- [ ] PDF estimate/proposal generation (branded with painter's logo)
-- [ ] Send estimate to homeowner via email
+## 3.5 Middleware Update
+- [ ] Confirm `/api/telnyx(.*)` is in public routes (done in Session 0, verify here)
 
 ---
 
-# PHASE 3: V2 — FULL WORKFLOW PLATFORM
+# SESSION 4: INTAKE FORM
 
-> **Goal:** Transform from lead capture tool into full business management platform. Build at ~50+ paying users / $3,500+ MRR.
+> Build the public mobile-first intake form at `/intake/[businessId]`. This is what gets texted to the missed caller.
 
-## 3.1 Job Status Pipeline
-- [ ] Drag-and-drop Kanban board for lead/job stages
-- [ ] Stages: New → Contacted → Quoted → Scheduled → In Progress → Completed → Paid
-- [ ] Custom stages (painter can rename/add)
-- [ ] Stage change triggers (auto-email homeowner on status change)
-- [ ] Pipeline analytics (conversion rates per stage)
+## 4.1 Intake Form Page
+- [ ] Create `src/app/intake/[businessId]/page.tsx` — public, no auth
+- [ ] Fetch business info + vertical config for the businessId
+- [ ] If business not found or not subscribed: show "This form is no longer available"
+- [ ] Pass vertical questions to client component
 
-## 3.2 Scheduling & Calendar
-- [ ] Job calendar view (daily/weekly/monthly)
-- [ ] Schedule jobs from lead detail page
-- [ ] Customer self-schedule link (painter shares available slots)
-- [ ] Google Calendar integration (2-way sync)
-- [ ] Appointment confirmation emails/SMS
-- [ ] Reschedule/cancel handling
+## 4.2 Intake Form Client Component
+- [ ] Create `src/app/intake/[businessId]/_form.tsx` — `"use client"`
+- [ ] Mobile-first MCQ card flow (one question per screen)
+- [ ] Progress bar (question X of Y)
+- [ ] Question types: single-select cards, multi-select, text input, phone input
+- [ ] Conditional logic: show/hide questions based on prior answers (from `conditional` field in vertical config)
+- [ ] Step 0 — name, phone, and SMS consent checkbox: "By proceeding you agree to receive texts from [BusinessName] regarding your inquiry." (required — cannot advance without checking)
+- [ ] All answers held in local state until submission — no auto-save per step
+- [ ] Final step — confirmation screen: "We have everything we need. [BusinessName] will be in touch shortly."
+- [ ] On final submit: single POST to `/api/intake/[businessId]/submit` with all answers + name + phone + smsConsent=true
 
-## 3.3 Invoicing & Payments
-- [ ] Invoice generation from lead/quote data
-- [ ] Branded invoice PDF
-- [ ] Stripe Connect for payment collection (painter receives payment, platform takes 0.5% fee)
-- [ ] Online payment link sent to homeowner
-- [ ] Payment status tracking
-- [ ] Payment follow-up drip: day 3, day 7, day 14+ for unpaid invoices
-- [ ] ACH and card support
+## 4.3 Intake API Routes
+- [ ] `POST /api/intake/[businessId]/submit` — create/find lead by phone, write all answers as single `intakeAnswers` jsonb object on the lead record, mark `intake_completed`, fire Inngest `intake.completed` event
+- [ ] Rate limit by IP — use **Upstash Redis** rate limiter (not in-memory Map — in-memory resets on each serverless invocation and doesn't work across Vercel instances)
+- [ ] Add `@upstash/ratelimit` and `@upstash/redis` to dependencies; add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to env
+- [ ] Add `/api/intake(.*)` to public routes in middleware
+- [ ] No partial-save endpoints needed in V1
 
-## 3.4 Automated Review Requests
-- [ ] Post-payment: auto-send review request to homeowner
-- [ ] Google review link integration
-- [ ] Yelp, Facebook review routing
-- [ ] Rating-based routing (4-5 stars → Google, 1-3 → private feedback)
-- [ ] Review tracking in dashboard
-
-## 3.5 Multi-Tier Pricing
-- [ ] Introduce pricing tiers when feature set warrants it:
-  - **Starter ($49/mo):** Lead capture, basic dashboard, 10 AI estimates/mo
-  - **Pro ($79/mo):** Everything + missed-call text-back, unlimited AI, color viz, follow-up automation
-  - **Growth ($149/mo):** Everything + invoicing, payments, scheduling, analytics, priority support
-- [ ] Stripe product/price management for multiple tiers
-- [ ] Feature gating middleware based on subscription tier
-- [ ] Upgrade/downgrade flows
+## 4.4 Seed Restoration Vertical Questions
+- [ ] Define restoration question set in `scripts/seed-verticals.ts`:
+  - `damage_type`: Water / Fire / Mold (single-select)
+  - `water_category`: Category 1 (clean) / Category 2 (gray) / Category 3 (black) — conditional on water
+  - `affected_rooms`: multiselect (living room, bedroom, bathroom, kitchen, basement, etc.)
+  - `flooring_type`: Hardwood / Carpet / Tile / Concrete / Mixed
+  - `has_insurance`: Yes — filing claim / Yes — paying out of pocket / No / Unsure
+  - `time_since_damage`: Less than 24 hours / 1-3 days / 3-7 days / Over a week
+  - `active_leak`: Is water still entering? Yes / No
+  - `emergency_severity`: 1-5 scale card (1=minor, 5=structural risk)
+- [ ] Re-run seed: `npx tsx scripts/seed-verticals.ts`
 
 ---
 
-# PHASE 4: V3 — SCALE & EXPAND
+# SESSION 5: SCORING AND AI ASSESSMENT
 
-> **Goal:** Multi-user, multi-trade, analytics-heavy. Build at ~200+ customers / $10K+ MRR.
+> Build the rule-based scoring engine and replace `estimate.ts` with the new AI assessment layer.
 
-## 4.1 Post-Job Reporting
-- [ ] Automated completion report sent to homeowner
-- [ ] Before/after photo gallery
-- [ ] Work summary and materials used
-- [ ] Shareable report link (homeowner can share with neighbors)
+## 5.1 Lead Scoring Engine (Deterministic — No AI)
+- [ ] Create `src/lib/leads/scoring.ts`
+- [ ] `scoreLeadFromAnswers(answers: Record<string, string>, rules: ScoringRule[]): ScoringResult`
+- [ ] Generic engine — reads rules from vertical config JSON, applies them to answers. No vertical-specific code in this file.
+- [ ] Rule application: for each rule, if `answers[rule.answerKey] === rule.answerValue`, add the bonuses
+- [ ] Sum urgency bonuses → normalize to 1–10. Sum quality bonuses → normalize to 1–100. Sum value bonuses → low/high range in cents.
+- [ ] Restoration example rules (stored as JSON in vertical_configs, NOT hardcoded here):
+  - `{ answerKey: "water_category", answerValue: "cat_2", urgencyBonus: 3 }`
+  - `{ answerKey: "water_category", answerValue: "cat_3", urgencyBonus: 3 }`
+  - `{ answerKey: "flooring_type", answerValue: "hardwood", urgencyBonus: 2, valueBonus: 200000 }`
+  - `{ answerKey: "active_leak", answerValue: "yes", urgencyBonus: 3 }`
+  - `{ answerKey: "has_insurance", answerValue: "yes_filing", qualityBonus: 20 }`
+  - `{ answerKey: "time_since_damage", answerValue: "under_24h", urgencyBonus: 2 }`
+  - `{ answerKey: "emergency_severity", answerValue: "4", urgencyBonus: 2 }`
+  - `{ answerKey: "emergency_severity", answerValue: "5", urgencyBonus: 2 }`
+- [ ] Return `{ urgencyScore: number, qualityScore: number, estimatedValueLow: number | null, estimatedValueHigh: number | null }`
+- [ ] Adding PI law or HVAC later = write new rules as JSON in vertical_configs seed. Zero code changes to this file.
 
-## 4.2 Crew Management
-- [ ] Multi-user accounts (owner + crew members)
-- [ ] Role-based access (admin, estimator, painter)
-- [ ] Job assignment to crew members
-- [ ] Crew schedule view
-- [ ] GPS check-in/check-out at job sites
-- [ ] Time tracking per job
+## 5.2 AI Reasoning Pass (GPT for Text Only — Not Scores)
+- [ ] Create `src/lib/leads/assess.ts`
+- [ ] `generateReasoning(answers: Record<string, string>, scores: ScoringResult, promptTemplate: string): Promise<ReasoningResult>`
+- [ ] GPT receives: the already-computed scores (numbers are fixed), all intake answers, and the vertical's prompt template
+- [ ] GPT's only job: write the plain-English explanation of WHY the scores are what they are
+- [ ] Prompt instructs GPT: "The urgency score is [X]. Explain in 1-2 sentences why, using the following answers: [answers]. Do not change the score."
+- [ ] Response shape (text only, no scores): `{ urgencyReasoning: string, qualityReasoning: string, recommendedActions: string[] }`
+- [ ] Save full record to `ai_assessments`: reasoning + raw response + model
+- [ ] Write scores to `leads`: `urgencyScore`, `qualityScore`, `estimatedValueLow`, `estimatedValueHigh` — these come from the formula, not from GPT
 
-## 4.3 Advanced Analytics
-- [ ] Job profitability reports (revenue vs. estimated labor/materials)
-- [ ] Lead source ROI (which channels bring the best leads?)
-- [ ] Seasonal trend analysis
-- [ ] Revenue forecasting
-- [ ] Customer lifetime value tracking
-- [ ] Export to CSV/PDF
+## 5.3 Wire Assessment to Intake Completion
+- [ ] In Inngest `intake.completed` handler — trigger `assessLead()` as background step
+- [ ] Update lead status to `qualified` after assessment completes
 
-## 4.4 Inventory & Materials
-- [ ] Paint inventory tracking
-- [ ] Material cost per job
-- [ ] Supplier price book
-- [ ] Auto-generate supply lists for upcoming jobs
-- [ ] Low-stock alerts
+---
 
-## 4.5 Multi-Trade Expansion
-- [ ] Flooring contractor support (material types, waste factors, room-by-room dimensions)
-- [ ] Exterior remodeling support (siding, windows, doors)
-- [ ] Trade-specific estimate templates
-- [ ] Trade-specific lead form fields
-- [ ] Rebrand to "Visual Trades" or broader name
+# SESSION 6: INNGEST FUNCTIONS
 
-## 4.6 Mobile App (PWA or Native)
-- [ ] Progressive Web App with offline support
-- [ ] Push notifications for new leads
-- [ ] Camera integration for job site photos
-- [ ] Quick lead status updates from field
-- [ ] If native needed: React Native / Expo
+> Delete the 3 CraftCapture cron functions. Write the 3 IntakePulse functions.
+
+## 6.1 Delete Old Functions
+- [ ] Already deleted in Session 0: `quote-nudge.ts`, `quote-expiration.ts`, `contract-nudge.ts`
+- [ ] Update `src/app/api/inngest/route.ts` — remove old function registrations
+
+## 6.2 Missed Call Recovery Function
+- [ ] Create `src/lib/inngest/functions/missed-call-recovery.ts`
+- [ ] Triggered by event: `call.missed`
+- [ ] Step 1: look up business + lead
+- [ ] Step 2: generate intake URL (`{APP_URL}/intake/{businessId}?lead={leadId}`)
+- [ ] Step 3: send SMS via `sendSms()` with missed-call recovery template
+- [ ] Step 4: create `sms_events` record
+- [ ] Step 5: schedule followup sequence (send `followup.schedule` event with leadId)
+
+## 6.3 Follow-up Sequence Function
+- [ ] Create `src/lib/inngest/functions/followup-sequence.ts`
+- [ ] Triggered by event: `followup.schedule`
+- [ ] V1: single follow-up only — `step.sleepUntil()` for +4 hour delay (restoration is emergency vertical — 1hr is too soon, 24hr is too late; 4hr catches them after initial chaos settles but before they've committed to a competitor)
+- [ ] Before sending: check `followups` table — skip if `canceledAt` is set
+- [ ] Before sending: verify `leads.smsConsent = true` — never send follow-up without explicit consent
+- [ ] Send SMS, update `followups` record `sentAt`
+- [ ] Cancel trigger: inbound `sms.reply` event or `intake.completed` event
+- [ ] Structure supports multiple sequences (check `sequence` field) so V2 multi-step just adds more steps here — no schema change needed
+
+## 6.4 AI Assessment Function
+- [ ] Create `src/lib/inngest/functions/ai-assessment.ts`
+- [ ] Triggered by event: `intake.completed`
+- [ ] Step 1: fetch lead + `intakeAnswers` jsonb + business vertical
+- [ ] Step 2: fetch `scoringRules` and `aiPromptTemplate` from `vertical_configs` for the vertical
+- [ ] Step 3: run `scoreLeadFromAnswers()` — deterministic, instant, no API call. Produces the numbers.
+- [ ] Step 4: run `generateReasoning()` — GPT call with scores already fixed. Produces the text.
+- [ ] Step 5: save to `ai_assessments` (reasoning + raw response + model)
+- [ ] Step 6: update `leads` with scores (from formula) + status `qualified`
+- [ ] Step 7: send lead packet email to business owner (see template definition in 6.6)
+
+## 6.6 Lead Packet Email Template
+> The most important email in the product — arrives on the owner's phone at 2am when a restoration job just came in.
+- [ ] Add `sendLeadPacketEmail(business, lead, assessment)` to `src/lib/email/notifications.ts`
+- [ ] Template content (in order):
+  - **Header:** "New Qualified Lead — [urgency label: Critical / High / Medium]" with urgency score badge
+  - **Caller:** name (if captured) + phone number as `tel:` link — one tap to call
+  - **Estimated job value:** "$X,XXX – $X,XXX" range
+  - **AI Summary:** `urgencyReasoning` in plain English (e.g. "Category 2 water with hardwood floors — delamination risk within 48 hours.")
+  - **Recommended actions:** bulleted list from `recommendedActions`
+  - **Intake answers:** key/value list of all answers (damage type, rooms, flooring, insurance, etc.)
+  - **CTA button:** "View Full Lead" → `/dashboard/leads/[id]`
+  - **Secondary CTA:** "Call Now" → `tel:[callerPhone]`
+- [ ] Keep email failure non-blocking (Promise.allSettled pattern from existing notifications.ts)
+
+## 6.5 Register Functions
+- [ ] Update `src/app/api/inngest/route.ts` — register all 3 new functions
+
+---
+
+# SESSION 7: DASHBOARD
+
+> Replace CraftCapture dashboard with IntakePulse leads recovery dashboard.
+
+## 7.1 Dashboard Home Page
+- [ ] Rewrite `src/app/(authenticated)/dashboard/page.tsx`
+- [ ] Metrics strip (4 cards):
+  - Recovered leads this month
+  - Avg response time (missed → SMS sent)
+  - Intake completion rate
+  - Estimated recovered revenue
+- [ ] Recent leads table (last 10, link to detail)
+- [ ] Quick actions: "Add lead manually", "View all leads"
+
+## 7.2 Leads List Page
+- [ ] Rewrite `src/app/(authenticated)/dashboard/leads/page.tsx`
+- [ ] Table columns: caller, source (missed call / embed / email / manual), timestamp, urgency badge, score, estimated value, status
+- [ ] Status badges: `sms_sent`, `intake_started`, `intake_completed`, `qualified`, `converted`, `lost`
+- [ ] Urgency indicator (color-coded 1-10)
+- [ ] Filters: missed calls, completed intake, high urgency (7+), uncontacted, converted
+- [ ] Search by name/phone
+- [ ] Pagination (25/page)
+
+## 7.3 Lead Detail Page
+- [ ] Rewrite `src/app/(authenticated)/dashboard/leads/[id]/page.tsx`
+- [ ] Left column: caller info, call timeline, SMS history, intake answers (collapsible per section)
+- [ ] Right column: AI assessment card (urgency score, quality score, estimated value, reasoning, recommended actions), status selector, notes
+- [ ] Quick actions: "Call lead" (tel: link), "Send SMS", "Mark Won", "Mark Lost", "Pause automation", "Schedule callback"
+- [ ] Follow-up status: show pending/sent/canceled follow-ups with timestamps
+
+## 7.4 Update Lead API Routes
+- [ ] Rename/rewrite `src/app/api/leads/route.ts` — update all column names (businessId, callerName, callerPhone, urgencyScore, etc.)
+- [ ] `GET /api/leads` — add urgency/score sort options, status filter for new statuses
+- [ ] `PATCH /api/leads/[id]` — update status, notes, convertedAt
+- [ ] `DELETE /api/leads/[id]` — keep ownership check
+
+## 7.5 Manual Lead Creation
+- [ ] Rewrite `src/app/(authenticated)/dashboard/leads/new/page.tsx`
+- [ ] Fields: caller name, phone, source (manual), notes
+- [ ] Option: "Send intake link via SMS" checkbox
+
+---
+
+# SESSION 8: LANDING PAGE + LEGAL
+
+> Replace CraftCapture marketing content with IntakePulse positioning.
+
+## 8.1 Landing Page
+- [ ] Rewrite `src/app/page.tsx` for restoration/high-ticket service audience
+- [ ] Hero: "No inbound lead ever goes unanswered." + CTA
+- [ ] How it works: 4 steps (missed call → SMS → intake → scored lead packet)
+- [ ] Pricing: Starter $299, Growth $499, Pro $799 with feature comparison
+- [ ] Social proof / vertical examples (restoration, PI law, HVAC)
+- [ ] FAQ
+
+## 8.2 Embeddable HTML Form Widget
+> Businesses can embed the intake form on their own website as a floating button or inline form. Source tag = `embed`.
+
+- [ ] Create `src/app/api/widget/[businessId]/route.ts` — returns a small JS snippet (served as `text/javascript`)
+- [ ] Snippet injects an iframe pointing to `/intake/[businessId]?source=embed` into the page
+- [ ] Widget builder in settings: copy-paste `<script>` tag
+- [ ] The intake form detects `source=embed` param and passes it through to the lead record on submit
+- [ ] No CORS issues — iframe loads from IntakePulse domain
+
+## 8.3 Legal Pages
+- [ ] Rewrite `src/app/legal/terms/page.tsx` — IntakePulse terms
+- [ ] Rewrite `src/app/legal/privacy/page.tsx` — IntakePulse privacy
+- [ ] Rewrite `src/app/legal/sms/page.tsx` — A2P SMS compliance disclosure (required for 10DLC)
+- [ ] Remove `src/app/legal/refunds/page.tsx` or rewrite
+
+## 8.4 Stripe Pricing Update
+- [ ] Create 3 Stripe products: Starter ($299), Growth ($499), Pro ($799) in Stripe dashboard
+- [ ] Update env: `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_GROWTH`, `STRIPE_PRICE_PRO`
+- [ ] Update `src/app/api/stripe/checkout/route.ts` — accept tier param
+- [ ] Update billing page to show tier name
+
+---
+
+# SESSION 9: DEPLOYMENT & LAUNCH PREP
+
+## 9.1 Environment Variables
+- [ ] Add all new vars to `.env.example`: `TELNYX_API_KEY`, `TELNYX_APP_ID`, `TELNYX_WEBHOOK_SECRET`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_GROWTH`, `STRIPE_PRICE_PRO`
+- [ ] Remove old vars from `.env.example`: `TWILIO_*`, `NEXT_PUBLIC_STRIPE_PRICE_ID`
+
+## 9.2 Deployment Checklist
+- [ ] All env vars set in Vercel
+- [ ] Telnyx webhook URLs configured (call + SMS)
+- [ ] Stripe live mode with 3 price IDs
+- [ ] Inngest production connected
+- [ ] Database schema pushed to production
+- [ ] Smoke test: provision test number → missed call → SMS fires → intake opens → lead appears in dashboard
+
+---
+
+# PARALLEL TRACK: TELNYX A2P 10DLC REGISTRATION (DO IMMEDIATELY)
+
+> This takes 2-3 weeks and cannot be sped up. Register now so it's approved by the time the code is done.
+
+- [ ] Create Telnyx account at telnyx.com
+- [ ] Register Brand under Messaging → Regulatory
+- [ ] Register Campaign (use case: mixed/lead recovery, website: app URL)
+- [ ] Purchase a test number for development
+- [ ] Await approval (~2-3 weeks)
 
 ---
 
 # TECHNICAL REFERENCE
 
-## Environment Variables (Full List)
+## Key File Paths
+
+```
+src/
+├── app/
+│   ├── page.tsx                              # Marketing landing page (rewrite)
+│   ├── intake/[businessId]/page.tsx          # Public intake form (new)
+│   ├── (authenticated)/
+│   │   ├── onboarding/page.tsx               # Onboarding (rewrite)
+│   │   └── dashboard/
+│   │       ├── page.tsx                      # Dashboard home (rewrite)
+│   │       ├── leads/
+│   │       │   ├── page.tsx                  # Leads list (rewrite)
+│   │       │   └── [id]/page.tsx             # Lead detail (rewrite)
+│   │       ├── settings/page.tsx             # Settings (update)
+│   │       └── billing/page.tsx              # Billing (keep, minor copy update)
+│   └── api/
+│       ├── telnyx/
+│       │   ├── call/route.ts                 # Telnyx call webhook (new)
+│       │   └── sms/route.ts                  # Telnyx SMS webhook (new)
+│       ├── intake/
+│       │   └── [businessId]/
+│       │       └── submit/route.ts           # Single submit endpoint (new)
+│       ├── leads/                            # Keep, update schema refs
+│       ├── business/route.ts                 # Replace /api/company (new)
+│       ├── inngest/route.ts                  # Update function registrations
+│       └── stripe/                           # Keep, update table refs
+├── lib/
+│   ├── db/
+│   │   └── schema/
+│   │       ├── businesses.ts                 # New
+│   │       ├── leads.ts                      # Rewrite
+│   │       ├── calls.ts                      # New
+│   │       ├── smsEvents.ts                  # New
+│   │       ├── verticalConfigs.ts            # New
+│   │       ├── followups.ts                  # New
+│   │       └── aiAssessments.ts              # New
+│   ├── telnyx/
+│   │   ├── client.ts                         # New
+│   │   └── webhooks.ts                       # New (HMAC-SHA256, not svix)
+│   ├── leads/
+│   │   ├── scoring.ts                        # New
+│   │   └── assess.ts                         # Replaces estimate.ts
+│   ├── sms.ts                                # Rewrite (Telnyx provider)
+│   ├── subscription.ts                       # Keep, update companies→businesses import
+│   └── inngest/functions/
+│       ├── missed-call-recovery.ts           # New
+│       ├── followup-sequence.ts              # New
+│       └── ai-assessment.ts                  # New
+```
+
+## Environment Variables
 
 ```
 # App
 NEXT_PUBLIC_APP_URL=
-NEXT_PUBLIC_ENABLE_AUTH=true
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
@@ -617,7 +617,9 @@ CLERK_WEBHOOK_SECRET=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_STRIPE_PRICE_ID=
+STRIPE_PRICE_STARTER=
+STRIPE_PRICE_GROWTH=
+STRIPE_PRICE_PRO=
 
 # OpenAI
 OPENAI_API_KEY=
@@ -630,112 +632,33 @@ INNGEST_SIGNING_KEY=
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=
 
-# Twilio (V1.5+)
-TWILIO_ACCOUNT_SID=
-TWILIO_AUTH_TOKEN=
-TWILIO_PHONE_NUMBER=
+# Telnyx
+TELNYX_API_KEY=
+TELNYX_APP_ID=
+TELNYX_WEBHOOK_SECRET=
+
+# Upstash Redis (rate limiting — works correctly across serverless instances)
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
+# Feature flags
+SMS_FEATURE_ENABLED=false
 
 # Cron
 CRON_SECRET=
 ```
 
-## Key File Paths (Planned)
+## State Machine
 
 ```
-src/
-├── app/
-│   ├── page.tsx                          # Marketing landing page
-│   ├── quote/[companyId]/page.tsx        # Public lead capture form
-│   ├── (authenticated)/
-│   │   ├── dashboard/
-│   │   │   ├── page.tsx                  # Dashboard home
-│   │   │   ├── leads/
-│   │   │   │   ├── page.tsx              # Leads list
-│   │   │   │   └── [id]/page.tsx         # Lead detail
-│   │   │   ├── analytics/page.tsx        # Analytics
-│   │   │   ├── settings/page.tsx         # Company settings
-│   │   │   └── billing/page.tsx          # Billing (exists)
-│   │   ├── onboarding/page.tsx           # Onboarding (exists, redesign)
-│   │   └── tools/
-│   │       ├── estimate-test/page.tsx    # Phase 0: AI estimate testing
-│   │       └── color-test/page.tsx       # Phase 0: Color viz testing
-│   └── api/
-│       ├── leads/
-│       │   ├── route.ts                  # CRUD leads (authed)
-│       │   ├── [id]/route.ts             # Lead detail (authed)
-│       │   └── public/route.ts           # Public lead submission
-│       ├── ai/
-│       │   ├── estimate/route.ts         # AI photo estimate
-│       │   └── visualize/route.ts        # AI color visualization
-│       ├── analytics/route.ts            # Analytics aggregation
-│       ├── company/route.ts              # Company profile CRUD
-│       ├── inngest/route.ts              # Inngest serve
-│       ├── stripe/                       # (exists)
-│       └── webhooks/                     # (exists)
-├── lib/
-│   ├── db/
-│   │   ├── schema/
-│   │   │   ├── companies.ts
-│   │   │   ├── leads.ts
-│   │   │   ├── lead-photos.ts
-│   │   │   ├── visualizations.ts
-│   │   │   └── follow-ups.ts
-│   │   └── queries/
-│   │       ├── companies.ts
-│   │       ├── leads.ts
-│   │       └── follow-ups.ts
-│   ├── openai.ts                         # OpenAI client
-│   ├── inngest/
-│   │   ├── client.ts
-│   │   └── functions/
-│   │       ├── notify-new-lead.ts
-│   │       ├── lead-follow-up.ts
-│   │       └── generate-ai-estimate.ts
-│   ├── storage.ts                        # Supabase storage helpers
-│   └── resend.ts                         # Email client
-└── components/
-    ├── leads/
-    │   ├── LeadTable.tsx
-    │   ├── LeadCard.tsx
-    │   ├── LeadStatusBadge.tsx
-    │   └── LeadForm.tsx                  # Public form components
-    ├── dashboard/
-    │   ├── KpiCard.tsx
-    │   └── ActivityFeed.tsx
-    ├── ai/
-    │   ├── EstimateDisplay.tsx
-    │   ├── ColorVisualizer.tsx
-    │   └── PhotoUpload.tsx
-    └── ui/                               # Shadcn components
+Call initiated
+  → ringing
+  → answered (lead not created — call handled)
+  → missed
+    → sms_sent (Inngest: missed-call-recovery)
+      → intake_started (prospect opens form)
+        → intake_completed (all questions answered)
+          → qualified (Inngest: ai-assessment done)
+            → converted (business marks won)
+            → lost
 ```
-
-## Shadcn Components Needed
-
-```bash
-# Install all at once (run when starting Phase 1)
-npx shadcn@latest add button card input label select textarea badge
-npx shadcn@latest add table tabs dialog dropdown-menu
-npx shadcn@latest add form separator avatar progress
-npx shadcn@latest add tooltip popover command sheet
-```
-
----
-
-# DEVELOPMENT ORDER (Recommended)
-
-1. **Phase 0** — AI Spike (0.1, 0.2, 0.3) → 2-3 days
-2. **Phase 1.1** — Database schema → 1 day
-3. **Phase 1.3** — Public lead capture form → 2-3 days (most critical surface)
-4. **Phase 1.2** — Onboarding flow → 1 day
-5. **Phase 1.4** — Leads dashboard → 2-3 days
-6. **Phase 1.5** — AI integration (wire up from Phase 0) → 1 day
-7. **Phase 1.7** — Notifications & follow-up → 1-2 days
-8. **Phase 1.6** — Dashboard home & analytics → 1 day
-9. **Phase 1.8** — Marketing landing page → 1 day
-10. **Phase 1.9** — Stripe billing config → 0.5 day
-11. **Phase 1.10** — Infrastructure & deployment → 1 day
-12. **Launch V1 MVP** → beta test with 5-10 painters
-
-Total V1 estimate: ~2-3 weeks of focused development
-
----

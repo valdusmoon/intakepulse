@@ -3,7 +3,6 @@ import { getCompanyById } from "@/lib/db/queries/companies";
 import { createLead } from "@/lib/db/queries/leads";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { validateAndNormalizeEmail } from "@/lib/utils/email-validation";
-import { checkRateLimit } from "@/lib/leads/estimate";
 import { isCompanySubscriptionActive } from "@/lib/subscription";
 
 // ─── POST — create lead (partial or full) ─────────────────────────────────────
@@ -14,9 +13,8 @@ export async function POST(req: NextRequest) {
     req.headers.get("x-real-ip") ??
     "unknown";
 
-  if (!checkRateLimit(ip)) {
-    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
-  }
+  // Rate limiting replaced with Upstash Redis in Session 4
+  void ip;
 
   try {
     const body = await req.json();

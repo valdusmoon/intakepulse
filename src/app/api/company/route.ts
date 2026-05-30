@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { createCompany, getCompanyByClerkId, updateCompany } from "@/lib/db/queries/companies";
-import { createStaff } from "@/lib/db/queries/staff";
 import { sendSignupNotification, sendWelcomeEmail } from "@/lib/email/notifications";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { validateAndNormalizeEmail } from "@/lib/utils/email-validation";
@@ -48,16 +47,8 @@ export async function POST(req: NextRequest) {
     onboardingCompleted: true,
   });
 
-  // Auto-seed owner as first staff member so solo painters don't need to set up crew
-  await createStaff({
-    companyId: company.id,
-    name: ownerName,
-    phone: phoneResult.normalized!,
-    email: emailResult.normalized!,
-  });
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://craftcapture.com";
-  const quoteUrl = `${appUrl}/quote/${company.id}`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://intakepulse.com";
+  const quoteUrl = `${appUrl}/intake/${company.id}`;
 
   sendSignupNotification({ businessName, ownerName, ownerEmail: ownerEmail ?? "", ownerPhone });
   sendWelcomeEmail({ ownerName, ownerEmail: ownerEmail ?? "", businessName, quoteUrl });

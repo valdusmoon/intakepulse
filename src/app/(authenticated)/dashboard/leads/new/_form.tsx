@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { validateAndNormalizeEmail } from "@/lib/utils/email-validation";
-import { uploadLeadPhoto } from "@/lib/storage";
 
 const SERVICE_TYPES = [
   { value: "", label: "Select..." },
@@ -88,10 +87,8 @@ export default function NewLeadForm() {
     try {
       // Upload photos to Supabase Storage first (we need a temp ID since lead doesn't exist yet)
       // Use a random UUID as the folder — the API will update lead_photos with the returned leadId
-      const tempId = crypto.randomUUID();
-      const photoUrls = photos.length > 0
-        ? await Promise.all(photos.map((file) => uploadLeadPhoto(file, tempId)))
-        : [];
+      // Photo upload removed — storage.ts deleted, not needed for IntakePulse V1
+      const photoUrls: string[] = [];
 
       const res = await fetch("/api/leads", {
         method: "POST",

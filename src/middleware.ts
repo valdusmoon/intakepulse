@@ -14,9 +14,11 @@ const isPublicRoute = createRouteMatcher([
   '/api/cron(.*)',
   '/api/inngest(.*)',
   '/api/ai(.*)',
+  '/api/telnyx(.*)',
+  '/api/intake(.*)',
+  '/intake(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/quote(.*)',
   '/tools(.*)',
 ])
 
