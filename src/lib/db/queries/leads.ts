@@ -2,21 +2,29 @@ import { and, desc, eq, ilike, isNull, or, sql, SQL } from "drizzle-orm";
 import { db } from "../index";
 import { leads, type NewLead } from "../schema/leads";
 
-// Queries will be fully replaced in Session 1 with IntakePulse-specific logic.
-// Stripped to remove references to deleted tables (lead-photos, quotes, contracts, staff).
-
 export async function createLead(data: NewLead) {
   const result = await db.insert(leads).values(data).returning();
   return result[0];
 }
 
 export async function getLeadById(id: string) {
-  const result = await db.select().from(leads).where(and(eq(leads.id, id), isNull(leads.deletedAt)));
-  return result[0] ?? null;
+  return db.query.leads.findFirst({
+    where: and(eq(leads.id, id), isNull(leads.deletedAt)),
+  }) ?? null;
 }
 
-export async function getLeadsByCompany(
-  companyId: string,
+export async function getLeadByPhoneAndBusiness(callerPhone: string, businessId: string) {
+  return db.query.leads.findFirst({
+    where: and(
+      eq(leads.callerPhone, callerPhone),
+      eq(leads.businessId, businessId),
+      isNull(leads.deletedAt),
+    ),
+  }) ?? null;
+}
+
+export async function getLeadsByBusiness(
+  businessId: string,
   opts: {
     status?: string;
     search?: string;
@@ -26,14 +34,13 @@ export async function getLeadsByCompany(
 ) {
   const { status, search, limit = 25, offset = 0 } = opts;
 
-  const filters: SQL[] = [eq(leads.companyId, companyId), isNull(leads.deletedAt)];
+  const filters: SQL[] = [eq(leads.businessId, businessId), isNull(leads.deletedAt)];
   if (status) filters.push(eq(leads.status, status));
   if (search) {
     filters.push(
       or(
-        ilike(leads.homeownerName, `%${search}%`),
-        ilike(leads.homeownerEmail, `%${search}%`),
-        ilike(leads.homeownerPhone, `%${search}%`)
+        ilike(leads.callerName, `%${search}%`),
+        ilike(leads.callerPhone, `%${search}%`),
       )!
     );
   }
@@ -49,7 +56,7 @@ export async function getLeadsByCompany(
 
 export async function updateLead(
   id: string,
-  data: Partial<Omit<NewLead, "id" | "companyId" | "createdAt">>
+  data: Partial<Omit<NewLead, "id" | "businessId" | "createdAt">>
 ) {
   const result = await db
     .update(leads)
@@ -63,26 +70,31 @@ export async function deleteLead(id: string) {
   await db.update(leads).set({ deletedAt: new Date() }).where(eq(leads.id, id));
 }
 
-export async function getLeadStats(companyId: string) {
+export async function getLeadStats(businessId: string) {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [row] = await db
     .select({
-      thisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${startOfMonth.toISOString()})`,
-      won: sql<number>`count(*) filter (where ${leads.status} in ('won', 'completed'))`,
-      quotedOrWon: sql<number>`count(*) filter (where ${leads.status} in ('quoted', 'won', 'completed'))`,
-      revenueWon: sql<number>`coalesce(sum(${leads.quotedAmount}) filter (where ${leads.status} in ('won', 'completed')), 0)`,
+      recoveredThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${startOfMonth.toISOString()} and ${leads.source} = 'missed_call')`,
+      intakeCompleted: sql<number>`count(*) filter (where ${leads.status} in ('intake_completed', 'qualified', 'converted'))`,
+      totalThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${startOfMonth.toISOString()})`,
+      converted: sql<number>`count(*) filter (where ${leads.status} = 'converted')`,
+      estimatedRevenue: sql<number>`coalesce(sum(${leads.estimatedValueHigh}) filter (where ${leads.status} = 'qualified' or ${leads.status} = 'converted'), 0)`,
     })
     .from(leads)
-    .where(eq(leads.companyId, companyId));
+    .where(eq(leads.businessId, businessId));
 
-  const conversionRate =
-    row.quotedOrWon > 0 ? Math.round((row.won / row.quotedOrWon) * 100) : null;
+  const intakeCompletionRate =
+    row.recoveredThisMonth > 0
+      ? Math.round((Number(row.intakeCompleted) / Number(row.recoveredThisMonth)) * 100)
+      : null;
 
   return {
-    thisMonth: Number(row.thisMonth),
-    revenueWon: Number(row.revenueWon),
-    conversionRate,
+    recoveredThisMonth: Number(row.recoveredThisMonth),
+    totalThisMonth: Number(row.totalThisMonth),
+    converted: Number(row.converted),
+    estimatedRevenue: Number(row.estimatedRevenue),
+    intakeCompletionRate,
   };
 }

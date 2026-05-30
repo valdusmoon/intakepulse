@@ -2,7 +2,7 @@
 
 **Product:** IntakePulse — Missed-call recovery and AI-powered intake infrastructure for high-ticket service businesses.
 **Last Updated:** 2026-05-29
-**Status:** Session 0 complete ✓ — Session 1 (Database Schema) next
+**Status:** Session 1 complete ✓ — Session 2 (Auth, Billing, Onboarding) next
 
 ### V1 Scope Decisions
 - **Verticals:** Restoration only in V1. Architecture uses JSON vertical config so any new vertical is a seed script, not a code change.

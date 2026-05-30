@@ -1,37 +1,41 @@
-import { boolean, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { companies } from "./companies";
+import { boolean, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { businesses } from "./businesses";
 
-// This schema will be fully replaced in Session 1 with the IntakePulse leads table.
-// Stripped to remove deleted staff/schedule/photo/quote/contract fields so typecheck passes.
 export const leads = pgTable("leads", {
   id: uuid("id").primaryKey().defaultRandom(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
+  businessId: uuid("business_id").notNull().references(() => businesses.id),
 
-  homeownerName: text("homeowner_name").notNull(),
-  homeownerEmail: text("homeowner_email"),
-  homeownerPhone: text("homeowner_phone").notNull(),
+  // Caller info — populated from Telnyx event immediately; name/email filled once intake completes
+  callerPhone: text("caller_phone").notNull(),
+  callerName: text("caller_name"),
+  callerEmail: text("caller_email"),
 
-  address: text("address"),
-  city: text("city"),
-  state: text("state"),
-  zip: text("zip"),
+  // How this lead entered the system
+  source: text("source").notNull().default("missed_call"), // 'missed_call' | 'embed' | 'email' | 'manual'
 
-  serviceType: text("service_type"),
-  description: text("description"),
-  preferredTimeline: text("preferred_timeline"),
+  // Telephony state (only relevant for missed_call source)
+  callStatus: text("call_status"), // 'initiated' | 'ringing' | 'answered' | 'missed'
 
-  status: text("status").notNull().default("new"),
+  // Business lifecycle state
+  status: text("status").notNull().default("sms_sent"), // 'sms_sent' | 'intake_started' | 'intake_completed' | 'qualified' | 'converted' | 'lost'
 
-  aiEstimateLow: integer("ai_estimate_low"),
-  aiEstimateHigh: integer("ai_estimate_high"),
-  aiConfidence: text("ai_confidence"),
+  // Scores — denormalized from ai_assessments for list view performance (no join needed)
+  urgencyScore: integer("urgency_score"),   // 1-10, set by scoring engine
+  qualityScore: integer("quality_score"),   // 1-100, set by scoring engine
+  estimatedValueLow: integer("estimated_value_low"),   // cents
+  estimatedValueHigh: integer("estimated_value_high"), // cents
 
-  quotedAmount: integer("quoted_amount"),
-  aiPhotoSummary: text("ai_photo_summary"),
+  // Intake answers stored as a single JSONB object keyed to vertical config question keys.
+  // e.g. { damage_type: "water", water_category: "cat_2", flooring: "hardwood", ... }
+  // Nullable — a lead exists before intake is completed (do not assume this is populated).
+  intakeAnswers: jsonb("intake_answers").$type<Record<string, string | string[]>>(),
+
+  // TCPA compliance — must be true before any follow-up SMS fires
+  smsConsent: boolean("sms_consent").notNull().default(false),
+
   notes: text("notes"),
-
-  smsConsent: boolean("sms_consent").default(false).notNull(),
-  confirmationSentAt: timestamp("confirmation_sent_at"),
+  followupPausedAt: timestamp("followup_paused_at"),
+  convertedAt: timestamp("converted_at"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
