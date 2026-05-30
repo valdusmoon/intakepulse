@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, isNull, or, sql, SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull, or, sql, SQL } from "drizzle-orm";
 import { db } from "../index";
 import { leads, type NewLead } from "../schema/leads";
 
@@ -20,6 +20,7 @@ export async function getLeadByPhoneAndBusiness(callerPhone: string, businessId:
       eq(leads.businessId, businessId),
       isNull(leads.deletedAt),
     ),
+    orderBy: asc(leads.createdAt),
   }) ?? null;
 }
 
