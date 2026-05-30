@@ -3,6 +3,11 @@
 import { useState } from "react";
 import type { Business } from "@/lib/db/schema/businesses";
 
+const APP_URL =
+  typeof window !== "undefined"
+    ? window.location.origin
+    : process.env.NEXT_PUBLIC_APP_URL ?? "https://app.intakepulse.com";
+
 type Section = "profile" | "phone";
 
 interface FieldGroupProps {
@@ -187,6 +192,96 @@ export function SettingsForm({ business }: { business: Business }) {
         </div>
       </FieldGroup>
 
+      {/* Embeddable Widget */}
+      <FieldGroup title="Website Widget">
+        <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+          Add a floating intake button to your website. Paste this script tag before{" "}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{"</body>"}</code>.
+        </p>
+        <WidgetEmbed businessId={business.id} />
+      </FieldGroup>
+
+    </div>
+  );
+}
+
+const WIDGET_MODES = [
+  { key: "popup", label: "Popup" },
+  { key: "inline", label: "Inline embed" },
+  { key: "button", label: "Button link" },
+] as const;
+
+type WidgetMode = (typeof WIDGET_MODES)[number]["key"];
+
+function WidgetEmbed({ businessId }: { businessId: string }) {
+  const [mode, setMode] = useState<WidgetMode>("popup");
+  const [copied, setCopied] = useState(false);
+
+  const intakeUrl = `${APP_URL}/intake/${businessId}`;
+
+  const snippets: Record<WidgetMode, string> = {
+    popup: `<script src="${APP_URL}/api/widget/${businessId}" defer></script>`,
+    inline: `<div data-ip-embed></div>\n<script src="${APP_URL}/api/widget/${businessId}?mode=inline" defer></script>`,
+    button: `<div data-ip-button></div>\n<script src="${APP_URL}/api/widget/${businessId}?mode=button" defer></script>`,
+  };
+
+  const descriptions: Record<WidgetMode, string> = {
+    popup: "Adds a floating orange button to your site. Clicking it opens the intake form in a modal overlay.",
+    inline: "Embeds the intake form directly on the page inside the div. Add the div wherever you want the form.",
+    button: "Injects a styled button that opens the intake form in a new tab. Drop the div anywhere on your page.",
+  };
+
+  const snippet = snippets[mode];
+
+  function copy() {
+    navigator.clipboard.writeText(snippet).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  }
+
+  return (
+    <div>
+      {/* Mode tabs */}
+      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-4 w-fit">
+        {WIDGET_MODES.map((m) => (
+          <button
+            key={m.key}
+            onClick={() => { setMode(m.key); setCopied(false); }}
+            className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+              mode === m.key
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Snippet box */}
+      <div className="bg-gray-900 rounded-lg px-4 py-3 text-xs font-mono text-green-400 whitespace-pre-wrap break-all leading-relaxed">
+        {snippet}
+      </div>
+
+      <div className="flex items-center gap-3 mt-3">
+        <button
+          onClick={copy}
+          className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          {copied ? "Copied ✓" : "Copy"}
+        </button>
+        <a
+          href={intakeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-orange-500 font-medium hover:text-orange-600"
+        >
+          Preview form ↗
+        </a>
+      </div>
+
+      <p className="text-xs text-gray-400 mt-3 leading-relaxed">{descriptions[mode]}</p>
     </div>
   );
 }

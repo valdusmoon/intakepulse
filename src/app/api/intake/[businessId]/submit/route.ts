@@ -103,7 +103,7 @@ export async function POST(
   }
 
   const body = await req.json();
-  const { leadId, callerName, callerPhone, smsConsent, answers } = body;
+  const { leadId, callerName, callerPhone, smsConsent, answers, source } = body;
 
   if (!callerName?.trim()) {
     return NextResponse.json({ error: "Name is required." }, { status: 400 });
@@ -144,9 +144,11 @@ export async function POST(
     // Cancel any pending follow-up — they engaged, no need to nudge
     void cancelFollowupsForLead(lead!.id, "intake_completed");
   } else {
+    const validSources = ["missed_call", "embed", "email", "manual"] as const;
+    const leadSource = validSources.includes(source) ? source : "embed";
     lead = await createLead({
       businessId,
-      source: "embed",
+      source: leadSource,
       ...intakePayload,
     });
   }

@@ -23,10 +23,10 @@ export default async function IntakePage({
   searchParams,
 }: {
   params: Promise<{ businessId: string }>;
-  searchParams: Promise<{ lead?: string }>;
+  searchParams: Promise<{ lead?: string; source?: string }>;
 }) {
   const { businessId } = await params;
-  const { lead: leadId } = await searchParams;
+  const { lead: leadId, source } = await searchParams;
 
   if (!UUID_RE.test(businessId)) {
     return <Unavailable message="This intake form is no longer available." />;
@@ -48,6 +48,7 @@ export default async function IntakePage({
       businessName={business.businessName}
       questions={config.questions}
       leadId={leadId}
+      source={source}
     />
   );
 }

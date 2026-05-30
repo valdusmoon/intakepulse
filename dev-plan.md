@@ -1,8 +1,8 @@
 # IntakePulse — Development Plan
 
 **Product:** IntakePulse — Missed-call recovery and AI-powered intake infrastructure for high-ticket service businesses.
-**Last Updated:** 2026-05-29
-**Status:** Session 2 complete ✓ — Session 3 (Telnyx Integration) next
+**Last Updated:** 2026-05-30
+**Status:** Session 8 (8.1 + 8.2) complete ✓ — Session 3 (Telnyx Integration) or Session 6 (Inngest) next
 
 ### V1 Scope Decisions
 - **Verticals:** Restoration only in V1. Architecture uses JSON vertical config so any new vertical is a seed script, not a code change.
@@ -484,33 +484,27 @@ CraftCapture V1 (painting contractor lead capture app) copied into this repo. Al
 > Replace CraftCapture marketing content with IntakePulse positioning.
 
 ## 8.1 Landing Page
-- [ ] Rewrite `src/app/page.tsx` for restoration/high-ticket service audience
-- [ ] Hero: "No inbound lead ever goes unanswered." + CTA
-- [ ] How it works: 4 steps (missed call → SMS → intake → scored lead packet)
-- [ ] Pricing: Starter $299, Growth $499, Pro $799 with feature comparison
-- [ ] Social proof / vertical examples (restoration, PI law, HVAC)
-- [ ] FAQ
+- [x] Rewrite `src/app/page.tsx` for restoration/high-ticket service audience
+- [x] Hero: "No inbound lead ever goes unanswered." + CTA
+- [x] How it works: 4 steps (missed call → SMS → intake → scored lead packet)
+- [x] Pricing: Starter $299, Growth $499, Pro $799 with feature comparison
+- [x] Social proof / vertical examples (restoration, PI law, HVAC)
+- [x] FAQ
 
 ## 8.2 Embeddable HTML Form Widget
 > Businesses can embed the intake form on their own website as a floating button or inline form. Source tag = `embed`.
 
-- [ ] Create `src/app/api/widget/[businessId]/route.ts` — returns a small JS snippet (served as `text/javascript`)
-- [ ] Snippet injects an iframe pointing to `/intake/[businessId]?source=embed` into the page
-- [ ] Widget builder in settings: copy-paste `<script>` tag
-- [ ] The intake form detects `source=embed` param and passes it through to the lead record on submit
-- [ ] No CORS issues — iframe loads from IntakePulse domain
+- [x] Create `src/app/api/widget/[businessId]/route.ts` — returns a small JS snippet (served as `text/javascript`)
+- [x] Snippet injects an iframe pointing to `/intake/[businessId]?source=embed` into the page — floating orange button, modal overlay, Escape to close
+- [x] Widget builder in settings: copy-paste `<script>` tag (Settings → Website Widget section)
+- [x] The intake form detects `source=embed` param and passes it through to the lead record on submit
+- [x] No CORS issues — iframe loads from IntakePulse domain
 
 ## 8.3 Legal Pages
-- [ ] Rewrite `src/app/legal/terms/page.tsx` — IntakePulse terms
-- [ ] Rewrite `src/app/legal/privacy/page.tsx` — IntakePulse privacy
-- [ ] Rewrite `src/app/legal/sms/page.tsx` — A2P SMS compliance disclosure (required for 10DLC)
-- [ ] Remove `src/app/legal/refunds/page.tsx` or rewrite
+> Skipped for now — defer to pre-launch.
 
 ## 8.4 Stripe Pricing Update
-- [ ] Create 3 Stripe products: Starter ($299), Growth ($499), Pro ($799) in Stripe dashboard
-- [ ] Update env: `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_GROWTH`, `STRIPE_PRICE_PRO`
-- [ ] Update `src/app/api/stripe/checkout/route.ts` — accept tier param
-- [ ] Update billing page to show tier name
+> Skipped for now — defer to pre-launch.
 
 ---
 

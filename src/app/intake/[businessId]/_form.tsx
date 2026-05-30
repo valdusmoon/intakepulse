@@ -11,6 +11,7 @@ interface IntakeFormProps {
   businessName: string;
   questions: VerticalQuestion[];
   leadId?: string;
+  source?: string;
 }
 
 // ─── Contact Info ─────────────────────────────────────────────────────────────
@@ -270,6 +271,7 @@ export function IntakeForm({
   businessName,
   questions,
   leadId,
+  source,
 }: IntakeFormProps) {
   const [step, setStep] = useState(0); // 0 = contact info; 1..N = questions
   const [callerName, setCallerName] = useState("");
@@ -324,6 +326,7 @@ export function IntakeForm({
           callerPhone,
           smsConsent: true,
           answers: finalAnswers,
+          source,
         }),
       });
       if (!res.ok) {
@@ -331,6 +334,10 @@ export function IntakeForm({
         throw new Error(data.error || "Submission failed. Please try again.");
       }
       setSubmitted(true);
+      // Notify parent (widget iframe) that form is complete so it can close the modal
+      if (window.parent !== window) {
+        window.parent.postMessage("ip:intake-complete", "*");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setLoading(false);
