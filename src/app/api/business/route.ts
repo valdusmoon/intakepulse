@@ -18,21 +18,22 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const {
-    businessName, ownerName, ownerEmail,
-    serviceArea, forwardingNumber, callTimeoutSeconds,
-  } = body;
+  const { businessName, ownerName, ownerEmail, ownerPhone, serviceArea, vertical } = body;
 
   if (!businessName || !ownerName) {
-    return NextResponse.json(
-      { error: "businessName and ownerName are required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "businessName and ownerName are required" }, { status: 400 });
   }
 
   const emailResult = validateAndNormalizeEmail(ownerEmail ?? "");
   if (ownerEmail && !emailResult.isValid) {
     return NextResponse.json({ error: emailResult.error }, { status: 422 });
+  }
+
+  let normalizedPhone: string | null = null;
+  if (ownerPhone) {
+    const phoneResult = validateAndNormalizePhone(ownerPhone);
+    if (!phoneResult.isValid) return NextResponse.json({ error: phoneResult.error }, { status: 422 });
+    normalizedPhone = phoneResult.normalized!;
   }
 
   const existing = await getBusinessByClerkId(userId);
@@ -42,9 +43,9 @@ export async function POST(req: NextRequest) {
       businessName,
       ownerName,
       ownerEmail: emailResult.normalized ?? existing.ownerEmail,
+      ownerPhone: normalizedPhone ?? existing.ownerPhone ?? null,
+      forwardingNumber: normalizedPhone ?? existing.forwardingNumber ?? null,
       serviceArea: serviceArea ?? null,
-      forwardingNumber: forwardingNumber ?? null,
-      callTimeoutSeconds: callTimeoutSeconds ?? 20,
       onboardingCompleted: true,
     });
     return NextResponse.json(updated, { status: 200 });
@@ -55,16 +56,16 @@ export async function POST(req: NextRequest) {
     businessName,
     ownerName,
     ownerEmail: emailResult.normalized ?? ownerEmail ?? "",
+    ownerPhone: normalizedPhone,
+    forwardingNumber: normalizedPhone,
     serviceArea: serviceArea ?? null,
-    forwardingNumber: forwardingNumber ?? null,
-    callTimeoutSeconds: callTimeoutSeconds ?? 20,
     onboardingCompleted: true,
   });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://intakepulse.com";
   const dashboardUrl = `${appUrl}/dashboard`;
 
-  void sendSignupNotification({ businessName, ownerName, ownerEmail: ownerEmail ?? "", ownerPhone: "" });
+  void sendSignupNotification({ businessName, ownerName, ownerEmail: ownerEmail ?? "", ownerPhone: normalizedPhone ?? "" });
   void sendWelcomeEmail({ ownerName, ownerEmail: ownerEmail ?? "", businessName, dashboardUrl });
 
   return NextResponse.json(business, { status: 201 });
@@ -79,16 +80,28 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json();
 
+  if (body.ownerPhone) {
+    const r = validateAndNormalizePhone(body.ownerPhone);
+    if (!r.isValid) return NextResponse.json({ error: r.error }, { status: 422 });
+    body.ownerPhone = r.normalized;
+  }
+
   if (body.forwardingNumber) {
-    const phoneResult = validateAndNormalizePhone(body.forwardingNumber);
-    if (!phoneResult.isValid) return NextResponse.json({ error: phoneResult.error }, { status: 422 });
-    body.forwardingNumber = phoneResult.normalized;
+    const r = validateAndNormalizePhone(body.forwardingNumber);
+    if (!r.isValid) return NextResponse.json({ error: r.error }, { status: 422 });
+    body.forwardingNumber = r.normalized;
+  }
+
+  if (body.telnyxPhoneNumber) {
+    const r = validateAndNormalizePhone(body.telnyxPhoneNumber);
+    if (!r.isValid) return NextResponse.json({ error: r.error }, { status: 422 });
+    body.telnyxPhoneNumber = r.normalized;
   }
 
   const allowed = [
     "businessName", "ownerName", "ownerPhone", "ownerEmail",
     "serviceArea", "websiteUrl", "timezone",
-    "telnyxPhoneNumber", "forwardingNumber", "callTimeoutSeconds",
+    "telnyxPhoneNumber", "forwardingNumber",
     "missedCallSmsTemplate", "notificationPreferences",
   ] as const;
   const safeBody = Object.fromEntries(

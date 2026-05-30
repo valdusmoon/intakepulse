@@ -4,14 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowLeft, Check, Phone, Building2, Droplets } from "lucide-react";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
+import { validateAndNormalizeEmail } from "@/lib/utils/email-validation";
 
 interface FormData {
   businessName: string;
   ownerName: string;
   ownerEmail: string;
+  ownerPhone: string;
   serviceArea: string;
   vertical: string;
-  forwardingNumber: string;
 }
 
 function StepDots({ current, total }: { current: number; total: number }) {
@@ -77,6 +78,14 @@ function Step1({
   function validate() {
     if (!form.businessName.trim()) return "Business name is required.";
     if (!form.ownerName.trim()) return "Your name is required.";
+    if (form.ownerEmail) {
+      const emailResult = validateAndNormalizeEmail(form.ownerEmail);
+      if (!emailResult.isValid) return emailResult.error ?? "Invalid email.";
+    }
+    if (form.ownerPhone) {
+      const phoneResult = validateAndNormalizePhone(form.ownerPhone);
+      if (!phoneResult.isValid) return phoneResult.error ?? "Invalid phone number.";
+    }
     return "";
   }
 
@@ -111,6 +120,26 @@ function Step1({
             onChange={(v) => update("ownerName", v)}
             placeholder="Mike Johnson"
           />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label>Your email</Label>
+            <Input
+              value={form.ownerEmail}
+              onChange={(v) => update("ownerEmail", v)}
+              placeholder="mike@example.com"
+              type="email"
+            />
+          </div>
+          <div>
+            <Label>Your phone number</Label>
+            <Input
+              value={form.ownerPhone}
+              onChange={(v) => update("ownerPhone", v)}
+              placeholder="+1 (555) 000-0000"
+              type="tel"
+            />
+          </div>
         </div>
         <div>
           <Label>Service area <span className="text-gray-400 font-normal">(optional)</span></Label>
@@ -236,8 +265,6 @@ function Step2({
 // ─── Step 3: Phone Config ──────────────────────────────────────────────────────
 
 function Step3({
-  form,
-  update,
   onBack,
   onSubmit,
   loading,
@@ -250,44 +277,35 @@ function Step3({
   loading: boolean;
   error: string;
 }) {
-  const [phoneError, setPhoneError] = useState("");
-
-  function handleSubmit() {
-    if (form.forwardingNumber) {
-      const ph = validateAndNormalizePhone(form.forwardingNumber);
-      if (!ph.isValid) { setPhoneError(ph.error ?? "Invalid phone number."); return; }
-    }
-    setPhoneError("");
-    onSubmit();
-  }
-
   return (
     <div>
       <div className="mb-8">
         <p className="text-xs font-semibold text-orange-500 uppercase tracking-widest mb-1">Step 3 of 3</p>
-        <h1 className="text-2xl font-bold text-gray-900">Phone setup</h1>
-        <p className="text-sm text-gray-500 mt-1">Configure how calls flow through IntakePulse.</p>
+        <h1 className="text-2xl font-bold text-gray-900">One last thing</h1>
+        <p className="text-sm text-gray-500 mt-1">How your IntakePulse number works.</p>
       </div>
 
-      <div className="space-y-5">
-        <div>
-          <Label>Forwarding number</Label>
-          <Input
-            value={form.forwardingNumber}
-            onChange={(v) => { setPhoneError(""); update("forwardingNumber", v); }}
-            placeholder="+1 (555) 000-0000"
-            type="tel"
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            Your IntakePulse number forwards calls here. If unanswered, missed-call recovery fires.
-          </p>
-          {phoneError && <p className="text-sm text-red-600 mt-1">{phoneError}</p>}
+      <div className="space-y-4">
+        <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 space-y-3">
+          {[
+            ["Missed call detected", "A prospect calls your IntakePulse number. If unanswered after ~20 seconds, recovery fires."],
+            ["SMS sent to prospect", "They receive a text with a link to your intake form."],
+            ["You get notified", `Once they complete the form, you receive an SMS and email with the scored lead.`],
+          ].map(([title, desc]) => (
+            <div key={title} className="flex gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-2 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-gray-900">{title}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
-          <p className="text-sm font-semibold text-blue-800 mb-1">Your IntakePulse number</p>
+          <p className="text-sm font-semibold text-blue-800 mb-1">Getting your number</p>
           <p className="text-xs text-blue-600">
-            After setup, email <span className="font-semibold">setup@intakepulse.com</span> and we'll provision your dedicated number within 1 business day. Paste it in Settings once you receive it.
+            Email <span className="font-semibold">setup@intakepulse.com</span> after finishing — we'll provision your dedicated number within 1 business day. Paste it in Settings once you have it.
           </p>
         </div>
       </div>
@@ -302,7 +320,7 @@ function Step3({
           <ArrowLeft className="w-4 h-4" />
         </button>
         <button
-          onClick={handleSubmit}
+          onClick={onSubmit}
           disabled={loading}
           className="flex-1 flex items-center justify-center gap-2 bg-orange-500 text-white font-semibold py-3 rounded-xl hover:bg-orange-600 disabled:opacity-60 transition-colors"
         >
@@ -365,9 +383,9 @@ export default function OnboardingPage() {
     businessName: "",
     ownerName: "",
     ownerEmail: "",
+    ownerPhone: "",
     serviceArea: "",
     vertical: "restoration",
-    forwardingNumber: "",
   });
 
   function update(field: keyof FormData, value: string | number) {
@@ -385,9 +403,10 @@ export default function OnboardingPage() {
           businessName: form.businessName,
           ownerName: form.ownerName,
           ownerEmail: form.ownerEmail || undefined,
+          ownerPhone: form.ownerPhone || undefined,
+          forwardingNumber: form.ownerPhone || undefined,
           serviceArea: form.serviceArea || undefined,
           vertical: form.vertical,
-          forwardingNumber: form.forwardingNumber || undefined,
         }),
       });
       if (!res.ok) {
