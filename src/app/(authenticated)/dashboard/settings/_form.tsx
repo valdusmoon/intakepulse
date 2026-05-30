@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Business } from "@/lib/db/schema/businesses";
 
-type Section = "profile" | "phone" | "sms";
+type Section = "profile" | "phone";
 
 interface FieldGroupProps {
   title: string;
@@ -104,11 +104,6 @@ export function SettingsForm({ business }: { business: Business }) {
   const [forwardingNumber, setForwardingNumber] = useState(business.forwardingNumber ?? "");
   const phone = useSave("phone");
 
-  // ── SMS ───────────────────────────────────────────────────────────────────
-  const defaultTemplate = `Hi! We missed your call at ${business.businessName}. To help us get back to you quickly, please fill out this brief form: {intake_url}`;
-  const [smsTemplate, setSmsTemplate] = useState(business.missedCallSmsTemplate ?? defaultTemplate);
-  const sms = useSave("sms");
-
   return (
     <div className="space-y-5">
 
@@ -178,31 +173,6 @@ export function SettingsForm({ business }: { business: Business }) {
             telnyxPhoneNumber: telnyxPhoneNumber || null,
             forwardingNumber: forwardingNumber || null,
           })}
-        />
-      </FieldGroup>
-
-      {/* SMS Template */}
-      <FieldGroup title="Missed-Call SMS Template">
-        <div>
-          <Label>Message body</Label>
-          <textarea
-            value={smsTemplate}
-            onChange={(e) => setSmsTemplate(e.target.value)}
-            rows={4}
-            className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            Use <code className="bg-gray-100 px-1 rounded">{"{"}{"{"}intake_url{"}"}{"}"}  </code> where the intake form link should appear. Keep under 160 characters to avoid multi-part SMS.
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Characters: <span className={smsTemplate.length > 160 ? "text-orange-500 font-semibold" : ""}>{smsTemplate.length}</span> / 160
-          </p>
-        </div>
-        {sms.error && <p className="mt-2 text-sm text-red-600">{sms.error}</p>}
-        <SaveButton
-          loading={sms.loading}
-          saved={sms.saved}
-          onClick={() => sms.save({ missedCallSmsTemplate: smsTemplate })}
         />
       </FieldGroup>
 
