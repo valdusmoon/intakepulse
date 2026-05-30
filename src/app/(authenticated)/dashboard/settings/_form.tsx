@@ -102,20 +102,12 @@ export function SettingsForm({ business }: { business: Business }) {
   // ── Phone ─────────────────────────────────────────────────────────────────
   const [telnyxPhoneNumber, setTelnyxPhoneNumber] = useState(business.telnyxPhoneNumber ?? "");
   const [forwardingNumber, setForwardingNumber] = useState(business.forwardingNumber ?? "");
-  const [callTimeoutSeconds, setCallTimeoutSeconds] = useState(business.callTimeoutSeconds);
   const phone = useSave("phone");
 
   // ── SMS ───────────────────────────────────────────────────────────────────
   const defaultTemplate = `Hi! We missed your call at ${business.businessName}. To help us get back to you quickly, please fill out this brief form: {intake_url}`;
   const [smsTemplate, setSmsTemplate] = useState(business.missedCallSmsTemplate ?? defaultTemplate);
   const sms = useSave("sms");
-
-  const timeoutLabel =
-    callTimeoutSeconds <= 15
-      ? "Quick (15s) — aggressive missed-call recovery"
-      : callTimeoutSeconds <= 25
-      ? "Standard — recommended"
-      : "Patient (45s) — more rings before recovery";
 
   return (
     <div className="space-y-5">
@@ -177,22 +169,6 @@ export function SettingsForm({ business }: { business: Business }) {
               Your IntakePulse number forwards calls here. If unanswered, missed-call recovery fires.
             </p>
           </div>
-          <div>
-            <Label>Missed-call timeout — <span className="font-normal text-gray-500">{callTimeoutSeconds}s</span></Label>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min={10}
-                max={45}
-                step={5}
-                value={callTimeoutSeconds}
-                onChange={(e) => setCallTimeoutSeconds(parseInt(e.target.value))}
-                className="flex-1 accent-orange-500"
-              />
-              <span className="text-sm font-semibold text-gray-900 w-10 text-right">{callTimeoutSeconds}s</span>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">{timeoutLabel}</p>
-          </div>
         </div>
         {phone.error && <p className="mt-2 text-sm text-red-600">{phone.error}</p>}
         <SaveButton
@@ -201,7 +177,6 @@ export function SettingsForm({ business }: { business: Business }) {
           onClick={() => phone.save({
             telnyxPhoneNumber: telnyxPhoneNumber || null,
             forwardingNumber: forwardingNumber || null,
-            callTimeoutSeconds,
           })}
         />
       </FieldGroup>

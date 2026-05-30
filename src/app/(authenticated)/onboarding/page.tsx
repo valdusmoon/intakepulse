@@ -12,7 +12,6 @@ interface FormData {
   serviceArea: string;
   vertical: string;
   forwardingNumber: string;
-  callTimeoutSeconds: number;
 }
 
 function StepDots({ current, total }: { current: number; total: number }) {
@@ -262,13 +261,6 @@ function Step3({
     onSubmit();
   }
 
-  const timeoutLabel =
-    form.callTimeoutSeconds <= 15
-      ? "Quick (15s) — aggressive missed-call recovery"
-      : form.callTimeoutSeconds <= 25
-      ? "Standard (20s) — recommended"
-      : "Patient (45s) — more rings before recovery";
-
   return (
     <div>
       <div className="mb-8">
@@ -287,26 +279,9 @@ function Step3({
             type="tel"
           />
           <p className="text-xs text-gray-400 mt-1">
-            Your IntakePulse number forwards calls here. If unanswered, the missed-call recovery fires.
+            Your IntakePulse number forwards calls here. If unanswered, missed-call recovery fires.
           </p>
           {phoneError && <p className="text-sm text-red-600 mt-1">{phoneError}</p>}
-        </div>
-
-        <div>
-          <Label>Missed-call timeout</Label>
-          <div className="flex items-center gap-4">
-            <input
-              type="range"
-              min={10}
-              max={45}
-              step={5}
-              value={form.callTimeoutSeconds}
-              onChange={(e) => update("callTimeoutSeconds", parseInt(e.target.value))}
-              className="flex-1 accent-orange-500"
-            />
-            <span className="text-sm font-semibold text-gray-900 w-10 text-right">{form.callTimeoutSeconds}s</span>
-          </div>
-          <p className="text-xs text-gray-400 mt-1">{timeoutLabel}</p>
         </div>
 
         <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
@@ -393,7 +368,6 @@ export default function OnboardingPage() {
     serviceArea: "",
     vertical: "restoration",
     forwardingNumber: "",
-    callTimeoutSeconds: 20,
   });
 
   function update(field: keyof FormData, value: string | number) {
@@ -414,7 +388,6 @@ export default function OnboardingPage() {
           serviceArea: form.serviceArea || undefined,
           vertical: form.vertical,
           forwardingNumber: form.forwardingNumber || undefined,
-          callTimeoutSeconds: form.callTimeoutSeconds,
         }),
       });
       if (!res.ok) {
