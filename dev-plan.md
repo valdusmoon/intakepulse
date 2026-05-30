@@ -266,35 +266,32 @@ CraftCapture V1 (painting contractor lead capture app) copied into this repo. Al
 > Build the telecom layer. Use Telnyx test mode throughout. Get missed-call → SMS → intake link chain working end-to-end before touching the intake form UI.
 
 ## 3.1 Telnyx Client
-- [ ] Install: `npm install @telnyx/node-client` (or use raw fetch — evaluate)
-- [ ] `src/lib/telnyx/client.ts` — Telnyx API client singleton
-- [ ] `src/lib/telnyx/webhooks.ts` — HMAC-SHA256 signature verification (NOT svix — different pattern)
-- [ ] Add env vars to `src/lib/env.ts`: `TELNYX_API_KEY`, `TELNYX_APP_ID`, `TELNYX_WEBHOOK_SECRET`
-- [ ] Add to `.env.example`
+- [x] Raw fetch (no SDK) — `src/lib/telnyx/client.ts` — `transferCall()`, `sendSmsMessage()`
+- [x] `src/lib/telnyx/webhooks.ts` — Ed25519 signature verification (not HMAC — Telnyx v2 uses Ed25519)
+- [x] Add env vars to `src/lib/env.ts`: `TELNYX_API_KEY`, `TELNYX_PUBLIC_KEY`
+- [x] Add to `.env.example`
 
 ## 3.2 Rewrite SMS Layer
-- [ ] Rewrite `src/lib/sms.ts` — swap Twilio for Telnyx, keep `sendSms(to, body)` interface
-- [ ] Update env var checks: `TELNYX_API_KEY`, `TELNYX_PHONE_NUMBER` (or per-business)
-- [ ] Keep `SMS_FEATURE_ENABLED` kill switch
-- [ ] New message templates: `smsMissedCallRecovery(businessName, intakeUrl)`, `smsFollowup(businessName, intakeUrl)`, `smsReply(body)` (inbound)
+- [x] Rewrite `src/lib/sms.ts` — Telnyx implementation via `sendSmsMessage()`
+- [x] Signature updated: `sendSms(from, to, body)` — `from` is per-business Telnyx number
+- [x] `SMS_FEATURE_ENABLED` kill switch preserved
+- [x] Templates: `smsMissedCallRecovery()`, `smsFollowup()`
 
 ## 3.3 Call Webhook Handler
-- [ ] Create `src/app/api/telnyx/call/route.ts`
-- [ ] Verify Telnyx signature on every request
-- [ ] Handle `call.initiated` — create call record
-- [ ] Handle `call.answered` — update call status, stop missed-call timer
-- [ ] Handle `call.hangup` — if never answered: mark missed, fire Inngest `call.missed` event
-- [ ] Look up business by `to` phone number (Telnyx number)
-- [ ] Create lead record on missed call with `callerPhone` from event
+- [x] `src/app/api/telnyx/call/route.ts`
+- [x] Ed25519 signature verification on every request
+- [x] `call.initiated` — look up business by Telnyx number, create call record, transfer to forwardingNumber
+- [x] `call.answered` — update call status + answeredAt
+- [x] `call.hangup` — if not answered: mark missed, create lead (source: missed_call), fire `call/missed` Inngest event
 
 ## 3.4 SMS Webhook Handler
-- [ ] Create `src/app/api/telnyx/sms/route.ts`
-- [ ] Verify Telnyx signature
-- [ ] Handle inbound SMS — look up lead by `from` phone, store in `sms_events`
-- [ ] If inbound reply: cancel pending followups (fire Inngest `sms.reply` event)
+- [x] `src/app/api/telnyx/sms/route.ts`
+- [x] Ed25519 signature verification
+- [x] `message.received` — store inbound SMS in sms_events, fire `sms/reply` Inngest event to cancel follow-ups
+- [x] `message.sent/delivered/failed` — update sms_events delivery status
 
 ## 3.5 Middleware Update
-- [ ] Confirm `/api/telnyx(.*)` is in public routes (done in Session 0, verify here)
+- [x] `/api/telnyx(.*)` already in public routes (confirmed)
 
 ---
 
@@ -383,55 +380,31 @@ CraftCapture V1 (painting contractor lead capture app) copied into this repo. Al
 > Delete the 3 CraftCapture cron functions. Write the 3 IntakePulse functions.
 
 ## 6.1 Delete Old Functions
-- [ ] Already deleted in Session 0: `quote-nudge.ts`, `quote-expiration.ts`, `contract-nudge.ts`
-- [ ] Update `src/app/api/inngest/route.ts` — remove old function registrations
+- [x] Already deleted in Session 0: `quote-nudge.ts`, `quote-expiration.ts`, `contract-nudge.ts`
+- [x] `src/app/api/inngest/route.ts` updated — old registrations removed
 
-## 6.2 Missed Call Recovery Function
-- [ ] Create `src/lib/inngest/functions/missed-call-recovery.ts`
-- [ ] Triggered by event: `call.missed`
-- [ ] Step 1: look up business + lead
-- [ ] Step 2: generate intake URL (`{APP_URL}/intake/{businessId}?lead={leadId}`)
-- [ ] Step 3: send SMS via `sendSms()` with missed-call recovery template
-- [ ] Step 4: create `sms_events` record
-- [ ] Step 5: schedule followup sequence (send `followup.schedule` event with leadId)
+## 6.2 Missed Call Recovery
+- [x] Simplified — initial SMS sent directly in Telnyx call webhook (`handleHangup`), no Inngest function needed
+- [x] Follow-up row written to `followups` table with `scheduledAt = missedAt + 3h`; cron picks it up
 
-## 6.3 Follow-up Sequence Function
-- [ ] Create `src/lib/inngest/functions/followup-sequence.ts`
-- [ ] Triggered by event: `followup.schedule`
-- [ ] V1: single follow-up only — `step.sleepUntil()` for +4 hour delay (restoration is emergency vertical — 1hr is too soon, 24hr is too late; 4hr catches them after initial chaos settles but before they've committed to a competitor)
-- [ ] Before sending: check `followups` table — skip if `canceledAt` is set
-- [ ] Before sending: verify `leads.smsConsent = true` — never send follow-up without explicit consent
-- [ ] Send SMS, update `followups` record `sentAt`
-- [ ] Cancel trigger: inbound `sms.reply` event or `intake.completed` event
-- [ ] Structure supports multiple sequences (check `sequence` field) so V2 multi-step just adds more steps here — no schema change needed
+## 6.3 Follow-up Cron
+- [x] `src/lib/inngest/functions/followup-cron.ts`
+- [x] Cron: `0 16,20,23 * * *` — 8am–7pm across all major US time zones (16/20/23 UTC)
+- [x] Drains `followups` table via `getDueFollowups()` — sends SMS, marks `sentAt`
+- [x] Skips leads that completed intake or moved past `sms_sent`
+- [x] SMS reply cancellation handled directly in SMS webhook (`cancelFollowupsForLead`) — no Inngest needed
 
-## 6.4 AI Assessment Function
-- [ ] Create `src/lib/inngest/functions/ai-assessment.ts`
-- [ ] Triggered by event: `intake.completed`
-- [ ] Step 1: fetch lead + `intakeAnswers` jsonb + business vertical
-- [ ] Step 2: fetch `scoringRules` and `aiPromptTemplate` from `vertical_configs` for the vertical
-- [ ] Step 3: run `scoreLeadFromAnswers()` — deterministic, instant, no API call. Produces the numbers.
-- [ ] Step 4: run `generateReasoning()` — GPT call with scores already fixed. Produces the text.
-- [ ] Step 5: save to `ai_assessments` (reasoning + raw response + model)
-- [ ] Step 6: update `leads` with scores (from formula) + status `qualified`
-- [ ] Step 7: send lead packet email to business owner (see template definition in 6.6)
-
-## 6.6 Lead Packet Email Template
-> The most important email in the product — arrives on the owner's phone at 2am when a restoration job just came in.
-- [ ] Add `sendLeadPacketEmail(business, lead, assessment)` to `src/lib/email/notifications.ts`
-- [ ] Template content (in order):
-  - **Header:** "New Qualified Lead — [urgency label: Critical / High / Medium]" with urgency score badge
-  - **Caller:** name (if captured) + phone number as `tel:` link — one tap to call
-  - **Estimated job value:** "$X,XXX – $X,XXX" range
-  - **AI Summary:** `urgencyReasoning` in plain English (e.g. "Category 2 water with hardwood floors — delamination risk within 48 hours.")
-  - **Recommended actions:** bulleted list from `recommendedActions`
-  - **Intake answers:** key/value list of all answers (damage type, rooms, flooring, insurance, etc.)
-  - **CTA button:** "View Full Lead" → `/dashboard/leads/[id]`
-  - **Secondary CTA:** "Call Now" → `tel:[callerPhone]`
-- [ ] Keep email failure non-blocking (Promise.allSettled pattern from existing notifications.ts)
+## 6.4 AI Assessment
+- [x] Already built inline in intake submit route (Session 5) — runs as fire-and-forget `void assessAndNotify()`
 
 ## 6.5 Register Functions
-- [ ] Update `src/app/api/inngest/route.ts` — register all 3 new functions
+- [x] `src/app/api/inngest/route.ts` — `followupCron` and `weeklyReport` registered
+
+## 6.6 Weekly Report
+- [x] `src/lib/inngest/functions/weekly-report.ts` — every Monday 16:00 UTC (11am ET / 8am PT)
+- [x] `getLeadStatsForPeriod()` added to leads queries
+- [x] `sendWeeklyReportEmail()` added to notifications.ts
+- [x] Skips businesses with zero activity that week
 
 ---
 

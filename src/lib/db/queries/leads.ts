@@ -71,6 +71,29 @@ export async function deleteLead(id: string) {
   await db.update(leads).set({ deletedAt: new Date() }).where(eq(leads.id, id));
 }
 
+export async function getLeadStatsForPeriod(businessId: string, since: Date) {
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)`,
+      missedCalls: sql<number>`count(*) filter (where ${leads.source} = 'missed_call')`,
+      intakeCompleted: sql<number>`count(*) filter (where ${leads.status} in ('intake_completed', 'qualified', 'converted'))`,
+      converted: sql<number>`count(*) filter (where ${leads.status} = 'converted')`,
+      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.status} in ('qualified', 'converted')), 0)`,
+    })
+    .from(leads)
+    .where(and(eq(leads.businessId, businessId), sql`${leads.createdAt} >= ${since.toISOString()}`, isNull(leads.deletedAt)));
+
+  const total = Number(row.total);
+  const intakeCompleted = Number(row.intakeCompleted);
+  return {
+    total,
+    missedCalls: Number(row.missedCalls),
+    converted: Number(row.converted),
+    estimatedRevenue: Number(row.estimatedRevenue),
+    intakeCompletionRate: total > 0 ? Math.round((intakeCompleted / total) * 100) : null,
+  };
+}
+
 export async function getLeadStats(businessId: string) {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

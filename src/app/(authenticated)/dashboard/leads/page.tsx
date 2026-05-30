@@ -140,7 +140,7 @@ export default async function LeadsPage({
           </div>
         ) : (
           <>
-            <div className="hidden sm:grid grid-cols-[1fr_1fr_auto_auto_auto_auto] gap-4 px-5 py-2.5 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            <div className="hidden sm:grid grid-cols-[1fr_160px_72px_160px_120px_72px] gap-4 px-5 py-2.5 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wide">
               <span>Caller</span>
               <span>Source</span>
               <span>Urgency</span>
@@ -153,7 +153,7 @@ export default async function LeadsPage({
                 <Link
                   key={lead.id}
                   href={`/dashboard/leads/${lead.id}`}
-                  className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_auto_auto_auto] gap-1 sm:gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors items-center"
+                  className="grid grid-cols-1 sm:grid-cols-[1fr_160px_72px_160px_120px_72px] gap-1 sm:gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors items-center"
                 >
                   <div>
                     <p className="text-sm font-medium text-gray-900">{lead.callerName ?? "—"}</p>

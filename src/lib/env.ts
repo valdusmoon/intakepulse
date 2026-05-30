@@ -40,6 +40,11 @@ export const serverEnv = {
 
   // Database
   DATABASE_URL: process.env.DATABASE_URL || "",
+
+  // Telnyx
+  TELNYX_API_KEY: process.env.TELNYX_API_KEY || "",
+  // Ed25519 public key from Telnyx portal → Messaging → Webhooks → Signing Key
+  TELNYX_PUBLIC_KEY: process.env.TELNYX_PUBLIC_KEY || "",
 } as const;
 
 /**

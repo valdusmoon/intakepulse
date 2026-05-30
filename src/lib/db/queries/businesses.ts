@@ -20,6 +20,10 @@ export async function getBusinessByTelnyxNumber(telnyxPhoneNumber: string) {
   }) ?? null;
 }
 
+export async function getAllBusinesses() {
+  return db.select().from(businesses);
+}
+
 export async function createBusiness(data: NewBusiness) {
   const result = await db.insert(businesses).values(data).returning();
   return result[0];

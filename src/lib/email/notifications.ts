@@ -1165,3 +1165,79 @@ export async function sendLeadPacketEmail(params: LeadPacketParams) {
     html,
   });
 }
+
+// ─── Weekly report ────────────────────────────────────────────────────────────
+
+interface WeeklyReportParams {
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  businessId: string;
+  weekOf: string; // e.g. "May 26 – Jun 1"
+  stats: {
+    total: number;
+    missedCalls: number;
+    converted: number;
+    estimatedRevenue: number;
+    intakeCompletionRate: number | null;
+  };
+}
+
+export async function sendWeeklyReportEmail(params: WeeklyReportParams) {
+  const { ownerEmail, businessName, businessId, weekOf, stats } = params;
+  const dashboardUrl = `${APP_URL}/dashboard`;
+  const leadsUrl = `${APP_URL}/dashboard/leads`;
+
+  const completionRate = stats.intakeCompletionRate !== null
+    ? `${stats.intakeCompletionRate}%`
+    : "—";
+
+  const html = emailWrapper(`
+    <tr><td style="padding:20px 24px 16px;background:#f97316;">
+      <p style="margin:0;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.05em;">Weekly Summary</p>
+      <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#ffffff;">${businessName}</p>
+      <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.85);">${weekOf}</p>
+    </td></tr>
+
+    <tr><td style="padding:24px;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="width:50%;padding-bottom:16px;">
+            <p style="margin:0;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">New Leads</p>
+            <p style="margin:4px 0 0;font-size:28px;font-weight:700;color:#111827;">${stats.total}</p>
+          </td>
+          <td style="width:50%;padding-bottom:16px;">
+            <p style="margin:0;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Missed Calls</p>
+            <p style="margin:4px 0 0;font-size:28px;font-weight:700;color:#111827;">${stats.missedCalls}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-bottom:16px;">
+            <p style="margin:0;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Converted</p>
+            <p style="margin:4px 0 0;font-size:28px;font-weight:700;color:#16a34a;">${stats.converted}</p>
+          </td>
+          <td style="padding-bottom:16px;">
+            <p style="margin:0;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Intake Rate</p>
+            <p style="margin:4px 0 0;font-size:28px;font-weight:700;color:#111827;">${completionRate}</p>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding-top:4px;padding-bottom:20px;border-top:1px solid #f3f4f6;">
+            <p style="margin:12px 0 4px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Estimated Pipeline Value</p>
+            <p style="margin:0;font-size:32px;font-weight:700;color:#f97316;">${fmt(stats.estimatedRevenue / 100)}</p>
+          </td>
+        </tr>
+      </table>
+
+      <a href="${leadsUrl}" style="display:inline-block;background:#f97316;color:#ffffff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">View All Leads →</a>
+    </td></tr>
+
+    ${emailFooter(businessName)}
+  `);
+
+  await emailClient.send({
+    to: ownerEmail,
+    subject: `Weekly recap — ${stats.total} leads, ${stats.converted} converted · ${businessName}`,
+    html,
+  });
+}

@@ -1,9 +1,9 @@
-// SMS provider will be replaced with Telnyx in Session 3.
-// Kill switch pattern preserved — set SMS_FEATURE_ENABLED=true when Telnyx is wired up.
+import { sendSmsMessage } from "./telnyx/client";
 
+// Kill switch — set SMS_FEATURE_ENABLED=true once Telnyx is fully configured
 const SMS_ENABLED = process.env.SMS_FEATURE_ENABLED === "true";
 
-function formatPhone(phone: string): string | null {
+export function formatPhone(phone: string): string | null {
   const digits = phone.replace(/\D/g, "");
   if (digits.length === 10) return `+1${digits}`;
   if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
@@ -11,31 +11,32 @@ function formatPhone(phone: string): string | null {
 }
 
 /**
- * Send an SMS from the IntakePulse business number to a prospect or owner.
- * Silently no-ops if SMS_FEATURE_ENABLED is not "true".
+ * Send an SMS from a business's Telnyx number to a prospect.
+ * `from` is the business's provisioned Telnyx number (E.164 format).
+ * No-ops with a log if SMS_FEATURE_ENABLED is not "true".
  */
-export async function sendSms(to: string, body: string): Promise<void> {
+export async function sendSms(from: string, to: string, body: string): Promise<string | null> {
   if (!SMS_ENABLED) {
-    console.log(`[SMS disabled] Would send to ${to}: ${body}`);
-    return;
+    console.log(`[SMS disabled] from=${from} to=${to}: ${body}`);
+    return null;
   }
 
-  const phone = formatPhone(to);
-  if (!phone) {
-    console.warn(`[SMS] Invalid phone number: ${to}`);
-    return;
+  const toFormatted = formatPhone(to);
+  if (!toFormatted) {
+    console.warn(`[SMS] Invalid recipient phone: ${to}`);
+    return null;
   }
 
-  // Telnyx implementation added in Session 3
-  console.warn("[SMS] Telnyx provider not yet configured");
+  const messageId = await sendSmsMessage(from, toFormatted, body);
+  return messageId;
 }
 
 // ─── Message templates ────────────────────────────────────────────────────────
 
 export function smsMissedCallRecovery(businessName: string, intakeUrl: string): string {
-  return `Hi! Sorry we missed your call at ${businessName}. Can you answer a few quick questions so we can help faster? ${intakeUrl}`;
+  return `Hi! Sorry we missed your call at ${businessName}. Answer a few quick questions so we can help faster: ${intakeUrl}`;
 }
 
 export function smsFollowup(businessName: string, intakeUrl: string): string {
-  return `Following up from ${businessName} — we still want to help. Takes 2 minutes: ${intakeUrl}`;
+  return `Following up from ${businessName} — we still want to help. Takes 2 min: ${intakeUrl}`;
 }

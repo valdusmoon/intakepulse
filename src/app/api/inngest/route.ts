@@ -1,8 +1,9 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/lib/inngest/client";
+import { followupCron } from "@/lib/inngest/functions/followup-cron";
+import { weeklyReport } from "@/lib/inngest/functions/weekly-report";
 
-// IntakePulse Inngest functions registered here in Session 6
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [],
+  functions: [followupCron, weeklyReport],
 });
