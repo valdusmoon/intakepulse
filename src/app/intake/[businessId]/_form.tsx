@@ -4,23 +4,13 @@ import { useState, useMemo } from "react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
-
-type Answers = Record<string, string | string[]>;
+import { getVisibleQuestions, type Answers } from "@/lib/verticals/filterAnswers";
 
 interface IntakeFormProps {
   businessId: string;
   businessName: string;
   questions: VerticalQuestion[];
   leadId?: string;
-}
-
-function getVisibleQuestions(questions: VerticalQuestion[], answers: Answers): VerticalQuestion[] {
-  return questions.filter((q) => {
-    if (!q.conditional) return true;
-    const { key, value } = q.conditional;
-    const answer = answers[key];
-    return Array.isArray(answer) ? answer.includes(value) : answer === value;
-  });
 }
 
 // ─── Contact Info ─────────────────────────────────────────────────────────────
@@ -368,6 +358,17 @@ export function IntakeForm({
             <span className="font-semibold text-gray-700">{businessName}</span> will be in
             touch shortly.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-500">Submitting your answers…</p>
         </div>
       </div>
     );

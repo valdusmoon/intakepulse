@@ -7,15 +7,21 @@ import {
   createLead,
   updateLead,
 } from "@/lib/db/queries/leads";
+import { cancelFollowupsForLead } from "@/lib/db/queries/followups";
+import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
-import { inngest } from "@/lib/inngest/client";
+import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
+import { assessLead } from "@/lib/leads/assess";
+import { sendLeadPacketEmail } from "@/lib/email/notifications";
+import { logger } from "@/lib/logger";
+import type { Answers } from "@/lib/verticals/filterAnswers";
 
 async function checkRateLimit(ip: string): Promise<boolean> {
   if (
     !process.env.UPSTASH_REDIS_REST_URL ||
     !process.env.UPSTASH_REDIS_REST_TOKEN
   ) {
-    return true; // skip in local dev
+    return true;
   }
   try {
     const { Redis } = await import("@upstash/redis");
@@ -32,7 +38,47 @@ async function checkRateLimit(ip: string): Promise<boolean> {
     const { success } = await limiter.limit(ip);
     return success;
   } catch {
-    return true; // don't block on Upstash errors
+    return true;
+  }
+}
+
+async function assessAndNotify(
+  leadId: string,
+  businessId: string,
+  answers: Answers
+) {
+  try {
+    const business = await getBusinessById(businessId);
+    if (!business) return;
+
+    const config = await getVerticalConfig(business.vertical);
+    if (!config) return;
+
+    const scores = scoreLeadFromAnswers(answers, config.scoringRules, config.questions);
+    const reasoning = await assessLead(leadId, answers, scores, config.aiPromptTemplate);
+
+    const lead = await getLeadById(leadId);
+    if (!lead) return;
+
+    await sendLeadPacketEmail({
+      ownerEmail: business.ownerEmail,
+      ownerName: business.ownerName,
+      businessName: business.businessName,
+      leadId,
+      callerName: lead.callerName,
+      callerPhone: lead.callerPhone,
+      urgencyScore: scores.urgencyScore,
+      qualityScore: scores.qualityScore,
+      estimatedValueLow: scores.estimatedValueLow,
+      estimatedValueHigh: scores.estimatedValueHigh,
+      urgencyReasoning: reasoning.urgencyReasoning,
+      qualityReasoning: reasoning.qualityReasoning,
+      recommendedActions: reasoning.recommendedActions,
+      intakeAnswers: answers,
+      questions: config.questions,
+    });
+  } catch (err) {
+    logger.error("assessAndNotify failed", { leadId, error: String(err) });
   }
 }
 
@@ -42,7 +88,6 @@ export async function POST(
 ) {
   const { businessId } = await params;
 
-  // Rate limit by IP
   const headersList = await headers();
   const ip =
     headersList.get("x-forwarded-for")?.split(",")[0].trim() ??
@@ -57,7 +102,6 @@ export async function POST(
     );
   }
 
-  // Parse body
   const body = await req.json();
   const { leadId, callerName, callerPhone, smsConsent, answers } = body;
 
@@ -65,16 +109,10 @@ export async function POST(
     return NextResponse.json({ error: "Name is required." }, { status: 400 });
   }
   if (!callerPhone) {
-    return NextResponse.json(
-      { error: "Phone number is required." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Phone number is required." }, { status: 400 });
   }
   if (!smsConsent) {
-    return NextResponse.json(
-      { error: "SMS consent is required." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "SMS consent is required." }, { status: 400 });
   }
 
   const phoneResult = validateAndNormalizePhone(callerPhone);
@@ -83,16 +121,12 @@ export async function POST(
   }
   const normalizedPhone = phoneResult.normalized!;
 
-  // Verify business exists
   const business = await getBusinessById(businessId);
   if (!business) {
     return NextResponse.json({ error: "Business not found." }, { status: 404 });
   }
 
-  // Find or create the lead
   let lead = leadId ? await getLeadById(leadId) : null;
-
-  // If leadId given but not found (e.g. stale link), fall back to phone lookup
   if (!lead) {
     lead = await getLeadByPhoneAndBusiness(normalizedPhone, businessId);
   }
@@ -107,6 +141,8 @@ export async function POST(
 
   if (lead) {
     lead = await updateLead(lead.id, intakePayload);
+    // Cancel any pending follow-up — they engaged, no need to nudge
+    void cancelFollowupsForLead(lead!.id, "intake_completed");
   } else {
     lead = await createLead({
       businessId,
@@ -115,14 +151,8 @@ export async function POST(
     });
   }
 
-  // Fire Inngest event — picked up by scoring + AI assessment in Session 5/6
-  await inngest.send({
-    name: "intake/completed",
-    data: {
-      leadId: lead!.id,
-      businessId,
-    },
-  });
+  // Score + AI assess + email owner — fire and forget, form responds instantly
+  void assessAndNotify(lead!.id, businessId, answers ?? {});
 
   return NextResponse.json({ leadId: lead!.id }, { status: 200 });
 }

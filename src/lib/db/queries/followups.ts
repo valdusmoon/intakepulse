@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, lte } from "drizzle-orm";
 import { db } from "../index";
 import { followups, type NewFollowup } from "../schema/followups";
 
@@ -30,4 +30,17 @@ export async function cancelFollowupsForLead(leadId: string, reason: string) {
 
 export async function markFollowupSent(id: string) {
   await db.update(followups).set({ sentAt: new Date() }).where(eq(followups.id, id));
+}
+
+export async function getDueFollowups() {
+  return db
+    .select()
+    .from(followups)
+    .where(
+      and(
+        lte(followups.scheduledAt, new Date()),
+        isNull(followups.sentAt),
+        isNull(followups.canceledAt),
+      )
+    );
 }

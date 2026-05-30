@@ -1017,3 +1017,151 @@ export async function sendReviewRequestEmail({
     html,
   });
 }
+
+// ─── Lead Packet Email ────────────────────────────────────────────────────────
+// The most important email in the product — arrives on owner's phone after a
+// prospect completes intake. Shows scores, AI reasoning, and one-tap call link.
+
+function urgencyLabel(score: number): string {
+  if (score >= 8) return "Critical";
+  if (score >= 6) return "High";
+  if (score >= 4) return "Medium";
+  return "Low";
+}
+
+function urgencyColor(score: number): string {
+  if (score >= 8) return "#dc2626"; // red
+  if (score >= 6) return "#ea580c"; // orange
+  if (score >= 4) return "#ca8a04"; // yellow
+  return "#16a34a";                 // green
+}
+
+function fmtCents(cents: number): string {
+  return (cents / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+function fmtAnswers(
+  answers: Record<string, string | string[]>,
+  questions: Array<{ key: string; label: string; options?: { value: string; label: string }[] }>
+): string {
+  const qMap = new Map(questions.map((q) => [q.key, q]));
+  return Object.entries(answers)
+    .map(([key, value]) => {
+      const q = qMap.get(key);
+      const rowLabel = q?.label ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      const optMap = new Map(q?.options?.map((o) => [o.value, o.label]) ?? []);
+      const val = Array.isArray(value)
+        ? value.map((v) => optMap.get(v) ?? v).join(", ")
+        : (optMap.get(value) ?? value);
+      return `<tr>
+        <td style="padding:6px 0;font-size:13px;color:#6b7280;width:45%;vertical-align:top;">${rowLabel}</td>
+        <td style="padding:6px 0;font-size:13px;color:#111827;font-weight:500;">${val}</td>
+      </tr>`;
+    })
+    .join("");
+}
+
+interface LeadPacketParams {
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  leadId: string;
+  callerName: string | null;
+  callerPhone: string;
+  urgencyScore: number;
+  qualityScore: number;
+  estimatedValueLow: number;
+  estimatedValueHigh: number;
+  urgencyReasoning: string;
+  qualityReasoning: string;
+  recommendedActions: string[];
+  intakeAnswers: Record<string, string | string[]>;
+  questions: Array<{ key: string; label: string; options?: { value: string; label: string }[] }>;
+}
+
+export async function sendLeadPacketEmail(params: LeadPacketParams) {
+  const {
+    ownerEmail, ownerName, businessName, leadId,
+    callerName, callerPhone, urgencyScore, qualityScore,
+    estimatedValueLow, estimatedValueHigh,
+    urgencyReasoning, qualityReasoning, recommendedActions, intakeAnswers, questions,
+  } = params;
+
+  const label = urgencyLabel(urgencyScore);
+  const color = urgencyColor(urgencyScore);
+  const leadUrl = `${APP_URL}/dashboard/leads/${leadId}`;
+  const displayName = callerName ?? "Unknown caller";
+
+  const html = emailWrapper(`
+    <!-- Header -->
+    <tr><td style="padding:20px 24px 16px;background:${color};">
+      <p style="margin:0;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.05em;">New Qualified Lead</p>
+      <p style="margin:4px 0 0;font-size:22px;font-weight:700;color:#ffffff;">${label} Priority &nbsp;·&nbsp; ${urgencyScore}/10 Urgency</p>
+    </td></tr>
+
+    <!-- Caller -->
+    <tr><td style="padding:20px 24px 0;">
+      <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Caller</p>
+      <p style="margin:0;font-size:18px;font-weight:700;color:#111827;">${displayName}</p>
+      <a href="tel:${callerPhone}" style="display:inline-block;margin-top:6px;font-size:15px;color:${color};font-weight:600;text-decoration:none;">📞 ${callerPhone}</a>
+    </td></tr>
+
+    <!-- Value estimate -->
+    <tr><td style="padding:16px 24px 0;">
+      <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Estimated Job Value</p>
+      <p style="margin:0;font-size:20px;font-weight:700;color:#111827;">${fmtCents(estimatedValueLow)} – ${fmtCents(estimatedValueHigh)}</p>
+      <p style="margin:2px 0 0;font-size:12px;color:#9ca3af;">Quality score: ${qualityScore}/100</p>
+    </td></tr>
+
+    <!-- AI reasoning -->
+    <tr><td style="padding:16px 24px 0;">
+      <div style="background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;padding:14px 16px;">
+        <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">AI Assessment</p>
+        <p style="margin:0 0 6px;font-size:13px;color:#111827;line-height:1.5;"><strong>Urgency:</strong> ${urgencyReasoning}</p>
+        <p style="margin:0;font-size:13px;color:#111827;line-height:1.5;"><strong>Quality:</strong> ${qualityReasoning}</p>
+      </div>
+    </td></tr>
+
+    <!-- Recommended actions -->
+    <tr><td style="padding:16px 24px 0;">
+      <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Recommended Actions</p>
+      <ul style="margin:0;padding-left:18px;">
+        ${recommendedActions.map((a) => `<li style="font-size:13px;color:#111827;margin-bottom:4px;line-height:1.5;">${a}</li>`).join("")}
+      </ul>
+    </td></tr>
+
+    <!-- Intake answers -->
+    <tr><td style="padding:16px 24px 0;">
+      <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Intake Answers</p>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        ${fmtAnswers(intakeAnswers, questions)}
+      </table>
+    </td></tr>
+
+    <!-- CTAs -->
+    <tr><td style="padding:20px 24px;">
+      <table cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding-right:8px;">
+            <a href="${leadUrl}" style="display:inline-block;background:${color};color:#ffffff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">View Full Lead</a>
+          </td>
+          <td>
+            <a href="tel:${callerPhone}" style="display:inline-block;background:#f3f4f6;color:#111827;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">Call Now</a>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+
+    ${emailFooter(businessName)}
+  `);
+
+  await emailClient.send({
+    to: ownerEmail,
+    subject: `[${label}] New Lead — ${displayName} · ${fmtCents(estimatedValueLow)}–${fmtCents(estimatedValueHigh)}`,
+    html,
+  });
+}
