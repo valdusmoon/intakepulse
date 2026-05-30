@@ -321,7 +321,7 @@ export function IntakeForm({
     return Array.isArray(a) ? a.length > 0 : !!a;
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(finalAnswers: Answers = answers) {
     setLoading(true);
     setError("");
     try {
@@ -333,7 +333,7 @@ export function IntakeForm({
           callerName,
           callerPhone,
           smsConsent: true,
-          answers,
+          answers: finalAnswers,
         }),
       });
       if (!res.ok) {
@@ -353,12 +353,6 @@ export function IntakeForm({
     } else {
       setStep((s) => s + 1);
     }
-  }
-
-  // Auto-advance after brief visual feedback for single-select and scale
-  function handleAutoAdvance(key: string, value: string) {
-    setAnswer(key, value);
-    setTimeout(() => advance(), 200);
   }
 
   if (submitted) {
@@ -437,11 +431,15 @@ export function IntakeForm({
               <SingleSelectQuestion
                 question={currentQuestion}
                 value={getAnswerStr(currentQuestion.key)}
-                onChange={(v) =>
-                  isLastStep
-                    ? (() => { setAnswer(currentQuestion.key, v); setTimeout(handleSubmit, 200); })()
-                    : handleAutoAdvance(currentQuestion.key, v)
-                }
+                onChange={(v) => {
+                  setAnswer(currentQuestion.key, v);
+                  if (isLastStep) {
+                    const final = { ...answers, [currentQuestion.key]: v };
+                    setTimeout(() => handleSubmit(final), 200);
+                  } else {
+                    setTimeout(() => setStep((s) => s + 1), 200);
+                  }
+                }}
               />
             )}
 
@@ -449,11 +447,15 @@ export function IntakeForm({
               <ScaleQuestion
                 question={currentQuestion}
                 value={getAnswerStr(currentQuestion.key)}
-                onChange={(v) =>
-                  isLastStep
-                    ? (() => { setAnswer(currentQuestion.key, v); setTimeout(handleSubmit, 200); })()
-                    : handleAutoAdvance(currentQuestion.key, v)
-                }
+                onChange={(v) => {
+                  setAnswer(currentQuestion.key, v);
+                  if (isLastStep) {
+                    const final = { ...answers, [currentQuestion.key]: v };
+                    setTimeout(() => handleSubmit(final), 200);
+                  } else {
+                    setTimeout(() => setStep((s) => s + 1), 200);
+                  }
+                }}
               />
             )}
 
