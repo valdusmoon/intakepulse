@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { companies } from "@/lib/db/schema/companies";
+import { businesses } from "@/lib/db/schema/businesses";
 import { createStripeCustomer, createSubscriptionCheckout } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
@@ -28,35 +28,35 @@ export async function POST(req: NextRequest) {
       // No body or invalid JSON — use default price
     }
 
-    const [company] = await db.select().from(companies).where(eq(companies.clerkUserId, userId)).limit(1);
-    if (!company) return NextResponse.json({ error: "Company not found" }, { status: 404 });
+    const [business] = await db.select().from(businesses).where(eq(businesses.clerkUserId, userId)).limit(1);
+    if (!business) return NextResponse.json({ error: "Business not found" }, { status: 404 });
 
     const activeStatuses = ["active", "trialing"];
-    if (company.stripeSubscriptionId && activeStatuses.includes(company.subscriptionStatus ?? "")) {
+    if (business.stripeSubscriptionId && activeStatuses.includes(business.subscriptionStatus ?? "")) {
       return NextResponse.json({ error: "You already have an active subscription" }, { status: 400 });
     }
 
-    let stripeCustomerId = company.stripeCustomerId;
+    let stripeCustomerId = business.stripeCustomerId;
 
     if (!stripeCustomerId) {
       const customer = await createStripeCustomer({
-        companyId: company.id,
-        name: company.businessName,
-        email: company.ownerEmail,
+        businessId: business.id,
+        name: business.businessName,
+        email: business.ownerEmail,
       });
       stripeCustomerId = customer.id;
       // Save customer ID before creating the session to avoid orphan customers on partial failure
-      await db.update(companies).set({ stripeCustomerId }).where(eq(companies.id, company.id));
+      await db.update(businesses).set({ stripeCustomerId }).where(eq(businesses.id, business.id));
     }
 
     // Only give trial if they've never had a subscription before
-    const hadPreviousSubscription = !!company.stripeSubscriptionId || company.subscriptionStatus === "canceled";
+    const hadPreviousSubscription = !!business.stripeSubscriptionId || business.subscriptionStatus === "canceled";
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     const session = await createSubscriptionCheckout({
       customerId: stripeCustomerId,
       priceId: requestedPriceId,
-      companyId: company.id,
+      businessId: business.id,
       trialPeriodDays: hadPreviousSubscription ? 0 : 14,
       successUrl: `${appUrl}/dashboard?checkout_success=true`,
       cancelUrl: `${appUrl}/dashboard/billing?canceled=true`,

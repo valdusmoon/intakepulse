@@ -8,10 +8,8 @@ import { Menu, X } from "lucide-react";
 const links = [
   { href: "/dashboard", label: "Home", exact: true },
   { href: "/dashboard/leads", label: "Leads", exact: false },
-  { href: "/dashboard/schedule", label: "Schedule", exact: false },
   { href: "/dashboard/settings", label: "Settings", exact: false },
   { href: "/dashboard/billing", label: "Billing", exact: false },
-  { href: "/dashboard/help", label: "Help", exact: false },
 ];
 
 export function NavLinks() {

@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { companies } from "@/lib/db/schema/companies";
+import { businesses } from "@/lib/db/schema/businesses";
 import { getStripe, verifyWebhookSignature } from "@/lib/stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -27,9 +27,9 @@ export async function POST(req: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subscription: any = await getStripe().subscriptions.retrieve(subscriptionId);
 
-        const companyId = session.metadata?.companyId || subscription.metadata?.companyId;
-        if (!companyId) {
-          console.error("No companyId in checkout session metadata:", session.id);
+        const businessId = session.metadata?.businessId || subscription.metadata?.businessId;
+        if (!businessId) {
+          console.error("No businessId in checkout session metadata:", session.id);
           break;
         }
 
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
         const periodStart = subscription.current_period_start || subscription.trial_start;
         const periodEnd = subscription.current_period_end || subscription.trial_end;
 
-        await db.update(companies).set({
+        await db.update(businesses).set({
           stripeSubscriptionId: subscriptionId,
           stripePriceId: priceId ?? null,
           subscriptionStatus: subscription.status,
@@ -45,28 +45,28 @@ export async function POST(req: NextRequest) {
           currentPeriodStart: periodStart ? new Date(periodStart * 1000) : null,
           currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
           updatedAt: new Date(),
-        }).where(eq(companies.id, companyId));
+        }).where(eq(businesses.id, businessId));
 
-        console.log(`Subscription created for company ${companyId}: ${subscription.status}`);
+        console.log(`Subscription created for company ${businessId}: ${subscription.status}`);
         break;
       }
 
       case "customer.subscription.updated": {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subscription = event.data.object as any;
-        let companyId = subscription.metadata?.companyId;
+        let businessId = subscription.metadata?.businessId;
 
-        if (!companyId) {
-          const existing = await db.query.companies.findFirst({
-            where: eq(companies.stripeSubscriptionId, subscription.id),
-          }) ?? await db.query.companies.findFirst({
-            where: eq(companies.stripeCustomerId, subscription.customer as string),
+        if (!businessId) {
+          const existing = await db.query.businesses.findFirst({
+            where: eq(businesses.stripeSubscriptionId, subscription.id),
+          }) ?? await db.query.businesses.findFirst({
+            where: eq(businesses.stripeCustomerId, subscription.customer as string),
           });
-          companyId = existing?.id;
+          businessId = existing?.id;
         }
 
-        if (!companyId) {
-          console.error("No companyId for subscription:", subscription.id);
+        if (!businessId) {
+          console.error("No businessId for subscription:", subscription.id);
           break;
         }
 
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         const periodStart = subscription.current_period_start || subscription.trial_start;
         const periodEnd = subscription.current_period_end || subscription.trial_end;
 
-        await db.update(companies).set({
+        await db.update(businesses).set({
           subscriptionStatus: subscription.status,
           stripePriceId: priceId ?? undefined,
           currentPeriodStart: periodStart ? new Date(periodStart * 1000) : null,
@@ -84,35 +84,35 @@ export async function POST(req: NextRequest) {
             ? new Date((subscription.current_period_end || subscription.trial_end) * 1000)
             : null,
           updatedAt: new Date(),
-        }).where(eq(companies.id, companyId));
+        }).where(eq(businesses.id, businessId));
 
-        console.log(`Subscription updated for company ${companyId}: ${subscription.status}`);
+        console.log(`Subscription updated for company ${businessId}: ${subscription.status}`);
         break;
       }
 
       case "customer.subscription.deleted": {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subscription = event.data.object as any;
-        let companyId = subscription.metadata?.companyId;
+        let businessId = subscription.metadata?.businessId;
 
-        if (!companyId) {
-          const existing = await db.query.companies.findFirst({
-            where: eq(companies.stripeSubscriptionId, subscription.id),
-          }) ?? await db.query.companies.findFirst({
-            where: eq(companies.stripeCustomerId, subscription.customer as string),
+        if (!businessId) {
+          const existing = await db.query.businesses.findFirst({
+            where: eq(businesses.stripeSubscriptionId, subscription.id),
+          }) ?? await db.query.businesses.findFirst({
+            where: eq(businesses.stripeCustomerId, subscription.customer as string),
           });
-          companyId = existing?.id;
+          businessId = existing?.id;
         }
 
-        if (!companyId) break;
+        if (!businessId) break;
 
-        await db.update(companies).set({
+        await db.update(businesses).set({
           subscriptionStatus: "canceled",
           canceledAt: new Date(),
           updatedAt: new Date(),
-        }).where(eq(companies.id, companyId));
+        }).where(eq(businesses.id, businessId));
 
-        console.log(`Subscription canceled for company ${companyId}`);
+        console.log(`Subscription canceled for company ${businessId}`);
         break;
       }
 
@@ -125,17 +125,17 @@ export async function POST(req: NextRequest) {
         const customerId = invoice.customer as string;
 
         let company = subscriptionId
-          ? await db.query.companies.findFirst({ where: eq(companies.stripeSubscriptionId, subscriptionId) })
+          ? await db.query.businesses.findFirst({ where: eq(businesses.stripeSubscriptionId, subscriptionId) })
           : null;
         if (!company) {
-          company = await db.query.companies.findFirst({ where: eq(companies.stripeCustomerId, customerId) });
+          company = await db.query.businesses.findFirst({ where: eq(businesses.stripeCustomerId, customerId) });
         }
 
         if (company) {
-          await db.update(companies).set({
+          await db.update(businesses).set({
             subscriptionStatus: "past_due",
             updatedAt: new Date(),
-          }).where(eq(companies.id, company.id));
+          }).where(eq(businesses.id, company.id));
           console.log(`Payment failed for company ${company.id}, status set to past_due`);
         } else {
           console.error(`invoice.payment_failed: no company found for invoice ${invoice.id}`);

@@ -2,13 +2,13 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { getCompanyByClerkId } from "@/lib/db/queries/companies";
+import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { SubscriptionBanner, type BannerState } from "@/components/dashboard/subscription-banner";
 import { NavLinks } from "@/components/dashboard/NavLinks";
 import { NewUserBanner } from "@/components/dashboard/new-user-banner";
 
-function getBannerState(company: NonNullable<Awaited<ReturnType<typeof getCompanyByClerkId>>>): BannerState {
-  const { subscriptionStatus, trialEndsAt, canceledAt } = company;
+function getBannerState(business: NonNullable<Awaited<ReturnType<typeof getBusinessByClerkId>>>): BannerState {
+  const { subscriptionStatus, trialEndsAt, canceledAt } = business;
   const now = new Date();
   const GRACE_MS = 60 * 1000;
 
@@ -44,12 +44,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const company = await getCompanyByClerkId(userId);
-  if (!company || !company.onboardingCompleted) {
+  const business = await getBusinessByClerkId(userId);
+  if (!business || !business.onboardingCompleted) {
     redirect("/onboarding");
   }
 
-  const bannerState = getBannerState(company);
+  const bannerState = getBannerState(business);
 
   return (
     <div className="min-h-screen" style={{ background: "#E8EAF0" }}>
@@ -58,8 +58,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
-              <img src="/icon-mark.svg" alt="CraftCapture" className="w-7 h-7 shrink-0" />
-              <span className="text-sm font-semibold text-gray-900 hidden sm:block">{company.businessName}</span>
+              <img src="/icon-mark.svg" alt="IntakePulse" className="w-7 h-7 shrink-0" />
+              <span className="text-sm font-semibold text-gray-900 hidden sm:block">{business.businessName}</span>
             </Link>
             <NavLinks />
           </div>
@@ -70,7 +70,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </nav>
 
       <SubscriptionBanner state={bannerState} />
-      <NewUserBanner companyCreatedAt={company.createdAt.toISOString()} />
+      <NewUserBanner businessCreatedAt={business.createdAt.toISOString()} />
 
       <main className="max-w-5xl mx-auto px-4 py-6 sm:p-6">{children}</main>
     </div>

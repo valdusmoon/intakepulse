@@ -6,5 +6,3 @@ export * from "./verticalConfigs";
 export * from "./followups";
 export * from "./aiAssessments";
 
-// CraftCapture legacy — referenced by auth/billing code until Session 2 migration
-export * from "./companies";

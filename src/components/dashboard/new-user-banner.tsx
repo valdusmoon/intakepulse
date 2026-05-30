@@ -4,16 +4,16 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 
-const STORAGE_KEY = "cc-help-banner-dismissed";
+const STORAGE_KEY = "ip-help-banner-dismissed";
 
-export function NewUserBanner({ companyCreatedAt }: { companyCreatedAt: string }) {
+export function NewUserBanner({ businessCreatedAt }: { businessCreatedAt: string }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const dismissed = localStorage.getItem(STORAGE_KEY);
-    const isNew = Date.now() - new Date(companyCreatedAt).getTime() < 7 * 24 * 60 * 60 * 1000;
+    const isNew = Date.now() - new Date(businessCreatedAt).getTime() < 7 * 24 * 60 * 60 * 1000;
     if (!dismissed && isNew) setVisible(true);
-  }, [companyCreatedAt]);
+  }, [businessCreatedAt]);
 
   function dismiss() {
     localStorage.setItem(STORAGE_KEY, "1");
@@ -26,7 +26,7 @@ export function NewUserBanner({ companyCreatedAt }: { companyCreatedAt: string }
     <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-2.5">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
         <p className="text-xs text-indigo-700">
-          New to CraftCapture?{" "}
+          New to IntakePulse?{" "}
           <Link href="/dashboard/help" className="font-semibold underline hover:text-indigo-900">
             Read the setup guide →
           </Link>

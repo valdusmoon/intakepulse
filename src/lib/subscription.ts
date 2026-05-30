@@ -1,19 +1,19 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { companies } from "@/lib/db/schema/companies";
+import { businesses } from "@/lib/db/schema/businesses";
 
 export async function hasActiveSubscription(
   clerkUserId: string
 ): Promise<{ hasAccess: boolean; reason?: string; status?: string }> {
-  const company = await db.query.companies.findFirst({
-    where: eq(companies.clerkUserId, clerkUserId),
+  const business = await db.query.businesses.findFirst({
+    where: eq(businesses.clerkUserId, clerkUserId),
     columns: { subscriptionStatus: true, trialEndsAt: true, canceledAt: true },
   });
 
-  if (!company) return { hasAccess: false, reason: "Company not found" };
+  if (!business) return { hasAccess: false, reason: "Business not found" };
 
-  const { subscriptionStatus, trialEndsAt, canceledAt } = company;
+  const { subscriptionStatus, trialEndsAt, canceledAt } = business;
   const now = new Date();
 
   if (!subscriptionStatus) {
@@ -60,13 +60,12 @@ export async function hasActiveSubscription(
   return { hasAccess: false, reason: "Invalid subscription status. Please contact support.", status: subscriptionStatus };
 }
 
-// For use in public routes where we have a company object, not a clerkUserId
-export function isCompanySubscriptionActive(company: {
+export function isBusinessSubscriptionActive(business: {
   subscriptionStatus: string | null;
   trialEndsAt: Date | null;
   canceledAt: Date | null;
 }): boolean {
-  const { subscriptionStatus, trialEndsAt, canceledAt } = company;
+  const { subscriptionStatus, trialEndsAt, canceledAt } = business;
   const now = new Date();
   const GRACE_MS = 60 * 1000;
 

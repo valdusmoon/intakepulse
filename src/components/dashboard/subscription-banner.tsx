@@ -32,7 +32,7 @@ export function SubscriptionBanner({ state }: { state: BannerState }) {
             <Clock className="h-4 w-4 shrink-0" />
             <span>
               {state.daysLeft <= 0
-                ? "Your trial expires today."
+                ? "Your trial expires today — subscribe to keep recovering missed calls."
                 : `${state.daysLeft} day${state.daysLeft === 1 ? "" : "s"} left in your free trial.`}
             </span>
           </div>

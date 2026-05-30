@@ -2,7 +2,7 @@
 
 **Product:** IntakePulse — Missed-call recovery and AI-powered intake infrastructure for high-ticket service businesses.
 **Last Updated:** 2026-05-29
-**Status:** Session 1 complete ✓ — Session 2 (Auth, Billing, Onboarding) next
+**Status:** Session 2 complete ✓ — Session 3 (Telnyx Integration) next
 
 ### V1 Scope Decisions
 - **Verticals:** Restoration only in V1. Architecture uses JSON vertical config so any new vertical is a seed script, not a code change.
@@ -213,51 +213,51 @@ CraftCapture V1 (painting contractor lead capture app) copied into this repo. Al
 > Port Clerk and Stripe. Minimal changes — rename `companies` → `businesses`, update painting-specific fields, update price IDs.
 
 ## 2.1 Update Clerk Webhook
-- [ ] `src/app/api/webhooks/clerk/route.ts` — update `companies` insert to `businesses` insert
-- [ ] Remove `paintTier`, `defaultSqftRate` from initial insert
-- [ ] Add `vertical: null`, `forwardingNumber: null` placeholders
+- [x] `src/app/api/webhooks/clerk/route.ts` — create new webhook, insert into `businesses` on user.created
+- [x] Remove `paintTier`, `defaultSqftRate` from initial insert
+- [x] Add `vertical: null`, `forwardingNumber: null` placeholders
 
 ## 2.2 Update Stripe Webhook
-- [ ] `src/app/api/stripe/webhook/route.ts` — update all `companies` table references → `businesses`
-- [ ] Update price ID logic for 3-tier pricing ($299/$499/$799)
-- [ ] Update `subscription.ts` — change import from `companies` → `businesses`
+- [x] `src/app/api/stripe/webhook/route.ts` — update all `companies` table references → `businesses`
+- [x] Update price ID logic for 3-tier pricing ($299/$499/$799)
+- [x] Update `subscription.ts` — change import from `companies` → `businesses`
 
 ## 2.3 Update Subscription Banner
-- [ ] `src/components/dashboard/subscription-banner.tsx` — update copy from CraftCapture → IntakePulse
-- [ ] Update trial messaging ("recover leads" vs. "capture leads")
+- [x] `src/components/dashboard/subscription-banner.tsx` — update copy from CraftCapture → IntakePulse
+- [x] Update trial messaging ("recover leads" vs. "capture leads")
 
 ## 2.4 Rewrite Onboarding
-- [ ] Rewrite `src/app/(authenticated)/onboarding/page.tsx`
-- [ ] Step 1 — Business info: name, owner, phone, service area
-- [ ] Step 2 — Vertical selection: Restoration only in V1 (pre-selected, non-editable), with placeholder cards for PI Law / HVAC showing "Coming soon"
-- [ ] Step 3 — Phone config: forwarding number, call timeout (slider 10–45s)
-- [ ] Step 4 — Setup complete: instructions to contact IntakePulse to get a number assigned, link to dashboard
-- [ ] Update `POST /api/company/route.ts` → `POST /api/business/route.ts` (or update existing route)
-- [ ] Remove QR code step entirely
+- [x] Rewrite `src/app/(authenticated)/onboarding/page.tsx`
+- [x] Step 1 — Business info: name, owner, phone, service area
+- [x] Step 2 — Vertical selection: Restoration only in V1 (pre-selected, non-editable), with placeholder cards for PI Law / HVAC showing "Coming soon"
+- [x] Step 3 — Phone config: forwarding number, call timeout (slider 10–45s)
+- [x] Step 4 — Setup complete: instructions to contact IntakePulse to get a number assigned, link to dashboard
+- [x] Update `POST /api/company/route.ts` → `POST /api/business/route.ts` (or update existing route)
+- [x] Remove QR code step entirely
 
 ## 2.5 Update Company/Business API
-- [ ] Rename `src/app/api/company/route.ts` → `src/app/api/business/route.ts`
-- [ ] Update all field names to match new businesses schema
-- [ ] Update `src/lib/db/queries/businesses.ts` with `getBusinessByClerkId`, `updateBusiness`
+- [x] Rename `src/app/api/company/route.ts` → `src/app/api/business/route.ts`
+- [x] Update all field names to match new businesses schema
+- [x] Update `src/lib/db/queries/businesses.ts` with `getBusinessByClerkId`, `updateBusiness`
 
 ## 2.6 Update Dashboard Layout
-- [ ] `src/app/(authenticated)/dashboard/layout.tsx` — update nav links (remove Schedule, remove Quotes)
-- [ ] Nav: Dashboard, Leads, Settings, Billing
-- [ ] Update `src/components/dashboard/NavLinks.tsx`
+- [x] `src/app/(authenticated)/dashboard/layout.tsx` — update nav links (remove Schedule, remove Quotes)
+- [x] Nav: Dashboard, Leads, Settings, Billing
+- [x] Update `src/components/dashboard/NavLinks.tsx`
 
 ## 2.7 Update Settings Page
-- [ ] `src/app/(authenticated)/dashboard/settings/page.tsx` — remove QR code, remove lead form link
-- [ ] Add: Telnyx phone number display (editable text field — owner pastes in number provisioned manually via Telnyx console)
-- [ ] Add: forwarding number edit, call timeout slider
-- [ ] Add: SMS template editor (missed-call message body)
-- [ ] Add: vertical display (read-only for now)
+- [x] `src/app/(authenticated)/dashboard/settings/page.tsx` — remove QR code, remove lead form link
+- [x] Add: Telnyx phone number display (editable text field — owner pastes in number provisioned manually via Telnyx console)
+- [x] Add: forwarding number edit, call timeout slider
+- [x] Add: SMS template editor (missed-call message body)
+- [x] Add: vertical display (read-only for now)
 
 ## 2.8 Telnyx Number Provisioning (V1 Manual Ops Process)
 > V1 does NOT programmatically provision numbers. Full Telnyx Numbers API provisioning is a V2 feature.
-- [ ] Document ops runbook: log into Telnyx console → buy number → assign to TeXML app → paste number into business settings
-- [ ] Settings page has a "Your IntakePulse Number" field where the owner enters the provisioned number
-- [ ] This populates `businesses.telnyxPhoneNumber` — used by call/SMS webhooks to look up the business
-- [ ] Programmatic provisioning via Telnyx Numbers API deferred to V2
+- [x] Document ops runbook: log into Telnyx console → buy number → assign to TeXML app → paste number into business settings
+- [x] Settings page has a "Your IntakePulse Number" field where the owner enters the provisioned number
+- [x] This populates `businesses.telnyxPhoneNumber` — used by call/SMS webhooks to look up the business
+- [x] Programmatic provisioning via Telnyx Numbers API deferred to V2
 
 ---
 

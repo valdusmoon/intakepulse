@@ -25,7 +25,7 @@ export const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_K
  * Create a Stripe customer for a new user
  */
 export async function createStripeCustomer(params: {
-  companyId: string;
+  businessId: string;
   email?: string;
   name?: string;
 }): Promise<Stripe.Customer> {
@@ -33,7 +33,7 @@ export async function createStripeCustomer(params: {
   const customer = await s.customers.create({
     email: params.email,
     name: params.name,
-    metadata: { companyId: params.companyId },
+    metadata: { businessId: params.businessId },
   });
   return customer;
 }
@@ -44,7 +44,7 @@ export async function createStripeCustomer(params: {
 export async function createSubscriptionCheckout(params: {
   customerId: string;
   priceId: string;
-  companyId: string;
+  businessId: string;
   successUrl: string;
   cancelUrl: string;
   trialPeriodDays?: number;
@@ -57,11 +57,11 @@ export async function createSubscriptionCheckout(params: {
     line_items: [{ price: params.priceId, quantity: 1 }],
     subscription_data: {
       trial_period_days: params.trialPeriodDays ?? 14,
-      metadata: { companyId: params.companyId },
+      metadata: { businessId: params.businessId },
     },
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
-    metadata: { companyId: params.companyId },
+    metadata: { businessId: params.businessId },
   });
   return session;
 }
@@ -77,7 +77,7 @@ async function getOrCreatePortalConfiguration(s: Stripe): Promise<string> {
 
   const config = await s.billingPortal.configurations.create({
     business_profile: {
-      headline: "Manage your CraftCapture subscription",
+      headline: "Manage your IntakePulse subscription",
     },
     features: {
       subscription_cancel: {

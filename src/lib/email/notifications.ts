@@ -42,7 +42,7 @@ function emailFooter(businessName: string) {
   return `
     <tr><td style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;">
       <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
-        Powered by CraftCapture &nbsp;·&nbsp; ${businessName}
+        Powered by IntakePulse &nbsp;·&nbsp; ${businessName}
       </p>
     </td></tr>`;
 }
@@ -95,76 +95,64 @@ export async function sendSignupNotification({ businessName, ownerName, ownerEma
   }
 }
 
-// ─── Painter: welcome email ───────────────────────────────────────────────────
+// ─── IntakePulse: welcome email ───────────────────────────────────────────────
 
 interface WelcomeEmailParams {
   ownerName: string;
   ownerEmail: string;
   businessName: string;
-  quoteUrl: string;
+  dashboardUrl: string;
 }
 
-export async function sendWelcomeEmail({ ownerName, ownerEmail, businessName, quoteUrl }: WelcomeEmailParams) {
+export async function sendWelcomeEmail({ ownerName, ownerEmail, businessName, dashboardUrl }: WelcomeEmailParams) {
   const firstName = ownerName.split(" ")[0];
-  const dashboardUrl = `${APP_URL}/dashboard`;
-  const helpUrl = `${APP_URL}/dashboard/help`;
+  const billingUrl = `${dashboardUrl}/billing`;
 
   const html = emailWrapper(`
+    <tr><td style="height:4px;background:linear-gradient(90deg,#f97316,#fb923c);font-size:0;line-height:0;">&nbsp;</td></tr>
+
     <tr><td style="padding:24px 24px 0 24px;">
-      <h1 style="margin:0 0 4px 0;font-size:22px;font-weight:700;color:#111827;">Welcome to CraftCapture, ${firstName}!</h1>
-      <p style="margin:0 0 12px 0;font-size:14px;color:#6b7280;">You're set up. Here's how to start capturing leads.</p>
-      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 14px;">
-        <p style="margin:0;font-size:13px;color:#c2410c;font-weight:600;">One last step before you go live</p>
-        <p style="margin:4px 0 0 0;font-size:13px;color:#9a3412;line-height:1.5;">Start your 14-day free trial to activate your quote link — no charge until the 14 days are up. Your link won't accept homeowners until you do.</p>
-      </div>
+      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">Welcome</p>
+      <h1 style="margin:0 0 4px 0;font-size:24px;font-weight:700;color:#111827;">Hi ${firstName}, you're set up.</h1>
+      <p style="margin:0;font-size:14px;color:#6b7280;">${businessName} is now on IntakePulse.</p>
     </td></tr>
 
     <tr><td style="padding:20px 24px 0 24px;">
       <table width="100%" cellpadding="0" cellspacing="0">
-
-        <tr><td style="padding:0 0 20px 0;">
-          <p style="margin:0 0 10px 0;font-size:13px;font-weight:700;color:#111827;">Your 3 next steps:</p>
-          ${[
-            ["1. Share your quote link", `Send it to homeowners, add it to your Google Business Profile, and link it from your website or Instagram bio.`],
-            ["2. Print your QR code", `Download it from your dashboard and put it on job site signs, truck decals, or leave-behinds. Homeowners scan it on the spot.`],
-            ["3. Wait for leads to roll in", `Every time someone fills out your form you'll get an email notification instantly — no manual checking required.`],
-          ].map(([title, desc]) => `
-            <div style="display:flex;gap:10px;margin-bottom:12px;">
-              <div style="flex:1;">
-                <p style="margin:0 0 2px 0;font-size:13px;font-weight:600;color:#111827;">${title}</p>
-                <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">${desc}</p>
-              </div>
-            </div>`).join("")}
+        <tr><td style="padding:0 0 16px 0;">
+          <p style="margin:0;font-size:13px;font-weight:700;color:#111827;">Your next 3 steps:</p>
         </td></tr>
+        ${[
+          ["1. Get your number", `Email setup@intakepulse.com and we'll provision your dedicated Telnyx number within 1 business day.`],
+          ["2. Paste it in Settings", `Go to Settings → Phone Setup and paste in your assigned number. Then forward your business line to it.`],
+          ["3. Start your free trial", `Subscribe to activate missed-call recovery. No charge for 14 days.`],
+        ].map(([title, desc]) => `
+          <tr><td style="padding:0 0 14px 0;">
+            <p style="margin:0 0 2px 0;font-size:13px;font-weight:600;color:#111827;">${title}</p>
+            <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">${desc}</p>
+          </td></tr>`).join("")}
 
-        <tr><td style="padding:0 0 20px 0;background:#f9fafb;border-radius:10px;padding:14px;">
-          <p style="margin:0 0 6px 0;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Your quote link</p>
-          <p style="margin:0 0 10px 0;font-size:13px;font-family:monospace;color:#111827;word-break:break-all;">${quoteUrl}</p>
-          <a href="${quoteUrl}" style="font-size:12px;color:#f97316;text-decoration:none;font-weight:600;">Open your form →</a>
-        </td></tr>
-
-        <tr><td style="padding:16px 0 0 0;">
-          <a href="${dashboardUrl}/billing" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px;margin-right:10px;">
+        <tr><td style="padding:8px 0 0 0;">
+          <a href="${billingUrl}" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;margin-right:12px;">
             Start free trial →
           </a>
-          <a href="${helpUrl}" style="display:inline-block;color:#6b7280;text-decoration:none;font-size:13px;font-weight:500;padding:12px 0;">
-            Read the help guide
+          <a href="${dashboardUrl}" style="display:inline-block;color:#6b7280;text-decoration:none;font-size:13px;font-weight:500;padding:13px 0;">
+            Go to dashboard
           </a>
         </td></tr>
-
       </table>
     </td></tr>
 
-    <tr><td style="padding:20px 24px 24px 24px;border-top:1px solid #f3f4f6;margin-top:20px;">
+    <tr><td style="padding:20px 24px 24px 24px;border-top:1px solid #f3f4f6;">
       <p style="margin:0;font-size:13px;color:#9ca3af;">
-        Questions? Reply to this email or reach us at <a href="mailto:support@craftcapture.com" style="color:#f97316;text-decoration:none;">support@craftcapture.com</a>
+        Questions? Reply to this email or reach us at <a href="mailto:support@intakepulse.com" style="color:#f97316;text-decoration:none;">support@intakepulse.com</a>
       </p>
     </td></tr>
   `);
 
   return emailClient.send({
     to: ownerEmail,
-    subject: `Welcome to CraftCapture — one step left to go live`,
+    subject: `Welcome to IntakePulse — ${firstName}, here's how to go live`,
     html,
   });
 }
