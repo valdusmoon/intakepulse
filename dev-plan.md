@@ -464,6 +464,7 @@ CraftCapture V1 (painting contractor lead capture app) copied into this repo. Al
 - [ ] Right column: AI assessment card (urgency score, quality score, estimated value, reasoning, recommended actions), status selector, notes
 - [ ] Quick actions: "Call lead" (tel: link), "Send SMS", "Mark Won", "Mark Lost", "Pause automation", "Schedule callback"
 - [ ] Follow-up status: show pending/sent/canceled follow-ups with timestamps
+- [ ] If a pending followup exists: show "Cancel follow-up" button → PATCH /api/leads/[id]/followup → cancelFollowupsForLead (owner called them back directly, no way to auto-detect this without a dialer)
 
 ## 7.4 Update Lead API Routes
 - [ ] Rename/rewrite `src/app/api/leads/route.ts` — update all column names (businessId, callerName, callerPhone, urgencyScore, etc.)

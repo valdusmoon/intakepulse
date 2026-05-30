@@ -77,23 +77,23 @@ export async function getLeadStats(businessId: string) {
 
   const [row] = await db
     .select({
-      recoveredThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${startOfMonth.toISOString()} and ${leads.source} = 'missed_call')`,
-      intakeCompleted: sql<number>`count(*) filter (where ${leads.status} in ('intake_completed', 'qualified', 'converted'))`,
       totalThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${startOfMonth.toISOString()})`,
+      missedCallsThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${startOfMonth.toISOString()} and ${leads.source} = 'missed_call')`,
+      intakeCompleted: sql<number>`count(*) filter (where ${leads.status} in ('intake_completed', 'qualified', 'converted'))`,
       converted: sql<number>`count(*) filter (where ${leads.status} = 'converted')`,
-      estimatedRevenue: sql<number>`coalesce(sum(${leads.estimatedValueHigh}) filter (where ${leads.status} = 'qualified' or ${leads.status} = 'converted'), 0)`,
+      // Use midpoint of low/high range for a conservative pipeline estimate
+      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.status} in ('qualified', 'converted')), 0)`,
     })
     .from(leads)
     .where(eq(leads.businessId, businessId));
 
-  const intakeCompletionRate =
-    row.recoveredThisMonth > 0
-      ? Math.round((Number(row.intakeCompleted) / Number(row.recoveredThisMonth)) * 100)
-      : null;
+  const total = Number(row.totalThisMonth);
+  const intakeCompleted = Number(row.intakeCompleted);
+  const intakeCompletionRate = total > 0 ? Math.round((intakeCompleted / total) * 100) : null;
 
   return {
-    recoveredThisMonth: Number(row.recoveredThisMonth),
-    totalThisMonth: Number(row.totalThisMonth),
+    totalThisMonth: total,
+    missedCallsThisMonth: Number(row.missedCallsThisMonth),
     converted: Number(row.converted),
     estimatedRevenue: Number(row.estimatedRevenue),
     intakeCompletionRate,
