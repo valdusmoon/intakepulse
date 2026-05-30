@@ -303,31 +303,31 @@ CraftCapture V1 (painting contractor lead capture app) copied into this repo. Al
 > Build the public mobile-first intake form at `/intake/[businessId]`. This is what gets texted to the missed caller.
 
 ## 4.1 Intake Form Page
-- [ ] Create `src/app/intake/[businessId]/page.tsx` — public, no auth
-- [ ] Fetch business info + vertical config for the businessId
-- [ ] If business not found or not subscribed: show "This form is no longer available"
-- [ ] Pass vertical questions to client component
+- [x] Create `src/app/intake/[businessId]/page.tsx` — public, no auth
+- [x] Fetch business info + vertical config for the businessId
+- [x] If business not found or not subscribed: show "This form is no longer available"
+- [x] Pass vertical questions to client component
 
 ## 4.2 Intake Form Client Component
-- [ ] Create `src/app/intake/[businessId]/_form.tsx` — `"use client"`
-- [ ] Mobile-first MCQ card flow (one question per screen)
-- [ ] Progress bar (question X of Y)
-- [ ] Question types: single-select cards, multi-select, text input, phone input
-- [ ] Conditional logic: show/hide questions based on prior answers (from `conditional` field in vertical config)
-- [ ] Step 0 — name, phone, and SMS consent checkbox: "By proceeding you agree to receive texts from [BusinessName] regarding your inquiry." (required — cannot advance without checking)
-- [ ] All answers held in local state until submission — no auto-save per step
-- [ ] Final step — confirmation screen: "We have everything we need. [BusinessName] will be in touch shortly."
-- [ ] On final submit: single POST to `/api/intake/[businessId]/submit` with all answers + name + phone + smsConsent=true
+- [x] Create `src/app/intake/[businessId]/_form.tsx` — `"use client"`
+- [x] Mobile-first MCQ card flow (one question per screen)
+- [x] Progress bar (question X of Y)
+- [x] Question types: single-select cards, multi-select, text input, phone input
+- [x] Conditional logic: show/hide questions based on prior answers (from `conditional` field in vertical config)
+- [x] Step 0 — name, phone, and SMS consent checkbox: "By proceeding you agree to receive texts from [BusinessName] regarding your inquiry." (required — cannot advance without checking)
+- [x] All answers held in local state until submission — no auto-save per step
+- [x] Final step — confirmation screen: "We have everything we need. [BusinessName] will be in touch shortly."
+- [x] On final submit: single POST to `/api/intake/[businessId]/submit` with all answers + name + phone + smsConsent=true
 
 ## 4.3 Intake API Routes
-- [ ] `POST /api/intake/[businessId]/submit` — create/find lead by phone, write all answers as single `intakeAnswers` jsonb object on the lead record, mark `intake_completed`, fire Inngest `intake.completed` event
-- [ ] Rate limit by IP — use **Upstash Redis** rate limiter (not in-memory Map — in-memory resets on each serverless invocation and doesn't work across Vercel instances)
-- [ ] Add `@upstash/ratelimit` and `@upstash/redis` to dependencies; add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to env
-- [ ] Add `/api/intake(.*)` to public routes in middleware
-- [ ] No partial-save endpoints needed in V1
+- [x] `POST /api/intake/[businessId]/submit` — create/find lead by phone, write all answers as single `intakeAnswers` jsonb object on the lead record, mark `intake_completed`, fire Inngest `intake.completed` event
+- [x] Rate limit by IP — use **Upstash Redis** rate limiter (not in-memory Map — in-memory resets on each serverless invocation and doesn't work across Vercel instances)
+- [x] Add `@upstash/ratelimit` and `@upstash/redis` to dependencies; add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to env
+- [x] Add `/api/intake(.*)` to public routes in middleware
+- [x] No partial-save endpoints needed in V1
 
 ## 4.4 Seed Restoration Vertical Questions
-- [ ] Define restoration question set in `scripts/seed-verticals.ts`:
+- [x] Define restoration question set in `scripts/seed-verticals.ts`:
   - `damage_type`: Water / Fire / Mold (single-select)
   - `water_category`: Category 1 (clean) / Category 2 (gray) / Category 3 (black) — conditional on water
   - `affected_rooms`: multiselect (living room, bedroom, bathroom, kitchen, basement, etc.)
@@ -336,7 +336,7 @@ CraftCapture V1 (painting contractor lead capture app) copied into this repo. Al
   - `time_since_damage`: Less than 24 hours / 1-3 days / 3-7 days / Over a week
   - `active_leak`: Is water still entering? Yes / No
   - `emergency_severity`: 1-5 scale card (1=minor, 5=structural risk)
-- [ ] Re-run seed: `npx tsx scripts/seed-verticals.ts`
+- [x] Re-run seed: `npx tsx scripts/seed-verticals.ts`
 
 ---
 
