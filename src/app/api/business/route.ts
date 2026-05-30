@@ -19,19 +19,16 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const {
-    businessName, ownerName, ownerEmail, ownerPhone,
+    businessName, ownerName, ownerEmail,
     serviceArea, forwardingNumber, callTimeoutSeconds,
   } = body;
 
-  if (!businessName || !ownerName || !ownerPhone) {
+  if (!businessName || !ownerName) {
     return NextResponse.json(
-      { error: "businessName, ownerName, and ownerPhone are required" },
+      { error: "businessName and ownerName are required" },
       { status: 400 }
     );
   }
-
-  const phoneResult = validateAndNormalizePhone(ownerPhone);
-  if (!phoneResult.isValid) return NextResponse.json({ error: phoneResult.error }, { status: 422 });
 
   const emailResult = validateAndNormalizeEmail(ownerEmail ?? "");
   if (ownerEmail && !emailResult.isValid) {
@@ -41,12 +38,10 @@ export async function POST(req: NextRequest) {
   const existing = await getBusinessByClerkId(userId);
 
   if (existing) {
-    // Onboarding re-submit or update — upsert with real data
     const updated = await updateBusiness(existing.id, {
       businessName,
       ownerName,
       ownerEmail: emailResult.normalized ?? existing.ownerEmail,
-      ownerPhone: phoneResult.normalized!,
       serviceArea: serviceArea ?? null,
       forwardingNumber: forwardingNumber ?? null,
       callTimeoutSeconds: callTimeoutSeconds ?? 20,
@@ -60,7 +55,6 @@ export async function POST(req: NextRequest) {
     businessName,
     ownerName,
     ownerEmail: emailResult.normalized ?? ownerEmail ?? "",
-    ownerPhone: phoneResult.normalized!,
     serviceArea: serviceArea ?? null,
     forwardingNumber: forwardingNumber ?? null,
     callTimeoutSeconds: callTimeoutSeconds ?? 20,
@@ -70,7 +64,7 @@ export async function POST(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://intakepulse.com";
   const dashboardUrl = `${appUrl}/dashboard`;
 
-  void sendSignupNotification({ businessName, ownerName, ownerEmail: ownerEmail ?? "", ownerPhone });
+  void sendSignupNotification({ businessName, ownerName, ownerEmail: ownerEmail ?? "", ownerPhone: "" });
   void sendWelcomeEmail({ ownerName, ownerEmail: ownerEmail ?? "", businessName, dashboardUrl });
 
   return NextResponse.json(business, { status: 201 });
@@ -84,12 +78,6 @@ export async function PATCH(req: NextRequest) {
   if (!business) return NextResponse.json({ error: "Business not found" }, { status: 404 });
 
   const body = await req.json();
-
-  if (body.ownerPhone) {
-    const phoneResult = validateAndNormalizePhone(body.ownerPhone);
-    if (!phoneResult.isValid) return NextResponse.json({ error: phoneResult.error }, { status: 422 });
-    body.ownerPhone = phoneResult.normalized;
-  }
 
   if (body.forwardingNumber) {
     const phoneResult = validateAndNormalizePhone(body.forwardingNumber);

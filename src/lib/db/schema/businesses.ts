@@ -19,7 +19,7 @@ export const businesses = pgTable("businesses", {
   businessName: text("business_name").notNull(),
   ownerName: text("owner_name").notNull(),
   ownerEmail: text("owner_email").notNull(),
-  ownerPhone: text("owner_phone").notNull(),
+  ownerPhone: text("owner_phone"),
   serviceArea: text("service_area"),
   timezone: text("timezone").notNull().default("America/New_York"),
   websiteUrl: text("website_url"),

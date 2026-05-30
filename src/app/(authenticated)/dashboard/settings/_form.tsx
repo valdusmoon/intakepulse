@@ -95,7 +95,6 @@ export function SettingsForm({ business }: { business: Business }) {
   // ── Profile ──────────────────────────────────────────────────────────────
   const [businessName, setBusinessName] = useState(business.businessName);
   const [ownerName, setOwnerName] = useState(business.ownerName);
-  const [ownerPhone, setOwnerPhone] = useState(business.ownerPhone);
   const [serviceArea, setServiceArea] = useState(business.serviceArea ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(business.websiteUrl ?? "");
   const profile = useSave("profile");
@@ -128,15 +127,9 @@ export function SettingsForm({ business }: { business: Business }) {
             <Label>Business name</Label>
             <Input value={businessName} onChange={setBusinessName} placeholder="Metro Restoration Co." />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label>Owner name</Label>
-              <Input value={ownerName} onChange={setOwnerName} placeholder="Mike Johnson" />
-            </div>
-            <div>
-              <Label>Owner phone</Label>
-              <Input value={ownerPhone} onChange={setOwnerPhone} placeholder="+1 (555) 000-0000" type="tel" />
-            </div>
+          <div>
+            <Label>Owner name</Label>
+            <Input value={ownerName} onChange={setOwnerName} placeholder="Mike Johnson" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -153,7 +146,7 @@ export function SettingsForm({ business }: { business: Business }) {
         <SaveButton
           loading={profile.loading}
           saved={profile.saved}
-          onClick={() => profile.save({ businessName, ownerName, ownerPhone, serviceArea: serviceArea || null, websiteUrl: websiteUrl || null })}
+          onClick={() => profile.save({ businessName, ownerName, serviceArea: serviceArea || null, websiteUrl: websiteUrl || null })}
         />
       </FieldGroup>
 

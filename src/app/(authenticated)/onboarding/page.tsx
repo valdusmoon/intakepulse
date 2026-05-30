@@ -8,7 +8,6 @@ import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 interface FormData {
   businessName: string;
   ownerName: string;
-  ownerPhone: string;
   ownerEmail: string;
   serviceArea: string;
   vertical: string;
@@ -79,9 +78,6 @@ function Step1({
   function validate() {
     if (!form.businessName.trim()) return "Business name is required.";
     if (!form.ownerName.trim()) return "Your name is required.";
-    if (!form.ownerPhone.trim()) return "Phone number is required.";
-    const ph = validateAndNormalizePhone(form.ownerPhone);
-    if (!ph.isValid) return ph.error ?? "Invalid phone number.";
     return "";
   }
 
@@ -116,16 +112,6 @@ function Step1({
             onChange={(v) => update("ownerName", v)}
             placeholder="Mike Johnson"
           />
-        </div>
-        <div>
-          <Label>Your mobile number</Label>
-          <Input
-            value={form.ownerPhone}
-            onChange={(v) => update("ownerPhone", v)}
-            placeholder="+1 (555) 000-0000"
-            type="tel"
-          />
-          <p className="text-xs text-gray-400 mt-1">Lead notifications go here.</p>
         </div>
         <div>
           <Label>Service area <span className="text-gray-400 font-normal">(optional)</span></Label>
@@ -403,7 +389,6 @@ export default function OnboardingPage() {
   const [form, setForm] = useState<FormData>({
     businessName: "",
     ownerName: "",
-    ownerPhone: "",
     ownerEmail: "",
     serviceArea: "",
     vertical: "restoration",
@@ -425,7 +410,6 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           businessName: form.businessName,
           ownerName: form.ownerName,
-          ownerPhone: form.ownerPhone,
           ownerEmail: form.ownerEmail || undefined,
           serviceArea: form.serviceArea || undefined,
           vertical: form.vertical,
