@@ -77,7 +77,7 @@ async function getOrCreatePortalConfiguration(s: Stripe): Promise<string> {
 
   const config = await s.billingPortal.configurations.create({
     business_profile: {
-      headline: "Manage your IntakePulse subscription",
+      headline: "Manage your Callverted subscription",
     },
     features: {
       subscription_cancel: {

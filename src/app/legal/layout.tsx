@@ -10,7 +10,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-orange-400 flex items-center justify-center text-white text-xs font-black shadow-sm">
               P
             </div>
-            CraftCapture
+            Callverted
           </Link>
           <Link href="/sign-in" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
             Sign in →
@@ -26,13 +26,13 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       {/* Footer */}
       <footer className="border-t border-gray-200 py-6 px-6">
         <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400">
-          <span>© 2026 CraftCapture · Built for painting contractors</span>
+          <span>© 2026 Callverted · Built for painting contractors</span>
           <div className="flex gap-5">
             <Link href="/legal/privacy" className="hover:text-gray-700 transition-colors">Privacy</Link>
             <Link href="/legal/terms" className="hover:text-gray-700 transition-colors">Terms</Link>
             <Link href="/legal/sms" className="hover:text-gray-700 transition-colors">SMS Policy</Link>
             <Link href="/legal/refunds" className="hover:text-gray-700 transition-colors">Refund Policy</Link>
-            <a href="mailto:hello@craftcapture.com" className="hover:text-gray-700 transition-colors">Contact</a>
+            <a href="mailto:hello@callverted.com" className="hover:text-gray-700 transition-colors">Contact</a>
           </div>
         </div>
       </footer>

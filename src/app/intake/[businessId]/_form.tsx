@@ -19,18 +19,22 @@ interface IntakeFormProps {
 function ContactStep({
   name,
   phone,
+  email,
   consent,
   onName,
   onPhone,
+  onEmail,
   onConsent,
   onNext,
   businessName,
 }: {
   name: string;
   phone: string;
+  email: string;
   consent: boolean;
   onName: (v: string) => void;
   onPhone: (v: string) => void;
+  onEmail: (v: string) => void;
   onConsent: (v: boolean) => void;
   onNext: () => void;
   businessName: string;
@@ -78,6 +82,18 @@ function ContactStep({
             className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
           {phoneError && <p className="text-sm text-red-600 mt-1.5">{phoneError}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            Email <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => onEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          />
         </div>
 
         <button
@@ -276,6 +292,7 @@ export function IntakeForm({
   const [step, setStep] = useState(0); // 0 = contact info; 1..N = questions
   const [callerName, setCallerName] = useState("");
   const [callerPhone, setCallerPhone] = useState("");
+  const [callerEmail, setCallerEmail] = useState("");
   const [smsConsent, setSmsConsent] = useState(false);
   const [answers, setAnswers] = useState<Answers>({});
   const [loading, setLoading] = useState(false);
@@ -324,6 +341,7 @@ export function IntakeForm({
           leadId,
           callerName,
           callerPhone,
+          callerEmail: callerEmail.trim() || undefined,
           smsConsent: true,
           answers: finalAnswers,
           source,
@@ -423,9 +441,11 @@ export function IntakeForm({
           <ContactStep
             name={callerName}
             phone={callerPhone}
+            email={callerEmail}
             consent={smsConsent}
             onName={setCallerName}
             onPhone={setCallerPhone}
+            onEmail={setCallerEmail}
             onConsent={setSmsConsent}
             onNext={advance}
             businessName={businessName}

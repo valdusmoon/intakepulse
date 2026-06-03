@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Terms of Service — CraftCapture",
-  description: "Terms and conditions for using the CraftCapture platform.",
+  title: "Terms of Service — Callverted",
+  description: "Terms and conditions for using the Callverted platform.",
 };
 
 export default function TermsOfServicePage() {
@@ -12,13 +12,13 @@ export default function TermsOfServicePage() {
       </div>
 
       <p className="text-gray-600 leading-relaxed">
-        These Terms of Service govern your use of CraftCapture ("Service"), operated by CraftCapture ("we", "us", "our").
+        These Terms of Service govern your use of Callverted ("Service"), operated by Callverted ("we", "us", "our").
         By accessing or using the Service, you agree to these terms. If you do not agree, do not use the Service.
       </p>
 
       <Section title="1. Description of Service">
         <p>
-          CraftCapture is a lead capture and job management platform for painting contractors. It provides a homeowner-facing
+          Callverted is a lead capture and job management platform for painting contractors. It provides a homeowner-facing
           quote request form, AI-powered instant cost estimates, a lead pipeline dashboard, professional quotes and contracts
           with electronic signatures, job scheduling, AI-powered color visualization, job photo management, email and SMS
           notifications, automated review requests, an embeddable website widget, data export, and related tools.
@@ -28,10 +28,10 @@ export default function TermsOfServicePage() {
 
       <Section title="2. Account Registration">
         <p>
-          You must create an account to use CraftCapture. You agree to provide accurate, complete information and to
+          You must create an account to use Callverted. You agree to provide accurate, complete information and to
           keep it updated. You are responsible for all activity under your account and for maintaining the security
           of your credentials. Notify us immediately at{" "}
-          <a href="mailto:hello@craftcapture.com">hello@craftcapture.com</a> if you suspect unauthorized access.
+          <a href="mailto:hello@callverted.com">hello@callverted.com</a> if you suspect unauthorized access.
         </p>
         <p>
           You must be at least 18 years old and legally capable of entering into a binding contract to use the Service.
@@ -40,7 +40,7 @@ export default function TermsOfServicePage() {
 
       <Section title="3. Subscription and Billing">
         <p>
-          CraftCapture is offered as a paid subscription at $79/month. A 14-day free trial is available to new accounts.
+          Callverted is offered as a paid subscription at $79/month. A 14-day free trial is available to new accounts.
           No payment is charged during the trial period. By starting a trial, you authorize us to charge your payment
           method at the end of the trial unless you cancel first.
         </p>
@@ -70,31 +70,31 @@ export default function TermsOfServicePage() {
 
       <Section title="5. Estimates and AI Features">
         <p>
-          CraftCapture generates instant ballpark cost estimates using a formula based on your labor rates and homeowner-provided home details. These estimates are clearly labeled as preliminary ranges and are not guaranteed quotes.
+          Callverted generates instant ballpark cost estimates using a formula based on your labor rates and homeowner-provided home details. These estimates are clearly labeled as preliminary ranges and are not guaranteed quotes.
         </p>
         <p>
-          CraftCapture also uses OpenAI's API to analyze homeowner-uploaded photos and generate condition notes. You acknowledge that:
+          Callverted also uses OpenAI's API to analyze homeowner-uploaded photos and generate condition notes. You acknowledge that:
         </p>
         <ul>
           <li>Estimates may be inaccurate and should not replace in-person assessments</li>
           <li>AI-generated photo notes are approximations only</li>
           <li>You are solely responsible for the final quotes and prices you provide to homeowners</li>
-          <li>CraftCapture is not liable for any disputes arising from estimates or AI-generated content</li>
+          <li>Callverted is not liable for any disputes arising from estimates or AI-generated content</li>
         </ul>
       </Section>
 
       <Section title="5a. SMS Notifications">
         <p>
-          CraftCapture sends SMS notifications to the painter's registered phone number for key job events (new leads, quote responses, contract signatures, job scheduling). These are transactional notifications related to your use of the Service and are sent via Twilio. Message frequency varies based on account activity. Message and data rates may apply depending on your carrier.
+          Callverted sends SMS notifications to the painter's registered phone number for key job events (new leads, quote responses, contract signatures, job scheduling). These are transactional notifications related to your use of the Service and are sent via Twilio. Message frequency varies based on account activity. Message and data rates may apply depending on your carrier.
         </p>
         <p>
-          When a homeowner calls a painter's CraftCapture phone number and the call goes unanswered, CraftCapture may send a one-time automated text-back to the caller with a link to request a free estimate. Homeowners who submit a quote request through a painter's CraftCapture lead form may optionally consent to receive SMS updates related to their request (estimate, quote, scheduling). If they do not opt in, communications are sent via email only.
+          When a homeowner calls a painter's Callverted phone number and the call goes unanswered, Callverted may send a one-time automated text-back to the caller with a link to request a free estimate. Homeowners who submit a quote request through a painter's Callverted lead form may optionally consent to receive SMS updates related to their request (estimate, quote, scheduling). If they do not opt in, communications are sent via email only.
         </p>
         <p>
-          To opt out of SMS messages at any time, reply <strong>STOP</strong> to any message. For help, reply <strong>HELP</strong> or contact us at support@craftcapture.com. After opting out, you will receive one final confirmation message and no further messages will be sent.
+          To opt out of SMS messages at any time, reply <strong>STOP</strong> to any message. For help, reply <strong>HELP</strong> or contact us at support@callverted.com. After opting out, you will receive one final confirmation message and no further messages will be sent.
         </p>
         <p>
-          CraftCapture also sends a one-time review request email to homeowners when a job is marked as complete. This email is a transactional communication directly related to the completed service.
+          Callverted also sends a one-time review request email to homeowners when a job is marked as complete. This email is a transactional communication directly related to the completed service.
         </p>
       </Section>
 
@@ -109,7 +109,7 @@ export default function TermsOfServicePage() {
 
       <Section title="7. Intellectual Property">
         <p>
-          CraftCapture and its original content, features, and functionality are owned by us and are protected by
+          Callverted and its original content, features, and functionality are owned by us and are protected by
           applicable intellectual property laws. You retain ownership of the content you upload (photos, notes,
           etc.) and grant us a limited license to store and process it to provide the Service.
         </p>
@@ -138,7 +138,7 @@ export default function TermsOfServicePage() {
 
       <Section title="10. Limitation of Liability">
         <p>
-          To the maximum extent permitted by law, CraftCapture and its owners shall not be liable for any indirect,
+          To the maximum extent permitted by law, Callverted and its owners shall not be liable for any indirect,
           incidental, special, consequential, or punitive damages — including lost profits, lost revenue, or lost
           business — arising from your use of or inability to use the Service, even if we have been advised of
           the possibility of such damages.
@@ -167,7 +167,7 @@ export default function TermsOfServicePage() {
       <Section title="13. Contact">
         <p>
           For questions about these terms, contact us at{" "}
-          <a href="mailto:hello@craftcapture.com">hello@craftcapture.com</a>.
+          <a href="mailto:hello@callverted.com">hello@callverted.com</a>.
         </p>
       </Section>
     </div>

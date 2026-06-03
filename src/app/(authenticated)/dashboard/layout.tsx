@@ -58,7 +58,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
-              <img src="/icon-mark.svg" alt="IntakePulse" className="w-7 h-7 shrink-0" />
+              <img src="/icon-mark.svg" alt="Callverted" className="w-7 h-7 shrink-0" />
               <span className="text-sm font-semibold text-gray-900 hidden sm:block">{business.businessName}</span>
             </Link>
             <NavLinks />

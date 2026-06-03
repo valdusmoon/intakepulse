@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "SMS Policy & Consent — CraftCapture",
-  description: "How CraftCapture uses SMS, consent flows, and opt-out instructions.",
+  title: "SMS Policy & Consent — Callverted",
+  description: "How Callverted uses SMS, consent flows, and opt-out instructions.",
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -14,8 +14,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function MessageBubble({ from, text }: { from: "craftcapture" | "painter"; text: string }) {
-  const isApp = from === "craftcapture";
+function MessageBubble({ from, text }: { from: "callverted" | "painter"; text: string }) {
+  const isApp = from === "callverted";
   return (
     <div className={`flex ${isApp ? "justify-start" : "justify-end"}`}>
       <div
@@ -32,7 +32,7 @@ function MessageBubble({ from, text }: { from: "craftcapture" | "painter"; text:
   );
 }
 
-function PhoneMockup({ label, messages }: { label: string; messages: Array<{ from: "craftcapture" | "painter"; text: string }> }) {
+function PhoneMockup({ label, messages }: { label: string; messages: Array<{ from: "callverted" | "painter"; text: string }> }) {
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
@@ -69,7 +69,7 @@ export default function SmsPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-1">SMS Policy &amp; Consent</h1>
         <p className="text-sm text-gray-400">Last updated: April 25, 2026</p>
         <p className="text-gray-600 mt-4 leading-relaxed">
-          CraftCapture uses SMS to help painting contractors respond faster to leads and keep homeowners
+          Callverted uses SMS to help painting contractors respond faster to leads and keep homeowners
           informed. This page explains every SMS touchpoint, who receives messages, how consent is
           collected, and how to opt out. SMS is powered by Twilio.
         </p>
@@ -79,7 +79,7 @@ export default function SmsPage() {
       <Section title="1. Painter (Business Owner) Notifications">
         <p>
           Painting contractors opt in to SMS notifications on a per-event basis from their account
-          settings after creating a CraftCapture account. All SMS notifications are off by default —
+          settings after creating a Callverted account. All SMS notifications are off by default —
           painters explicitly enable only the events they want to be notified about. They can turn
           any notification on or off at any time without closing their account.
         </p>
@@ -127,29 +127,29 @@ export default function SmsPage() {
           <PhoneMockup
             label="New lead alert"
             messages={[{
-              from: "craftcapture",
-              text: "New lead from CraftCapture: Sarah Johnson (555-234-5678) submitted a request for interior painting. Log in to respond: craftcapture.com/dashboard. Reply STOP to opt out.",
+              from: "callverted",
+              text: "New lead from Callverted: Sarah Johnson (555-234-5678) submitted a request for interior painting. Log in to respond: callverted.com/dashboard. Reply STOP to opt out.",
             }]}
           />
           <PhoneMockup
             label="Quote accepted"
             messages={[{
-              from: "craftcapture",
-              text: "CraftCapture: Sarah Johnson accepted your quote for $2,400. Log in to send a contract: craftcapture.com/dashboard. Reply STOP to opt out.",
+              from: "callverted",
+              text: "Callverted: Sarah Johnson accepted your quote for $2,400. Log in to send a contract: callverted.com/dashboard. Reply STOP to opt out.",
             }]}
           />
           <PhoneMockup
             label="Contract signed"
             messages={[{
-              from: "craftcapture",
-              text: "CraftCapture: Sarah Johnson signed their contract. Log in to schedule the job: craftcapture.com/dashboard. Reply STOP to opt out.",
+              from: "callverted",
+              text: "Callverted: Sarah Johnson signed their contract. Log in to schedule the job: callverted.com/dashboard. Reply STOP to opt out.",
             }]}
           />
           <PhoneMockup
             label="Missed call alert"
             messages={[{
-              from: "craftcapture",
-              text: "CraftCapture: You missed a call from 555-234-5678. We sent them a text to request a free estimate on your behalf. Log in to follow up: craftcapture.com/dashboard. Reply STOP to opt out.",
+              from: "callverted",
+              text: "Callverted: You missed a call from 555-234-5678. We sent them a text to request a free estimate on your behalf. Log in to follow up: callverted.com/dashboard. Reply STOP to opt out.",
             }]}
           />
         </div>
@@ -165,13 +165,13 @@ export default function SmsPage() {
       <Section title="2. Homeowner Messages">
 
         <p>
-          Homeowners interact with CraftCapture through a painter's public lead capture form
+          Homeowners interact with Callverted through a painter's public lead capture form
           (no account required). SMS messages to homeowners fall into two categories:
         </p>
 
         <h3 className="text-base font-semibold text-gray-800 mt-4">2a. Lead Form — Quote & Follow-up Updates</h3>
         <p>
-          When a homeowner submits a quote request through a painter's CraftCapture form, they
+          When a homeowner submits a quote request through a painter's Callverted form, they
           see an optional SMS consent checkbox on the contact step. By checking this box, they
           consent to receive SMS updates about their request — including their estimate, quote,
           and scheduling communications from the painter. If unchecked, they will receive
@@ -222,8 +222,8 @@ export default function SmsPage() {
 
         <h3 className="text-base font-semibold text-gray-800 mt-6">2b. Missed-Call Text-Back</h3>
         <p>
-          Each painter on CraftCapture is assigned a dedicated phone number. When a homeowner
-          calls that number and the call goes unanswered, CraftCapture automatically sends a
+          Each painter on Callverted is assigned a dedicated phone number. When a homeowner
+          calls that number and the call goes unanswered, Callverted automatically sends a
           single SMS text-back to the caller. The text-back contains a link to request a free
           estimate and is a direct response to the homeowner&apos;s inbound call action.
         </p>
@@ -236,8 +236,8 @@ export default function SmsPage() {
           <PhoneMockup
             label="Homeowner receives — missed-call text-back"
             messages={[{
-              from: "craftcapture",
-              text: "Hi! We missed your call to Blue Ridge Painting. Request a free estimate here: craftcapture.com/quote/abc123. Reply STOP to opt out.",
+              from: "callverted",
+              text: "Hi! We missed your call to Blue Ridge Painting. Request a free estimate here: callverted.com/quote/abc123. Reply STOP to opt out.",
             }]}
           />
         </div>
@@ -256,7 +256,7 @@ export default function SmsPage() {
             { label: "Message frequency", value: "Varies by account activity. Painters typically receive 1–5 messages per new job. Homeowners receive at most 1 missed-call text-back per call, plus updates if they submit a lead form." },
             { label: "Message & data rates", value: "Standard message and data rates may apply depending on your carrier and plan." },
             { label: "To opt out", value: 'Reply STOP to any message. You will receive one final confirmation and no further messages will be sent.' },
-            { label: "For help", value: "Reply HELP to any message, or email support@craftcapture.com." },
+            { label: "For help", value: "Reply HELP to any message, or email support@callverted.com." },
             { label: "SMS provider", value: "All messages are sent via Twilio." },
           ].map((row, i, arr) => (
             <div key={row.label} className={`flex gap-4 px-5 py-4 ${i < arr.length - 1 ? "border-b border-gray-200" : ""}`}>
@@ -271,8 +271,8 @@ export default function SmsPage() {
       <Section title="4. Contact &amp; Further Information">
         <p>
           Questions about our SMS practices? Contact us at{" "}
-          <a href="mailto:support@craftcapture.com" className="text-orange-500 hover:underline">
-            support@craftcapture.com
+          <a href="mailto:support@callverted.com" className="text-orange-500 hover:underline">
+            support@callverted.com
           </a>
           .
         </p>

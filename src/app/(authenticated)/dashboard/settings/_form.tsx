@@ -6,7 +6,7 @@ import type { Business } from "@/lib/db/schema/businesses";
 const APP_URL =
   typeof window !== "undefined"
     ? window.location.origin
-    : process.env.NEXT_PUBLIC_APP_URL ?? "https://app.intakepulse.com";
+    : process.env.NEXT_PUBLIC_APP_URL ?? "https://app.callverted.com";
 
 type Section = "profile" | "phone";
 
@@ -146,7 +146,7 @@ export function SettingsForm({ business }: { business: Business }) {
       <FieldGroup title="Phone & Call Settings">
         <div className="space-y-4">
           <div>
-            <Label>Your IntakePulse number</Label>
+            <Label>Your Callverted number</Label>
             <Input
               value={telnyxPhoneNumber}
               onChange={setTelnyxPhoneNumber}
@@ -154,7 +154,7 @@ export function SettingsForm({ business }: { business: Business }) {
               type="tel"
             />
             <p className="text-xs text-gray-400 mt-1">
-              Paste the number assigned by IntakePulse. Email <span className="font-medium">setup@intakepulse.com</span> to request one.
+              Paste the number assigned by Callverted. Email <span className="font-medium">setup@callverted.com</span> to request one.
             </p>
           </div>
           <div>
@@ -166,7 +166,7 @@ export function SettingsForm({ business }: { business: Business }) {
               type="tel"
             />
             <p className="text-xs text-gray-400 mt-1">
-              Your IntakePulse number forwards calls here. If unanswered, missed-call recovery fires.
+              Your Callverted number forwards calls here. If unanswered, missed-call recovery fires.
             </p>
           </div>
         </div>

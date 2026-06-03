@@ -10,15 +10,19 @@ const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
 const db = drizzle(sql);
 
 // ─── Restoration Vertical ─────────────────────────────────────────────────────
+//
+// 5 questions total (down from 8). Step 0 (name/phone/consent) is separate.
+// water_category is conditional on damage_type = water.
+// Target: under 90 seconds on mobile for someone in an emergency.
 
 const restorationQuestions: VerticalQuestion[] = [
   {
     key: "damage_type",
-    label: "What type of damage occurred?",
+    label: "What type of damage?",
     type: "single_select",
     options: [
-      { value: "water", label: "Water Damage" },
-      { value: "fire", label: "Fire / Smoke Damage" },
+      { value: "water", label: "Water" },
+      { value: "fire", label: "Fire or Smoke" },
       { value: "mold", label: "Mold" },
     ],
     required: true,
@@ -28,25 +32,21 @@ const restorationQuestions: VerticalQuestion[] = [
     label: "What type of water?",
     type: "single_select",
     options: [
-      { value: "cat_1", label: "Category 1 — Clean water (pipe burst, appliance)" },
-      { value: "cat_2", label: "Category 2 — Gray water (washing machine, dishwasher)" },
-      { value: "cat_3", label: "Category 3 — Black water (sewage, flooding)" },
+      { value: "cat_1", label: "Clean water — pipe, appliance" },
+      { value: "cat_2", label: "Gray water — washing machine, dishwasher" },
+      { value: "cat_3", label: "Sewage or outdoor flooding" },
     ],
     required: true,
     conditional: { key: "damage_type", value: "water" },
   },
   {
-    key: "affected_rooms",
-    label: "Which areas are affected?",
-    type: "multi_select",
+    key: "room_count",
+    label: "How many rooms are affected?",
+    type: "single_select",
     options: [
-      { value: "living_room", label: "Living Room" },
-      { value: "bedroom", label: "Bedroom" },
-      { value: "bathroom", label: "Bathroom" },
-      { value: "kitchen", label: "Kitchen" },
-      { value: "basement", label: "Basement" },
-      { value: "garage", label: "Garage" },
-      { value: "multiple", label: "Multiple Rooms" },
+      { value: "1_2", label: "1–2 rooms" },
+      { value: "3_4", label: "3–4 rooms" },
+      { value: "5_plus", label: "5 or more" },
     ],
     required: true,
   },
@@ -59,7 +59,7 @@ const restorationQuestions: VerticalQuestion[] = [
       { value: "carpet", label: "Carpet" },
       { value: "tile", label: "Tile" },
       { value: "concrete", label: "Concrete" },
-      { value: "mixed", label: "Mixed / Multiple Types" },
+      { value: "mixed", label: "Mixed" },
     ],
     required: true,
   },
@@ -68,82 +68,49 @@ const restorationQuestions: VerticalQuestion[] = [
     label: "Do you have homeowner's insurance?",
     type: "single_select",
     options: [
-      { value: "yes_filing", label: "Yes — I'm filing a claim" },
+      { value: "yes_filing", label: "Yes — filing a claim" },
       { value: "yes_oop", label: "Yes — paying out of pocket" },
-      { value: "no", label: "No insurance" },
+      { value: "no", label: "No" },
       { value: "unsure", label: "Not sure" },
     ],
     required: true,
   },
   {
     key: "time_since_damage",
-    label: "When did the damage occur?",
+    label: "When did the damage happen?",
     type: "single_select",
     options: [
-      { value: "under_24h", label: "Less than 24 hours ago" },
+      { value: "under_24h", label: "Just happened — under 24 hours" },
       { value: "1_to_3_days", label: "1–3 days ago" },
       { value: "3_to_7_days", label: "3–7 days ago" },
       { value: "over_a_week", label: "Over a week ago" },
     ],
     required: true,
   },
-  {
-    key: "active_leak",
-    label: "Is water still actively entering the property?",
-    type: "single_select",
-    options: [
-      { value: "yes", label: "Yes" },
-      { value: "no", label: "No, it has stopped" },
-    ],
-    required: true,
-    conditional: { key: "damage_type", value: "water" },
-  },
-  {
-    key: "emergency_severity",
-    label: "How severe is the situation right now?",
-    type: "scale",
-    options: [
-      { value: "1", label: "1 — Minor, no immediate risk" },
-      { value: "2", label: "2" },
-      { value: "3", label: "3 — Moderate" },
-      { value: "4", label: "4" },
-      { value: "5", label: "5 — Severe, structural risk" },
-    ],
-    required: true,
-  },
 ];
 
-// Scoring rules applied by the generic scoring engine.
-// No code changes needed to add a new vertical — just write new rules here.
 const restorationScoringRules: ScoringRule[] = [
-  // Water category — gray/black water significantly increases urgency
+  // Water category — gray/black water drives urgency hard
   { answerKey: "water_category", answerValue: "cat_2", urgencyBonus: 3 },
   { answerKey: "water_category", answerValue: "cat_3", urgencyBonus: 4, qualityBonus: 10 },
 
-  // Hardwood flooring — delamination risk drives urgency and value
+  // Flooring — hardwood delamination is the key urgency + value driver
   { answerKey: "flooring_type", answerValue: "hardwood", urgencyBonus: 2, valueBonus: 200000 },
   { answerKey: "flooring_type", answerValue: "carpet", urgencyBonus: 1, valueBonus: 75000 },
 
-  // Active leak — highest urgency signal
-  { answerKey: "active_leak", answerValue: "yes", urgencyBonus: 3 },
+  // Room count — scope of job drives value estimate
+  { answerKey: "room_count", answerValue: "3_4", valueBonus: 100000 },
+  { answerKey: "room_count", answerValue: "5_plus", valueBonus: 225000, urgencyBonus: 1 },
 
-  // Insurance confirmed — strong quality signal (insured jobs close at higher rates)
+  // Insurance — strongest quality signal (insured jobs close at higher rates)
   { answerKey: "has_insurance", answerValue: "yes_filing", qualityBonus: 25 },
   { answerKey: "has_insurance", answerValue: "yes_oop", qualityBonus: 10 },
 
-  // Recency — fresh damage is more urgent and more likely to close
+  // Recency — fresh damage is urgent and more likely to close
   { answerKey: "time_since_damage", answerValue: "under_24h", urgencyBonus: 3, qualityBonus: 15 },
   { answerKey: "time_since_damage", answerValue: "1_to_3_days", urgencyBonus: 1, qualityBonus: 5 },
 
-  // Self-reported severity
-  { answerKey: "emergency_severity", answerValue: "4", urgencyBonus: 1 },
-  { answerKey: "emergency_severity", answerValue: "5", urgencyBonus: 2 },
-
-  // Multiple rooms — higher value job
-  { answerKey: "affected_rooms", answerValue: "multiple", valueBonus: 150000 },
-  { answerKey: "affected_rooms", answerValue: "basement", valueBonus: 100000, urgencyBonus: 1 },
-
-  // Fire/mold — different risk profiles
+  // Damage type — fire and mold have distinct value profiles
   { answerKey: "damage_type", answerValue: "fire", urgencyBonus: 2, valueBonus: 300000, qualityBonus: 10 },
   { answerKey: "damage_type", answerValue: "mold", qualityBonus: 5, valueBonus: 80000 },
 ];
@@ -194,7 +161,7 @@ async function seed() {
       },
     });
 
-  console.log("✓ Restoration vertical seeded");
+  console.log("✓ Restoration vertical seeded (6 questions — trimmed from 8)");
   await sql.end();
 }
 

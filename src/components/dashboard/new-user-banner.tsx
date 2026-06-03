@@ -26,7 +26,7 @@ export function NewUserBanner({ businessCreatedAt }: { businessCreatedAt: string
     <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-2.5">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
         <p className="text-xs text-indigo-700">
-          New to IntakePulse?{" "}
+          New to Callverted?{" "}
           <Link href="/dashboard/help" className="font-semibold underline hover:text-indigo-900">
             Read the setup guide →
           </Link>

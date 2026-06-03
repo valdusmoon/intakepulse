@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     onboardingCompleted: true,
   });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://intakepulse.com";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://callverted.com";
   const dashboardUrl = `${appUrl}/dashboard`;
 
   void sendSignupNotification({ businessName, ownerName, ownerEmail: ownerEmail ?? "", ownerPhone: normalizedPhone ?? "" });

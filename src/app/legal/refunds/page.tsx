@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Refund Policy — CraftCapture",
-  description: "CraftCapture's refund and cancellation policy.",
+  title: "Refund Policy — Callverted",
+  description: "Callverted's refund and cancellation policy.",
 };
 
 export default function RefundPolicyPage() {
@@ -12,7 +12,7 @@ export default function RefundPolicyPage() {
       </div>
 
       <p className="text-gray-600 leading-relaxed">
-        We want you to feel confident using CraftCapture. This policy explains how cancellations and refunds work.
+        We want you to feel confident using Callverted. This policy explains how cancellations and refunds work.
       </p>
 
       <Section title="Free Trial">
@@ -49,7 +49,7 @@ export default function RefundPolicyPage() {
 
       <Section title="How to Request a Refund">
         <p>
-          Email <a href="mailto:hello@craftcapture.com">hello@craftcapture.com</a> with the subject line "Refund Request"
+          Email <a href="mailto:hello@callverted.com">hello@callverted.com</a> with the subject line "Refund Request"
           and include your account email and a brief description of the issue. We aim to respond within 1 business
           day.
         </p>
@@ -62,7 +62,7 @@ export default function RefundPolicyPage() {
       <Section title="Questions">
         <p>
           If you have any questions about billing or this policy, reach out at{" "}
-          <a href="mailto:hello@craftcapture.com">hello@craftcapture.com</a>.
+          <a href="mailto:hello@callverted.com">hello@callverted.com</a>.
         </p>
       </Section>
     </div>

@@ -97,7 +97,7 @@ export default function HelpPage() {
     <div className="space-y-4">
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Help & Guide</h1>
-        <p className="text-sm text-slate-500">A plain-English walkthrough of CraftCapture.</p>
+        <p className="text-sm text-slate-500">A plain-English walkthrough of Callverted.</p>
       </div>
 
       <div className="flex gap-8 items-start">
@@ -118,7 +118,7 @@ export default function HelpPage() {
           </nav>
           <div className="mt-6 border-t border-slate-200 pt-4">
             <p className="text-xs text-slate-400 mb-1">Still stuck?</p>
-            <a href="mailto:support@craftcapture.com" className="text-xs font-medium text-orange-500 hover:underline">
+            <a href="mailto:support@callverted.com" className="text-xs font-medium text-orange-500 hover:underline">
               Email support →
             </a>
           </div>
@@ -171,7 +171,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>What the form does</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Your quote link leads homeowners through a step-by-step form — service type, room count, home size, condition, and timeline. At the end they enter their contact info and optionally upload photos. CraftCapture generates an instant ballpark estimate based on your rates.
+                  Your quote link leads homeowners through a step-by-step form — service type, room count, home size, condition, and timeline. At the end they enter their contact info and optionally upload photos. Callverted generates an instant ballpark estimate based on your rates.
                 </p>
               </InfoCard>
               <InfoCard>
@@ -216,7 +216,7 @@ export default function HelpPage() {
                   "Contacted — you've reached out to them.",
                   "Quoted — a quote has been sent.",
                   "Scheduled — contract signed, job is on the calendar.",
-                  "Won — contract signed via CraftCapture (set automatically).",
+                  "Won — contract signed via Callverted (set automatically).",
                   "Completed — job physically done. Set this manually to trigger the review request email.",
                   "Lost — didn't convert. Set manually or triggered automatically if they decline your quote.",
                 ]} />
@@ -233,7 +233,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Instant estimate</SubHeading>
                 <p className="text-sm text-slate-600">
-                  If a homeowner answers all questions, CraftCapture generates a ballpark range based on your sqft rate, home size, condition, and paint tier. This shows on the lead detail page and is sent to the homeowner in their confirmation email.
+                  If a homeowner answers all questions, Callverted generates a ballpark range based on your sqft rate, home size, condition, and paint tier. This shows on the lead detail page and is sent to the homeowner in their confirmation email.
                 </p>
                 <p className="text-sm text-slate-500 pt-1">
                   The estimate is a ballpark only — always verify on-site before sending a formal quote.
@@ -348,7 +348,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Electronic signatures</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Signatures collected through CraftCapture are valid under the ESIGN Act. The signed PDF includes the signer&apos;s name, email, and timestamp as a record.
+                  Signatures collected through Callverted are valid under the ESIGN Act. The signed PDF includes the signer&apos;s name, email, and timestamp as a record.
                 </p>
               </InfoCard>
               <InfoCard>
@@ -443,7 +443,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Your notifications (painter)</SubHeading>
                 <p className="text-sm text-slate-600">
-                  CraftCapture sends you email and SMS notifications for key events. You can toggle each on or off in <span className="font-medium">Settings → Notifications</span>.
+                  Callverted sends you email and SMS notifications for key events. You can toggle each on or off in <span className="font-medium">Settings → Notifications</span>.
                 </p>
                 <BulletList items={[
                   "New lead submitted — email + SMS.",
@@ -518,7 +518,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>How it works</SubHeading>
                 <p className="text-sm text-slate-600">
-                  When you mark a lead as <span className="font-medium">Completed</span>, CraftCapture automatically sends the homeowner a warm email asking for a Google review. They click the link and land directly on your Google review page — no extra steps.
+                  When you mark a lead as <span className="font-medium">Completed</span>, Callverted automatically sends the homeowner a warm email asking for a Google review. They click the link and land directly on your Google review page — no extra steps.
                 </p>
                 <BulletList items={[
                   "One review request per job — it won't send again if you change the status.",
@@ -554,7 +554,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>How it works</SubHeading>
                 <p className="text-sm text-slate-600">
-                  On any lead detail page, open the <span className="font-medium">Visualizer</span> tab. The homeowner uploads a photo of the room and selects a paint color — CraftCapture uses AI to apply the color to the walls and generates a side-by-side before-and-after preview.
+                  On any lead detail page, open the <span className="font-medium">Visualizer</span> tab. The homeowner uploads a photo of the room and selects a paint color — Callverted uses AI to apply the color to the walls and generates a side-by-side before-and-after preview.
                 </p>
                 <BulletList items={[
                   "Works on interior and exterior photos.",
@@ -614,7 +614,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Plan</SubHeading>
                 <p className="text-sm text-slate-600">
-                  CraftCapture is one plan — <span className="font-semibold">$79/month</span> — with everything included: quote form, instant estimates, photo analysis, lead dashboard, quotes, contracts, electronic signatures, scheduling, color visualization, job photos, email + SMS notifications, automated review requests, website widget, QR code, and data export. No add-ons, no upsells.
+                  Callverted is one plan — <span className="font-semibold">$79/month</span> — with everything included: quote form, instant estimates, photo analysis, lead dashboard, quotes, contracts, electronic signatures, scheduling, color visualization, job photos, email + SMS notifications, automated review requests, website widget, QR code, and data export. No add-ons, no upsells.
                 </p>
               </InfoCard>
               <InfoCard>
@@ -637,8 +637,8 @@ export default function HelpPage() {
                 <p className="text-sm font-semibold text-slate-900">Still have a question?</p>
                 <p className="text-sm text-slate-500 mt-0.5">
                   Email us at{" "}
-                  <a href="mailto:support@craftcapture.com" className="text-orange-500 hover:underline">
-                    support@craftcapture.com
+                  <a href="mailto:support@callverted.com" className="text-orange-500 hover:underline">
+                    support@callverted.com
                   </a>{" "}
                   and we&apos;ll get back to you quickly.
                 </p>

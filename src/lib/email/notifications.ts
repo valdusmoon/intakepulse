@@ -42,7 +42,7 @@ function emailFooter(businessName: string) {
   return `
     <tr><td style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;">
       <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
-        Powered by IntakePulse &nbsp;·&nbsp; ${businessName}
+        Powered by Callverted &nbsp;·&nbsp; ${businessName}
       </p>
     </td></tr>`;
 }
@@ -95,7 +95,7 @@ export async function sendSignupNotification({ businessName, ownerName, ownerEma
   }
 }
 
-// ─── IntakePulse: welcome email ───────────────────────────────────────────────
+// ─── Callverted: welcome email ───────────────────────────────────────────────
 
 interface WelcomeEmailParams {
   ownerName: string;
@@ -114,7 +114,7 @@ export async function sendWelcomeEmail({ ownerName, ownerEmail, businessName, da
     <tr><td style="padding:24px 24px 0 24px;">
       <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">Welcome</p>
       <h1 style="margin:0 0 4px 0;font-size:24px;font-weight:700;color:#111827;">Hi ${firstName}, you're set up.</h1>
-      <p style="margin:0;font-size:14px;color:#6b7280;">${businessName} is now on IntakePulse.</p>
+      <p style="margin:0;font-size:14px;color:#6b7280;">${businessName} is now on Callverted.</p>
     </td></tr>
 
     <tr><td style="padding:20px 24px 0 24px;">
@@ -123,7 +123,7 @@ export async function sendWelcomeEmail({ ownerName, ownerEmail, businessName, da
           <p style="margin:0;font-size:13px;font-weight:700;color:#111827;">Your next 3 steps:</p>
         </td></tr>
         ${[
-          ["1. Get your number", `Email setup@intakepulse.com and we'll provision your dedicated Telnyx number within 1 business day.`],
+          ["1. Get your number", `Email setup@callverted.com and we'll provision your dedicated Telnyx number within 1 business day.`],
           ["2. Paste it in Settings", `Go to Settings → Phone Setup and paste in your assigned number. Then forward your business line to it.`],
           ["3. Start your free trial", `Subscribe to activate missed-call recovery. No charge for 14 days.`],
         ].map(([title, desc]) => `
@@ -145,14 +145,14 @@ export async function sendWelcomeEmail({ ownerName, ownerEmail, businessName, da
 
     <tr><td style="padding:20px 24px 24px 24px;border-top:1px solid #f3f4f6;">
       <p style="margin:0;font-size:13px;color:#9ca3af;">
-        Questions? Reply to this email or reach us at <a href="mailto:support@intakepulse.com" style="color:#f97316;text-decoration:none;">support@intakepulse.com</a>
+        Questions? Reply to this email or reach us at <a href="mailto:support@callverted.com" style="color:#f97316;text-decoration:none;">support@callverted.com</a>
       </p>
     </td></tr>
   `);
 
   return emailClient.send({
     to: ownerEmail,
-    subject: `Welcome to IntakePulse — ${firstName}, here's how to go live`,
+    subject: `Welcome to Callverted — ${firstName}, here's how to go live`,
     html,
   });
 }
@@ -281,7 +281,7 @@ export async function sendNewLeadNotification({ painterEmail, painterName, busin
     </td></tr>
 
     <tr><td style="padding:20px 24px 4px 24px;">
-      <p style="margin:0;font-size:12px;color:#d1d5db;">Hi ${firstName} — this lead came in via your CraftCapture quote form.</p>
+      <p style="margin:0;font-size:12px;color:#d1d5db;">Hi ${firstName} — this lead came in via your Callverted quote form.</p>
     </td></tr>
 
     ${emailFooter(businessName)}
@@ -1162,6 +1162,42 @@ export async function sendLeadPacketEmail(params: LeadPacketParams) {
   await emailClient.send({
     to: ownerEmail,
     subject: `[${label}] New Lead — ${displayName} · ${fmtCents(estimatedValueLow)}–${fmtCents(estimatedValueHigh)}`,
+    html,
+  });
+}
+
+// ─── Follow-up email to prospect ─────────────────────────────────────────────
+
+export async function sendFollowupEmail({
+  toEmail,
+  businessName,
+  intakeUrl,
+}: {
+  toEmail: string;
+  businessName: string;
+  intakeUrl: string;
+}) {
+  const html = emailWrapper(`
+    <tr><td style="padding:28px 24px 20px;">
+      <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">
+        Hi — we wanted to follow up from <strong>${businessName}</strong>.
+      </p>
+      <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.6;">
+        If you still need help, it only takes about 90 seconds to tell us what's going on
+        and we'll get back to you right away.
+      </p>
+      <a href="${intakeUrl}"
+        style="display:inline-block;background:#f97316;color:#fff;font-size:14px;font-weight:700;
+        padding:12px 24px;border-radius:8px;text-decoration:none;">
+        Tell us what happened →
+      </a>
+    </td></tr>
+    ${emailFooter(businessName)}
+  `);
+
+  await emailClient.send({
+    to: toEmail,
+    subject: `Still here to help — ${businessName}`,
     html,
   });
 }

@@ -4,9 +4,10 @@ import { getLeadById } from "@/lib/db/queries/leads";
 import { getBusinessById } from "@/lib/db/queries/businesses";
 import { createSmsEvent } from "@/lib/db/queries/smsEvents";
 import { sendSms, smsFollowup } from "@/lib/sms";
+import { sendFollowupEmail } from "@/lib/email/notifications";
 import { logger } from "@/lib/logger";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.intakepulse.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.callverted.com";
 
 /**
  * Follow-up SMS cron — runs 3x/day at times that land 8am–7pm across all
@@ -67,10 +68,19 @@ export const followupCron = inngest.createFunction(
           status: "sent",
         });
 
+        // Also send email follow-up if the lead provided an address
+        if (lead.callerEmail) {
+          void sendFollowupEmail({
+            toEmail: lead.callerEmail,
+            businessName: business.businessName,
+            intakeUrl,
+          }).catch((e) => logger.error("followup-cron: email failed", { leadId: lead.id, err: String(e) }));
+        }
+
         await markFollowupSent(followup.id);
         sent++;
 
-        logger.info("followup-cron: follow-up sent", { leadId: lead.id, followupId: followup.id });
+        logger.info("followup-cron: follow-up sent", { leadId: lead.id, followupId: followup.id, email: !!lead.callerEmail });
       } catch (err) {
         logger.error("followup-cron: error on followup", {
           followupId: followup.id,

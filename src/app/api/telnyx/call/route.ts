@@ -9,7 +9,7 @@ import { createFollowup } from "@/lib/db/queries/followups";
 import { sendSms, smsMissedCallRecovery } from "@/lib/sms";
 import { logger } from "@/lib/logger";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.intakepulse.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.callverted.com";
 
 // How long to wait before the follow-up SMS fires (picked up by the cron)
 const FOLLOWUP_DELAY_HOURS = 3;

@@ -103,7 +103,7 @@ export async function POST(
   }
 
   const body = await req.json();
-  const { leadId, callerName, callerPhone, smsConsent, answers, source } = body;
+  const { leadId, callerName, callerPhone, callerEmail, smsConsent, answers, source } = body;
 
   if (!callerName?.trim()) {
     return NextResponse.json({ error: "Name is required." }, { status: 400 });
@@ -134,6 +134,7 @@ export async function POST(
   const intakePayload = {
     callerName: callerName.trim(),
     callerPhone: normalizedPhone,
+    callerEmail: callerEmail?.trim() || null,
     smsConsent: true,
     intakeAnswers: answers ?? {},
     status: "intake_completed" as const,

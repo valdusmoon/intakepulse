@@ -12,7 +12,7 @@ export async function GET(
   const mode = searchParams.get("mode") ?? "popup"; // "popup" | "inline"
 
   if (!UUID_RE.test(businessId)) {
-    return new NextResponse("// IntakePulse: invalid business ID", {
+    return new NextResponse("// Callverted: invalid business ID", {
       status: 400,
       headers: { "Content-Type": "application/javascript" },
     });
@@ -20,13 +20,13 @@ export async function GET(
 
   const business = await getBusinessById(businessId);
   if (!business) {
-    return new NextResponse("// IntakePulse: business not found", {
+    return new NextResponse("// Callverted: business not found", {
       status: 404,
       headers: { "Content-Type": "application/javascript" },
     });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.intakepulse.com";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.callverted.com";
   const intakeUrl = `${appUrl}/intake/${businessId}?source=embed`;
   const label = (business.businessName ?? "Get a Free Assessment").replace(/'/g, "\\'");
 

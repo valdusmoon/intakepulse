@@ -31,8 +31,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CraftCapture — Capture Leads While You're on the Ladder",
-  description: "Homeowners submit photos and get an instant estimate in 60 seconds. You get the lead instantly. Built for painting contractors.",
+  title: "Callverted — No Inbound Lead Ever Goes Unanswered",
+  description: "Missed-call recovery and AI-powered intake for high-ticket service businesses. Every missed call becomes a scored lead.",
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -41,8 +41,8 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "CraftCapture — Capture Leads While You're on the Ladder",
-    description: "Homeowners submit photos and get an instant estimate in 60 seconds. You get the lead instantly.",
+    title: "Callverted — No Inbound Lead Ever Goes Unanswered",
+    description: "Missed-call recovery and AI-powered intake for high-ticket service businesses.",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
     type: "website",
   },

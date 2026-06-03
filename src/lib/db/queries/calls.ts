@@ -13,6 +13,12 @@ export async function getCallByControlId(telnyxCallControlId: string) {
   }) ?? null;
 }
 
+export async function getCallByLeadId(leadId: string) {
+  return db.query.calls.findFirst({
+    where: eq(calls.leadId, leadId),
+  }) ?? null;
+}
+
 export async function getCallByLegId(telnyxCallLegId: string) {
   return db.query.calls.findFirst({
     where: eq(calls.telnyxCallLegId, telnyxCallLegId),

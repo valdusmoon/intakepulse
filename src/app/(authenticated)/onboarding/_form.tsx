@@ -282,13 +282,13 @@ function Step3({
       <div className="mb-8">
         <p className="text-xs font-semibold text-orange-500 uppercase tracking-widest mb-1">Step 3 of 3</p>
         <h1 className="text-2xl font-bold text-gray-900">One last thing</h1>
-        <p className="text-sm text-gray-500 mt-1">How your IntakePulse number works.</p>
+        <p className="text-sm text-gray-500 mt-1">How your Callverted number works.</p>
       </div>
 
       <div className="space-y-4">
         <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 space-y-3">
           {[
-            ["Missed call detected", "A prospect calls your IntakePulse number. If unanswered after ~20 seconds, recovery fires."],
+            ["Missed call detected", "A prospect calls your Callverted number. If unanswered after ~20 seconds, recovery fires."],
             ["SMS sent to prospect", "They receive a text with a link to your intake form."],
             ["You get notified", `Once they complete the form, you receive an SMS and email with the scored lead.`],
           ].map(([title, desc]) => (
@@ -305,7 +305,7 @@ function Step3({
         <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
           <p className="text-sm font-semibold text-blue-800 mb-1">Getting your number</p>
           <p className="text-xs text-blue-600">
-            Email <span className="font-semibold">setup@intakepulse.com</span> after finishing — we'll provision your dedicated number within 1 business day. Paste it in Settings once you have it.
+            Email <span className="font-semibold">setup@callverted.com</span> after finishing — we'll provision your dedicated number within 1 business day. Paste it in Settings once you have it.
           </p>
         </div>
       </div>
@@ -341,7 +341,7 @@ function Step4({ router }: { router: ReturnType<typeof useRouter> }) {
       </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-2">You're all set!</h1>
       <p className="text-sm text-gray-500 mb-8 max-w-sm mx-auto">
-        Your account is configured. Once IntakePulse provisions your dedicated number, you'll start recovering missed calls automatically.
+        Your account is configured. Once Callverted provisions your dedicated number, you'll start recovering missed calls automatically.
       </p>
 
       <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 text-left mb-8">
@@ -349,7 +349,7 @@ function Step4({ router }: { router: ReturnType<typeof useRouter> }) {
         <ol className="space-y-2 text-sm text-gray-600">
           <li className="flex gap-2">
             <span className="font-semibold text-orange-500 shrink-0">1.</span>
-            Email <span className="font-semibold">setup@intakepulse.com</span> to request your number.
+            Email <span className="font-semibold">setup@callverted.com</span> to request your number.
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-orange-500 shrink-0">2.</span>
@@ -357,7 +357,7 @@ function Step4({ router }: { router: ReturnType<typeof useRouter> }) {
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-orange-500 shrink-0">3.</span>
-            Forward your business line to your IntakePulse number.
+            Forward your business line to your Callverted number.
           </li>
         </ol>
       </div>
@@ -427,8 +427,8 @@ export function OnboardingForm() {
         {/* Logo */}
         <div className="flex justify-center mb-10">
           <div className="flex items-center gap-2">
-            <img src="/icon-mark.svg" alt="IntakePulse" className="w-8 h-8" />
-            <span className="text-lg font-bold text-gray-900">IntakePulse</span>
+            <img src="/icon-mark.svg" alt="Callverted" className="w-8 h-8" />
+            <span className="text-lg font-bold text-gray-900">Callverted</span>
           </div>
         </div>
 

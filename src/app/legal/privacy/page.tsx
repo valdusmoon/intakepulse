@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Privacy Policy — CraftCapture",
-  description: "How CraftCapture collects, uses, and protects your information.",
+  title: "Privacy Policy — Callverted",
+  description: "How Callverted collects, uses, and protects your information.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
       </div>
 
       <p className="text-gray-600 leading-relaxed">
-        CraftCapture ("we", "us", or "our") operates the CraftCapture platform at craftcapture.com. This policy
+        Callverted ("we", "us", or "our") operates the Callverted platform at callverted.com. This policy
         explains what information we collect, how we use it, and your rights regarding that information.
       </p>
 
@@ -26,10 +26,10 @@ export default function PrivacyPolicyPage() {
 
       <Section title="2. How We Use Your Information">
         <ul>
-          <li>To provide, operate, and improve the CraftCapture service</li>
+          <li>To provide, operate, and improve the Callverted service</li>
           <li>To process payments and manage your subscription through Stripe</li>
           <li>To send transactional emails (lead notifications, account confirmations, billing receipts, review requests) via Resend</li>
-          <li>To send transactional SMS notifications to painters via Twilio (new leads, quote responses, contract signatures, job scheduling) and to send one-time missed-call text-backs to homeowners who call a painter's CraftCapture number, or SMS updates to homeowners who opt in via the lead form</li>
+          <li>To send transactional SMS notifications to painters via Twilio (new leads, quote responses, contract signatures, job scheduling) and to send one-time missed-call text-backs to homeowners who call a painter's Callverted number, or SMS updates to homeowners who opt in via the lead form</li>
           <li>To analyze homeowner-uploaded photos and generate condition notes via OpenAI's API</li>
           <li>To authenticate your account securely via Clerk</li>
           <li>To respond to support requests and communicate service updates</li>
@@ -64,7 +64,7 @@ export default function PrivacyPolicyPage() {
           <li><strong>Resend</strong> — transactional email delivery</li>
           <li><strong>Vercel</strong> — hosting and infrastructure</li>
         </ul>
-        <p>We may disclose information if required by law or to protect the rights, property, or safety of CraftCapture, our users, or others.</p>
+        <p>We may disclose information if required by law or to protect the rights, property, or safety of Callverted, our users, or others.</p>
       </Section>
 
       <Section title="5. Data Security">
@@ -75,7 +75,7 @@ export default function PrivacyPolicyPage() {
         </p>
         <p>
           No system is 100% secure. If you believe your account has been compromised, contact us immediately at{" "}
-          <a href="mailto:hello@craftcapture.com" className="text-orange-500 hover:underline">hello@craftcapture.com</a>.
+          <a href="mailto:hello@callverted.com" className="text-orange-500 hover:underline">hello@callverted.com</a>.
         </p>
       </Section>
 
@@ -105,13 +105,13 @@ export default function PrivacyPolicyPage() {
         </ul>
         <p>
           To exercise any of these rights, email us at{" "}
-          <a href="mailto:hello@craftcapture.com" className="text-orange-500 hover:underline">hello@craftcapture.com</a>.
+          <a href="mailto:hello@callverted.com" className="text-orange-500 hover:underline">hello@callverted.com</a>.
         </p>
       </Section>
 
       <Section title="9. Children's Privacy">
         <p>
-          CraftCapture is not directed at children under 13. We do not knowingly collect information from children.
+          Callverted is not directed at children under 13. We do not knowingly collect information from children.
           If you believe a child has provided us with personal information, please contact us and we will delete it.
         </p>
       </Section>
@@ -127,7 +127,7 @@ export default function PrivacyPolicyPage() {
       <Section title="11. Contact">
         <p>
           For privacy-related questions, contact us at{" "}
-          <a href="mailto:hello@craftcapture.com" className="text-orange-500 hover:underline">hello@craftcapture.com</a>.
+          <a href="mailto:hello@callverted.com" className="text-orange-500 hover:underline">hello@callverted.com</a>.
         </p>
       </Section>
     </div>

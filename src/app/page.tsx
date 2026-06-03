@@ -4,22 +4,22 @@ const HOW_IT_WORKS = [
   {
     step: "01",
     title: "Prospect calls, no one answers",
-    body: "Your IntakePulse number rings your real phone. If the call goes unanswered, we catch it — in seconds, not hours.",
+    body: "Your Callverted number rings your real phone. If the call goes unanswered, recovery fires automatically — in seconds, not hours.",
   },
   {
     step: "02",
-    title: "They get a text within seconds",
-    body: "An automated SMS goes out with a link to a short intake form. The average B2B response time is 47 hours. Yours is under 30 seconds.",
+    title: "Recovery text goes out instantly",
+    body: "An automated SMS reaches the caller within 30 seconds with a link to your intake form. While your competitor hasn't called back yet, you're already in their hands.",
   },
   {
     step: "03",
-    title: "They fill out the form on their phone",
-    body: "8 quick questions: damage type, rooms affected, insurance status, severity. Mobile-first, takes under 2 minutes.",
+    title: "They fill out the form, get a quote range",
+    body: "6 quick questions qualify the job — damage type, insurance status, severity, timeline. At the end, they see an estimated job value range so they know you're serious.",
   },
   {
     step: "04",
-    title: "You get a scored lead packet",
-    body: "Email lands in your inbox with urgency score, estimated job value, AI summary, and a one-tap call button. Know what you're walking into before you call back.",
+    title: "You get a scored lead packet. Job recovered.",
+    body: "Urgency score, estimated value, AI reasoning, and a one-tap call button land in your inbox before you even know you missed the call. Call back knowing exactly what you're walking into.",
   },
 ];
 
@@ -52,7 +52,7 @@ const PLANS = [
     price: "$299",
     description: "For owner-operators just getting started with lead recovery.",
     features: [
-      "1 IntakePulse number",
+      "1 Callverted number",
       "Missed-call recovery SMS",
       "AI-scored lead packets",
       "Email notifications",
@@ -97,18 +97,18 @@ const PLANS = [
 const FAQS = [
   {
     q: "Isn't missed-call text-back already a feature in tools like GoHighLevel or Podium?",
-    a: "Yes — generic text-back is commoditized. What those tools don't do is send a restoration-specific intake form, score the lead by damage type and insurance status, and email you a job-value estimate before you call back. That vertical depth is what IntakePulse is built around.",
+    a: "Yes — generic text-back is commoditized. What those tools don't do is send a restoration-specific intake form, score the lead by damage type and insurance status, and email you a job-value estimate before you call back. That vertical depth is what Callverted is built around.",
   },
   {
     q: "What happens if the caller doesn't open the text?",
-    a: "IntakePulse sends one follow-up SMS roughly 4 hours later. That's it — we don't spam your prospects.",
+    a: "Callverted sends one follow-up SMS roughly 4 hours later. That's it — we don't spam your prospects.",
   },
   {
     q: "Do I need to change my business phone number?",
-    a: "No. You keep your existing number. IntakePulse gives you a new number that forwards calls to your real phone. If the call goes unanswered, recovery fires automatically.",
+    a: "No. You keep your existing number. Callverted gives you a new number that forwards calls to your real phone. If the call goes unanswered, recovery fires automatically.",
   },
   {
-    q: "What verticals does IntakePulse support right now?",
+    q: "What verticals does Callverted support right now?",
     a: "Water, fire, and mold restoration is fully live. HVAC and personal injury law are in development — join the waitlist to be notified.",
   },
   {
@@ -128,7 +128,7 @@ export default function HomePage() {
       {/* Nav */}
       <nav className="border-b border-gray-100 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <span className="text-lg font-bold text-gray-900">IntakePulse</span>
+          <span className="text-lg font-bold text-gray-900">Callverted</span>
           <div className="flex items-center gap-4">
             <Link href="#pricing" className="text-sm text-gray-500 hover:text-gray-700 hidden sm:block">Pricing</Link>
             <Link href="/sign-in" className="text-sm text-gray-500 hover:text-gray-700">Log in</Link>
@@ -152,7 +152,7 @@ export default function HomePage() {
             No inbound lead<br />ever goes unanswered.
           </h1>
           <p className="text-lg text-gray-500 mb-8 max-w-xl mx-auto leading-relaxed">
-            When a restoration prospect calls and no one answers, you have minutes — not hours — before they call your competitor. IntakePulse texts them instantly, captures a full intake, and emails you a scored lead packet before you even know you missed the call.
+            When a restoration prospect calls and no one answers, you have minutes — not hours — before they call your competitor. Callverted texts them instantly, captures a full intake, and emails you a scored lead packet before you even know you missed the call.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
@@ -276,7 +276,7 @@ export default function HomePage() {
                 dim: true,
               },
               {
-                label: "IntakePulse captures the job",
+                label: "Callverted captures the job",
                 sub: "8-question intake tuned to water/fire/mold. Damage type, insurance status, affected rooms, severity — all scored before you call back.",
                 dim: false,
               },
@@ -286,7 +286,7 @@ export default function HomePage() {
                 dim: true,
               },
               {
-                label: "IntakePulse gives you a lead packet",
+                label: "Callverted gives you a lead packet",
                 sub: "Urgency score, estimated job value, AI reasoning, and a one-tap call button — formatted for a restoration operator, not a generic sales team.",
                 dim: false,
               },
@@ -349,7 +349,7 @@ export default function HomePage() {
                   ))}
                 </ul>
                 <Link
-                  href={plan.name === "Pro" ? "mailto:hello@intakepulse.com" : "/sign-up"}
+                  href={plan.name === "Pro" ? "mailto:hello@callverted.com" : "/sign-up"}
                   className={`text-center text-sm font-semibold py-3 rounded-xl transition-colors ${
                     plan.highlight
                       ? "bg-white text-orange-600 hover:bg-orange-50"
@@ -397,14 +397,14 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-gray-100 px-6 py-8">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
-          <span className="font-semibold text-gray-600">IntakePulse</span>
+          <span className="font-semibold text-gray-600">Callverted</span>
           <div className="flex gap-5">
             <Link href="/legal/terms" className="hover:text-gray-600">Terms</Link>
             <Link href="/legal/privacy" className="hover:text-gray-600">Privacy</Link>
             <Link href="/legal/sms" className="hover:text-gray-600">SMS Policy</Link>
-            <a href="mailto:hello@intakepulse.com" className="hover:text-gray-600">Contact</a>
+            <a href="mailto:hello@callverted.com" className="hover:text-gray-600">Contact</a>
           </div>
-          <span>© {new Date().getFullYear()} IntakePulse</span>
+          <span>© {new Date().getFullYear()} Callverted</span>
         </div>
       </footer>
 
