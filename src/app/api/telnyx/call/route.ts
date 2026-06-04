@@ -136,18 +136,22 @@ async function handleHangup({
   const smsBody = smsMissedCallRecovery(business.businessName, intakeUrl);
 
   // Send initial SMS directly — no queue needed, fires immediately
-  const messageId = await sendSms(business.telnyxPhoneNumber, callerPhone, smsBody);
-
-  await createSmsEvent({
-    businessId: business.id,
-    leadId: lead.id,
-    direction: "outbound",
-    fromPhone: business.telnyxPhoneNumber,
-    toPhone: callerPhone,
-    body: smsBody,
-    telnyxMessageId: messageId ?? undefined,
-    status: "sent",
-  });
+  let messageId: string | null = null;
+  try {
+    messageId = await sendSms(business.telnyxPhoneNumber, callerPhone, smsBody);
+    await createSmsEvent({
+      businessId: business.id,
+      leadId: lead.id,
+      direction: "outbound",
+      fromPhone: business.telnyxPhoneNumber,
+      toPhone: callerPhone,
+      body: smsBody,
+      telnyxMessageId: messageId ?? undefined,
+      status: "sent",
+    });
+  } catch (err) {
+    logger.error("handleHangup: SMS send failed", { err: String(err), leadId: lead.id });
+  }
 
   // Schedule a follow-up row — the cron (0 16,20,23 * * *) picks this up
   const scheduledAt = new Date(now.getTime() + FOLLOWUP_DELAY_HOURS * 60 * 60 * 1000);
