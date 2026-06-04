@@ -26,12 +26,40 @@ function buildPrompt(
     .replace("{intakeAnswers}", JSON.stringify(answers, null, 2));
 }
 
+function mockAssessment(scores: ScoringResult): ReasoningResult {
+  return {
+    urgencyReasoning: `Urgency score ${scores.urgencyScore}/100 based on intake answers. (Mock assessment — OpenAI key not configured)`,
+    qualityReasoning: `Quality score ${scores.qualityScore}/100 based on intake answers. (Mock assessment — OpenAI key not configured)`,
+    recommendedActions: ["Call the lead back promptly.", "Review intake answers for job details.", "Confirm insurance status before site visit."],
+  };
+}
+
 export async function assessLead(
   leadId: string,
   answers: Answers,
   scores: ScoringResult,
   promptTemplate: string
 ): Promise<ReasoningResult> {
+  if (!process.env.OPENAI_API_KEY) {
+    const mock = mockAssessment(scores);
+    await createAiAssessment({
+      leadId,
+      urgencyReasoning: mock.urgencyReasoning,
+      qualityReasoning: mock.qualityReasoning,
+      recommendedActions: mock.recommendedActions,
+      rawResponse: { mock: true },
+      model: "mock",
+    });
+    await updateLead(leadId, {
+      urgencyScore: scores.urgencyScore,
+      qualityScore: scores.qualityScore,
+      estimatedValueLow: scores.estimatedValueLow,
+      estimatedValueHigh: scores.estimatedValueHigh,
+      status: "qualified",
+    });
+    return mock;
+  }
+
   const prompt = buildPrompt(promptTemplate, scores, answers);
   const MODEL = "gpt-4o";
 

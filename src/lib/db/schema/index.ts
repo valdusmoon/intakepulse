@@ -7,5 +7,3 @@ export * from "./verticalConfigs";
 export * from "./followups";
 export * from "./aiAssessments";
 
-// Callverted legacy — referenced by auth/billing code until Session 2 migration
-export * from "./companies";
