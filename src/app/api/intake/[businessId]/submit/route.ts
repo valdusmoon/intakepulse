@@ -60,6 +60,8 @@ async function assessAndNotify(
     const lead = await getLeadById(leadId);
     if (!lead) return;
 
+    if (business.notificationPreferences?.qualifiedLead === false) return;
+
     await sendLeadPacketEmail({
       ownerEmail: business.ownerEmail,
       ownerName: business.ownerName,
@@ -103,16 +105,13 @@ export async function POST(
   }
 
   const body = await req.json();
-  const { leadId, callerName, callerPhone, callerEmail, smsConsent, answers, source } = body;
+  const { leadId, callerName, callerPhone, callerEmail, answers, source } = body;
 
   if (!callerName?.trim()) {
     return NextResponse.json({ error: "Name is required." }, { status: 400 });
   }
   if (!callerPhone) {
     return NextResponse.json({ error: "Phone number is required." }, { status: 400 });
-  }
-  if (!smsConsent) {
-    return NextResponse.json({ error: "SMS consent is required." }, { status: 400 });
   }
 
   const phoneResult = validateAndNormalizePhone(callerPhone);
@@ -137,7 +136,9 @@ export async function POST(
     callerEmail: callerEmail?.trim() || null,
     smsConsent: true,
     intakeAnswers: answers ?? {},
-    status: "intake_completed" as const,
+    // leadStatus is deliberately NOT set here — re-submitting intake for an
+    // existing lead must never regress sales progress the business already made.
+    intakeStatus: "completed" as const,
   };
 
   if (lead) {
@@ -145,8 +146,8 @@ export async function POST(
     // Cancel any pending follow-up — they engaged, no need to nudge
     void cancelFollowupsForLead(lead!.id, "intake_completed");
   } else {
-    const validSources = ["missed_call", "embed", "email", "manual"] as const;
-    const leadSource = validSources.includes(source) ? source : "embed";
+    const validSources = ["voice_overflow", "website_widget", "direct_intake", "email", "manual"] as const;
+    const leadSource = validSources.includes(source) ? source : "direct_intake";
     lead = await createLead({
       businessId,
       source: leadSource,

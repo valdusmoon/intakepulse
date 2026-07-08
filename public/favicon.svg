@@ -1,5 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="4" fill="#f97316"/>
-  <rect x="6.0" y="6.0" width="20.0" height="6.0" rx="2" fill="#FFFFFF"/>
-  <rect x="6.0" y="6.0" width="6.0" height="20.0" rx="2" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="cvFaviconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e40af"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="40" fill="white"/>
+  <path d="M145 100C145 124.853 124.853 145 100 145C75.1472 145 55 124.853 55 100C55 75.1472 75.1472 55 100 55" stroke="url(#cvFaviconGrad)" stroke-width="18" stroke-linecap="round" fill="none"/>
+  <rect x="92" y="85" width="16" height="30" rx="8" fill="url(#cvFaviconGrad)"/>
+  <rect x="118" y="92" width="16" height="16" rx="8" fill="url(#cvFaviconGrad)" opacity="0.8"/>
+  <rect x="66" y="92" width="16" height="16" rx="8" fill="url(#cvFaviconGrad)" opacity="0.6"/>
 </svg>

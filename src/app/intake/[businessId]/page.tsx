@@ -7,12 +7,12 @@ const UUID_RE =
 
 function Unavailable({ message }: { message: string }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-5">
+    <div className="min-h-screen bg-cv-surface-subtle flex items-center justify-center px-5 font-cv-body">
       <div className="text-center max-w-sm">
-        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-4">
-          <span className="text-gray-500 text-lg">×</span>
+        <div className="w-12 h-12 rounded-full bg-cv-gray-soft flex items-center justify-center mx-auto mb-4">
+          <span className="text-cv-muted text-lg">×</span>
         </div>
-        <p className="text-gray-600 text-sm">{message}</p>
+        <p className="text-cv-muted text-sm">{message}</p>
       </div>
     </div>
   );

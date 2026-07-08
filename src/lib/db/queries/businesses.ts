@@ -20,6 +20,12 @@ export async function getBusinessByTelnyxNumber(telnyxPhoneNumber: string) {
   }) ?? null;
 }
 
+export async function getBusinessByTwilioNumber(twilioPhoneNumber: string) {
+  return db.query.businesses.findFirst({
+    where: eq(businesses.twilioPhoneNumber, twilioPhoneNumber),
+  }) ?? null;
+}
+
 export async function getAllBusinesses() {
   return db.select().from(businesses);
 }

@@ -19,6 +19,12 @@ export default async function AuthenticatedLayout({
       signUpUrl="/sign-up"
       afterSignOutUrl="/"
     >
+      {/* Only the dashboard UI uses Material Symbols icons — scoped here so
+          public/marketing pages don't pay for this stylesheet fetch. */}
+      <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..700,0..1,-50..200"
+        rel="stylesheet"
+      />
       {children}
     </ClerkProvider>
   );

@@ -14,35 +14,32 @@ interface IntakeFormProps {
   source?: string;
 }
 
+const inputCls =
+  "w-full border border-cv-border-strong rounded-xl px-4 py-3 text-base text-cv-ink placeholder-cv-muted-2 bg-white focus:outline-none focus:ring-2 focus:ring-cv-primary/30 focus:border-cv-primary transition-colors";
+
 // ─── Contact Info ─────────────────────────────────────────────────────────────
 
 function ContactStep({
   name,
   phone,
   email,
-  consent,
   onName,
   onPhone,
   onEmail,
-  onConsent,
   onNext,
-  businessName,
 }: {
   name: string;
   phone: string;
   email: string;
-  consent: boolean;
   onName: (v: string) => void;
   onPhone: (v: string) => void;
   onEmail: (v: string) => void;
-  onConsent: (v: boolean) => void;
   onNext: () => void;
-  businessName: string;
 }) {
   const [phoneError, setPhoneError] = useState("");
 
   function handleNext() {
-    if (!name.trim() || !phone.trim() || !consent) return;
+    if (!name.trim() || !phone.trim()) return;
     const r = validateAndNormalizePhone(phone);
     if (!r.isValid) {
       setPhoneError(r.error ?? "Invalid phone number.");
@@ -53,24 +50,24 @@ function ContactStep({
     onNext();
   }
 
-  const canProceed = name.trim() && phone.trim() && consent;
+  const canProceed = name.trim() && phone.trim();
 
   return (
     <div className="space-y-5">
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Your name</label>
+          <label className="block text-sm font-medium text-[#344054] mb-1.5">Your name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => onName(e.target.value)}
             placeholder="Jane Smith"
             autoFocus
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className={inputCls}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Your phone number</label>
+          <label className="block text-sm font-medium text-[#344054] mb-1.5">Your phone number</label>
           <input
             type="tel"
             value={phone}
@@ -79,47 +76,28 @@ function ContactStep({
               setPhoneError("");
             }}
             placeholder="+1 (555) 000-0000"
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className={inputCls}
           />
-          {phoneError && <p className="text-sm text-red-600 mt-1.5">{phoneError}</p>}
+          {phoneError && <p className="text-sm text-cv-red mt-1.5">{phoneError}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Email <span className="text-gray-400 font-normal">(optional)</span>
+          <label className="block text-sm font-medium text-[#344054] mb-1.5">
+            Email <span className="text-cv-muted-2 font-normal">(optional)</span>
           </label>
           <input
             type="email"
             value={email}
             onChange={(e) => onEmail(e.target.value)}
             placeholder="you@example.com"
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className={inputCls}
           />
         </div>
-
-        <button
-          type="button"
-          onClick={() => onConsent(!consent)}
-          className="flex gap-3 items-start text-left w-full"
-        >
-          <div
-            className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center shrink-0 border-2 transition-colors ${
-              consent ? "bg-orange-500 border-orange-500" : "border-gray-300 bg-white"
-            }`}
-          >
-            {consent && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-          </div>
-          <span className="text-sm text-gray-600 leading-snug">
-            By proceeding, I agree to receive text messages from{" "}
-            <strong className="text-gray-800">{businessName}</strong> regarding my inquiry.
-            Message rates may apply.
-          </span>
-        </button>
       </div>
 
       <button
         onClick={handleNext}
         disabled={!canProceed}
-        className="w-full flex items-center justify-center gap-2 bg-orange-500 text-white font-semibold py-3.5 rounded-xl hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-base"
+        className="w-full flex items-center justify-center gap-2 bg-cv-primary text-white font-semibold py-3.5 rounded-xl hover:bg-cv-primary-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-base"
       >
         Continue <ArrowRight className="w-4 h-4" />
       </button>
@@ -146,19 +124,17 @@ function SingleSelectQuestion({
           onClick={() => onChange(opt.value)}
           className={`w-full text-left px-4 py-3.5 rounded-xl border-2 transition-all text-sm font-medium ${
             value === opt.value
-              ? "border-orange-500 bg-orange-50 text-orange-800"
-              : "border-gray-200 bg-white text-gray-800 hover:border-gray-300 hover:bg-gray-50 active:bg-gray-100"
+              ? "border-cv-primary bg-cv-primary-soft text-cv-primary-dark"
+              : "border-cv-border bg-white text-[#344054] hover:border-cv-border-strong hover:bg-cv-surface-subtle active:bg-cv-surface-subtle"
           }`}
         >
           <div className="flex items-center gap-3">
             <div
               className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                value === opt.value ? "border-orange-500" : "border-gray-300"
+                value === opt.value ? "border-cv-primary" : "border-cv-border-strong"
               }`}
             >
-              {value === opt.value && (
-                <div className="w-2 h-2 rounded-full bg-orange-500" />
-              )}
+              {value === opt.value && <div className="w-2 h-2 rounded-full bg-cv-primary" />}
             </div>
             {opt.label}
           </div>
@@ -185,7 +161,7 @@ function MultiSelectQuestion({
 
   return (
     <div className="space-y-2.5">
-      <p className="text-xs text-gray-400 mb-3">Select all that apply</p>
+      <p className="text-xs text-cv-muted-2 mb-3">Select all that apply</p>
       {question.options?.map((opt) => {
         const selected = value.includes(opt.value);
         return (
@@ -194,19 +170,17 @@ function MultiSelectQuestion({
             onClick={() => toggle(opt.value)}
             className={`w-full text-left px-4 py-3.5 rounded-xl border-2 transition-all text-sm font-medium ${
               selected
-                ? "border-orange-500 bg-orange-50 text-orange-800"
-                : "border-gray-200 bg-white text-gray-800 hover:border-gray-300 hover:bg-gray-50 active:bg-gray-100"
+                ? "border-cv-primary bg-cv-primary-soft text-cv-primary-dark"
+                : "border-cv-border bg-white text-[#344054] hover:border-cv-border-strong hover:bg-cv-surface-subtle active:bg-cv-surface-subtle"
             }`}
           >
             <div className="flex items-center gap-3">
               <div
                 className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border-2 transition-colors ${
-                  selected ? "bg-orange-500 border-orange-500" : "border-gray-300"
+                  selected ? "bg-cv-primary border-cv-primary" : "border-cv-border-strong"
                 }`}
               >
-                {selected && (
-                  <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-                )}
+                {selected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
               </div>
               {opt.label}
             </div>
@@ -241,8 +215,8 @@ function ScaleQuestion({
             onClick={() => onChange(opt.value)}
             className={`flex-1 py-4 rounded-xl border-2 text-lg font-bold transition-all ${
               value === opt.value
-                ? "border-orange-500 bg-orange-500 text-white shadow-sm"
-                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 active:bg-gray-50"
+                ? "border-cv-primary bg-cv-primary text-white shadow-sm"
+                : "border-cv-border bg-white text-[#344054] hover:border-cv-border-strong active:bg-cv-surface-subtle"
             }`}
           >
             {opt.value}
@@ -250,7 +224,7 @@ function ScaleQuestion({
         ))}
       </div>
       {min && max && (
-        <div className="flex justify-between text-xs text-gray-400 px-1">
+        <div className="flex justify-between text-xs text-cv-muted-2 px-1">
           <span>{min.label.replace(/^\d — /, "")}</span>
           <span>{max.label.replace(/^\d — /, "")}</span>
         </div>
@@ -275,7 +249,7 @@ function TextQuestion({
       placeholder="Type your answer here..."
       rows={4}
       autoFocus
-      className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+      className={`${inputCls} resize-none`}
     />
   );
 }
@@ -293,7 +267,6 @@ export function IntakeForm({
   const [callerName, setCallerName] = useState("");
   const [callerPhone, setCallerPhone] = useState("");
   const [callerEmail, setCallerEmail] = useState("");
-  const [smsConsent, setSmsConsent] = useState(false);
   const [answers, setAnswers] = useState<Answers>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -342,7 +315,6 @@ export function IntakeForm({
           callerName,
           callerPhone,
           callerEmail: callerEmail.trim() || undefined,
-          smsConsent: true,
           answers: finalAnswers,
           source,
         }),
@@ -374,14 +346,13 @@ export function IntakeForm({
     return (
       <div className="min-h-screen bg-white flex items-center justify-center px-6">
         <div className="text-center max-w-xs">
-          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
-            <Check className="w-8 h-8 text-green-600" />
+          <div className="w-16 h-16 rounded-full bg-cv-green-soft flex items-center justify-center mx-auto mb-5">
+            <Check className="w-8 h-8 text-cv-green" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">You're all set!</h1>
-          <p className="text-gray-500 text-sm leading-relaxed">
+          <h1 className="font-cv-heading text-2xl font-bold text-cv-ink mb-2">You&apos;re all set!</h1>
+          <p className="text-cv-muted text-sm leading-relaxed">
             We have everything we need.{" "}
-            <span className="font-semibold text-gray-700">{businessName}</span> will be in
-            touch shortly.
+            <span className="font-semibold text-[#344054]">{businessName}</span> will be in touch shortly.
           </p>
         </div>
       </div>
@@ -390,21 +361,21 @@ export function IntakeForm({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-cv-surface-subtle flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm text-gray-500">Submitting your answers…</p>
+          <div className="w-10 h-10 border-4 border-cv-primary-soft border-t-cv-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-cv-muted">Submitting your answers…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-cv-surface-subtle font-cv-body">
       {/* Progress bar */}
-      <div className="h-1 bg-gray-200 fixed top-0 left-0 right-0 z-10">
+      <div className="h-1 bg-cv-border fixed top-0 left-0 right-0 z-10">
         <div
-          className="h-full bg-orange-500 transition-all duration-300 ease-out"
+          className="h-full bg-cv-primary transition-all duration-300 ease-out"
           style={{ width: `${progressPct}%` }}
         />
       </div>
@@ -414,24 +385,16 @@ export function IntakeForm({
         <div className="mb-6">
           {step === 0 ? (
             <>
-              <p className="text-xs font-semibold text-orange-500 uppercase tracking-widest mb-1">
-                Contact Info
-              </p>
-              <h2 className="text-xl font-bold text-gray-900">
-                Let&apos;s get started
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                We&apos;ll connect you with {businessName} right away.
-              </p>
+              <p className="text-xs font-semibold text-cv-primary uppercase tracking-widest mb-1">Contact Info</p>
+              <h2 className="font-cv-heading text-xl font-bold text-cv-ink">Let&apos;s get started</h2>
+              <p className="text-sm text-cv-muted mt-1">We&apos;ll connect you with {businessName} right away.</p>
             </>
           ) : (
             <>
-              <p className="text-xs font-semibold text-orange-500 uppercase tracking-widest mb-1">
+              <p className="text-xs font-semibold text-cv-primary uppercase tracking-widest mb-1">
                 Question {step} of {visibleQuestions.length}
               </p>
-              <h2 className="text-xl font-bold text-gray-900">
-                {currentQuestion?.label}
-              </h2>
+              <h2 className="font-cv-heading text-xl font-bold text-cv-ink">{currentQuestion?.label}</h2>
             </>
           )}
         </div>
@@ -442,13 +405,10 @@ export function IntakeForm({
             name={callerName}
             phone={callerPhone}
             email={callerEmail}
-            consent={smsConsent}
             onName={setCallerName}
             onPhone={setCallerPhone}
             onEmail={setCallerEmail}
-            onConsent={setSmsConsent}
             onNext={advance}
-            businessName={businessName}
           />
         )}
 
@@ -497,20 +457,16 @@ export function IntakeForm({
                 <div className="mt-5 flex gap-3">
                   <button
                     onClick={() => setStep((s) => s - 1)}
-                    className="flex items-center justify-center p-3 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-center p-3 rounded-xl border border-cv-border text-cv-muted hover:bg-cv-surface-subtle transition-colors"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                   <button
                     onClick={advance}
                     disabled={!canAdvance() || loading}
-                    className="flex-1 flex items-center justify-center gap-2 bg-orange-500 text-white font-semibold py-3.5 rounded-xl hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-cv-primary text-white font-semibold py-3.5 rounded-xl hover:bg-cv-primary-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    {isLastStep
-                      ? loading
-                        ? "Submitting…"
-                        : "Submit"
-                      : <>Continue <ArrowRight className="w-4 h-4" /></>}
+                    {isLastStep ? (loading ? "Submitting…" : "Submit") : (<>Continue <ArrowRight className="w-4 h-4" /></>)}
                   </button>
                 </div>
               </>
@@ -518,39 +474,31 @@ export function IntakeForm({
 
             {currentQuestion.type === "text" && (
               <>
-                <TextQuestion
-                  value={getAnswerStr(currentQuestion.key)}
-                  onChange={(v) => setAnswer(currentQuestion.key, v)}
-                />
+                <TextQuestion value={getAnswerStr(currentQuestion.key)} onChange={(v) => setAnswer(currentQuestion.key, v)} />
                 <div className="mt-5 flex gap-3">
                   <button
                     onClick={() => setStep((s) => s - 1)}
-                    className="flex items-center justify-center p-3 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-center p-3 rounded-xl border border-cv-border text-cv-muted hover:bg-cv-surface-subtle transition-colors"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                   <button
                     onClick={advance}
                     disabled={!canAdvance() || loading}
-                    className="flex-1 flex items-center justify-center gap-2 bg-orange-500 text-white font-semibold py-3.5 rounded-xl hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-cv-primary text-white font-semibold py-3.5 rounded-xl hover:bg-cv-primary-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    {isLastStep
-                      ? loading
-                        ? "Submitting…"
-                        : "Submit"
-                      : <>Continue <ArrowRight className="w-4 h-4" /></>}
+                    {isLastStep ? (loading ? "Submitting…" : "Submit") : (<>Continue <ArrowRight className="w-4 h-4" /></>)}
                   </button>
                 </div>
               </>
             )}
 
             {/* Back link for auto-advance question types (single/scale) */}
-            {(currentQuestion.type === "single_select" ||
-              currentQuestion.type === "scale") && (
+            {(currentQuestion.type === "single_select" || currentQuestion.type === "scale") && (
               <div className="mt-4 text-center">
                 <button
                   onClick={() => setStep((s) => s - 1)}
-                  className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors py-2 px-3"
+                  className="inline-flex items-center gap-1.5 text-sm text-cv-muted-2 hover:text-cv-muted transition-colors py-2 px-3"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" /> Back
                 </button>
@@ -559,9 +507,7 @@ export function IntakeForm({
           </>
         )}
 
-        {error && (
-          <p className="mt-4 text-sm text-red-600 text-center">{error}</p>
-        )}
+        {error && <p className="mt-4 text-sm text-cv-red text-center">{error}</p>}
       </div>
     </div>
   );

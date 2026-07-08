@@ -98,11 +98,25 @@ export async function PATCH(req: NextRequest) {
     body.telnyxPhoneNumber = r.normalized;
   }
 
+  if (body.twilioPhoneNumber) {
+    const r = validateAndNormalizePhone(body.twilioPhoneNumber);
+    if (!r.isValid) return NextResponse.json({ error: r.error }, { status: 422 });
+    body.twilioPhoneNumber = r.normalized;
+  }
+
+  if (body.urgentTransferNumber) {
+    const r = validateAndNormalizePhone(body.urgentTransferNumber);
+    if (!r.isValid) return NextResponse.json({ error: r.error }, { status: 422 });
+    body.urgentTransferNumber = r.normalized;
+  }
+
   const allowed = [
     "businessName", "ownerName", "ownerPhone", "ownerEmail",
     "serviceArea", "websiteUrl", "timezone",
     "telnyxPhoneNumber", "forwardingNumber",
     "missedCallSmsTemplate", "notificationPreferences",
+    "twilioPhoneNumber", "overflowMode", "recordingEnabled", "recordingDisclosure",
+    "urgentTransferNumber", "greetingMessage", "aiInstructions", "voiceName", "callTimeoutSeconds",
   ] as const;
   const safeBody = Object.fromEntries(
     allowed.filter((k) => k in body).map((k) => [k, body[k]])

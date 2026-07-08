@@ -1,0 +1,121 @@
+import { NextResponse } from "next/server";
+import { env, serverEnv } from "@/lib/env";
+import { verifyTwilioWebhook } from "@/lib/twilio/webhook";
+import { generateDialTwiml, generateErrorTwiml, generateStreamTwiml } from "@/lib/twilio/twiml";
+import { createStreamToken } from "@/lib/twilio/stream-token";
+import { getBusinessByTwilioNumber } from "@/lib/db/queries/businesses";
+import { createCall } from "@/lib/db/queries/calls";
+import { normalizePhone } from "@/lib/utils/phone-validation";
+import { logger } from "@/lib/logger";
+
+export const runtime = "nodejs";
+export const maxDuration = 20;
+
+const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing"];
+
+/**
+ * POST /api/twilio/voice
+ *
+ * Twilio's Voice webhook for an inbound call. Rings the business's real line first
+ * (overflowMode='ring_then_ai', the default); the AI overflow receptionist only takes
+ * over if the business doesn't answer (see /api/twilio/voice/status). If the business
+ * hasn't configured a forwarding number, or overflowMode='ai_immediate', the AI answers
+ * immediately.
+ */
+export async function POST(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const requestUrl = `${env.APP_URL}${url.pathname}`;
+
+    const { params, valid } = await verifyTwilioWebhook(req, requestUrl);
+    if (!valid) {
+      return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    const callSid = params.CallSid;
+    const callerNumber = params.From;
+    const calledNumber = params.To;
+
+    logger.info("Twilio inbound call", { callSid, calledNumber });
+
+    if (serverEnv.EMERGENCY_DISABLE_CALLS) {
+      logger.error("EMERGENCY_DISABLE_CALLS is set — rejecting call", { callSid });
+      return xml(generateErrorTwiml(
+        "We're sorry, this service is temporarily unavailable. Please try again later."
+      ));
+    }
+
+    const normalizedTo = normalizePhone(calledNumber) ?? calledNumber;
+    const business = await getBusinessByTwilioNumber(normalizedTo);
+
+    if (!business) {
+      logger.warn("No business found for called number", { calledNumber: normalizedTo });
+      return xml(generateErrorTwiml(
+        "We're sorry, this phone number is not configured. Please contact support."
+      ));
+    }
+
+    if (business.isPaused) {
+      logger.warn("Business is paused — rejecting call", { businessId: business.id });
+      return xml(generateErrorTwiml(
+        "We're sorry, this service is temporarily unavailable. Please contact the business directly."
+      ));
+    }
+
+    if (!ACTIVE_SUBSCRIPTION_STATUSES.includes(business.subscriptionStatus ?? "")) {
+      logger.warn("Business subscription not active — rejecting call", {
+        businessId: business.id,
+        subscriptionStatus: business.subscriptionStatus,
+      });
+      return xml(generateErrorTwiml(
+        "We're sorry, this service is currently unavailable. Please contact the business directly."
+      ));
+    }
+
+    const normalizedFrom = normalizePhone(callerNumber) ?? callerNumber;
+
+    await createCall({
+      businessId: business.id,
+      twilioCallSid: callSid,
+      callerPhone: normalizedFrom,
+      calledNumber: normalizedTo,
+      status: "ringing",
+      outcome: "in_progress",
+      rawPayload: params,
+    });
+
+    // AI answers immediately if configured that way, or if there's nowhere to ring first
+    const shouldRingBusinessFirst = business.overflowMode !== "ai_immediate" && !!business.forwardingNumber;
+
+    if (!shouldRingBusinessFirst) {
+      return await handOffToAi(callSid, business.id);
+    }
+
+    const statusUrl = `${env.APP_URL}/api/twilio/voice/status`;
+    const recordingStatusCallbackUrl = `${env.APP_URL}/api/twilio/voice/recording`;
+    return xml(generateDialTwiml({
+      forwardingNumber: business.forwardingNumber!,
+      timeoutSeconds: business.callTimeoutSeconds,
+      actionUrl: statusUrl,
+      recordingEnabled: business.recordingEnabled,
+      recordingStatusCallbackUrl,
+    }));
+  } catch (error) {
+    logger.error("Error handling Twilio voice webhook", { error: String(error) });
+    return xml(generateErrorTwiml("We're sorry, an unexpected error occurred. Please try again later."));
+  }
+}
+
+async function handOffToAi(callSid: string, businessId: string): Promise<NextResponse> {
+  if (!serverEnv.VOICE_STREAM_WSS_URL) {
+    logger.error("VOICE_STREAM_WSS_URL not configured — cannot hand off to AI", { callSid, businessId });
+    return xml(generateErrorTwiml("We're sorry, this service is temporarily unavailable."));
+  }
+
+  const token = createStreamToken(callSid);
+  return xml(generateStreamTwiml({ wssUrl: serverEnv.VOICE_STREAM_WSS_URL, callSid, token }));
+}
+
+function xml(body: string): NextResponse {
+  return new NextResponse(body, { status: 200, headers: { "Content-Type": "text/xml" } });
+}

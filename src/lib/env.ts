@@ -41,10 +41,27 @@ export const serverEnv = {
   // Database
   DATABASE_URL: process.env.DATABASE_URL || "",
 
-  // Telnyx
+  // Telnyx — dormant, retained for the deferred SMS/A2P module. See docs/telnyx-a2p-productionization-spec.md
   TELNYX_API_KEY: process.env.TELNYX_API_KEY || "",
   // Ed25519 public key from Telnyx portal → Messaging → Webhooks → Signing Key
   TELNYX_PUBLIC_KEY: process.env.TELNYX_PUBLIC_KEY || "",
+
+  // Twilio — voice overflow receptionist
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || "",
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || "",
+  // Skip Twilio request-signature validation — local/ngrok dev only, never set in prod
+  SKIP_TWILIO_VALIDATION: process.env.SKIP_TWILIO_VALIDATION === "true",
+  // System-wide kill switch for all inbound call handling
+  EMERGENCY_DISABLE_CALLS: process.env.EMERGENCY_DISABLE_CALLS === "true",
+
+  // OpenAI Realtime (voice)
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
+  OPENAI_REALTIME_MODEL: process.env.OPENAI_REALTIME_MODEL || "gpt-4o-realtime-preview-2024-12-17",
+
+  // Public wss:// URL of the Twilio Media Stream endpoint (this app's /api/twilio/stream route)
+  VOICE_STREAM_WSS_URL: process.env.VOICE_STREAM_WSS_URL || "",
+  // HMAC secret used to sign short-lived tokens authorizing the stream WebSocket upgrade
+  VOICE_STREAM_TOKEN_SECRET: process.env.VOICE_STREAM_TOKEN_SECRET || "",
 } as const;
 
 /**

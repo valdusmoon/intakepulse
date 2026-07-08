@@ -123,7 +123,7 @@ export async function sendWelcomeEmail({ ownerName, ownerEmail, businessName, da
           <p style="margin:0;font-size:13px;font-weight:700;color:#111827;">Your next 3 steps:</p>
         </td></tr>
         ${[
-          ["1. Get your number", `Email setup@callverted.com and we'll provision your dedicated Telnyx number within 1 business day.`],
+          ["1. Get your number", `Email setup@callverted.com and we'll provision your dedicated Callverted number within 1 business day.`],
           ["2. Paste it in Settings", `Go to Settings → Phone Setup and paste in your assigned number. Then forward your business line to it.`],
           ["3. Start your free trial", `Subscribe to activate missed-call recovery. No charge for 14 days.`],
         ].map(([title, desc]) => `
@@ -1277,3 +1277,6 @@ export async function sendWeeklyReportEmail(params: WeeklyReportParams) {
     html,
   });
 }
+
+// Voice overflow leads reuse sendLeadPacketEmail above — same scoring pipeline
+// (scoreLeadFromAnswers + assessLead) as the web intake form, same email.

@@ -27,16 +27,22 @@ export async function getLeadByPhoneAndBusiness(callerPhone: string, businessId:
 export async function getLeadsByBusiness(
   businessId: string,
   opts: {
-    status?: string;
+    leadStatus?: string;
+    source?: string;
+    priority?: "urgent" | "call_today" | "routine";
     search?: string;
     limit?: number;
     offset?: number;
   } = {}
 ) {
-  const { status, search, limit = 25, offset = 0 } = opts;
+  const { leadStatus, source, priority, search, limit = 25, offset = 0 } = opts;
 
   const filters: SQL[] = [eq(leads.businessId, businessId), isNull(leads.deletedAt)];
-  if (status) filters.push(eq(leads.status, status));
+  if (leadStatus) filters.push(eq(leads.leadStatus, leadStatus));
+  if (source) filters.push(eq(leads.source, source));
+  if (priority === "urgent") filters.push(sql`${leads.urgencyScore} >= 7`);
+  if (priority === "call_today") filters.push(sql`${leads.urgencyScore} >= 4 and ${leads.urgencyScore} < 7`);
+  if (priority === "routine") filters.push(sql`(${leads.urgencyScore} < 4 or ${leads.urgencyScore} is null)`);
   if (search) {
     filters.push(
       or(
@@ -71,14 +77,22 @@ export async function deleteLead(id: string) {
   await db.update(leads).set({ deletedAt: new Date() }).where(eq(leads.id, id));
 }
 
+export async function getNewLeadsCount(businessId: string) {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(leads)
+    .where(and(eq(leads.businessId, businessId), eq(leads.leadStatus, "new"), isNull(leads.deletedAt)));
+  return Number(row.count);
+}
+
 export async function getLeadStatsForPeriod(businessId: string, since: Date) {
   const [row] = await db
     .select({
       total: sql<number>`count(*)`,
-      missedCalls: sql<number>`count(*) filter (where ${leads.source} = 'missed_call')`,
-      intakeCompleted: sql<number>`count(*) filter (where ${leads.status} in ('intake_completed', 'qualified', 'converted'))`,
-      converted: sql<number>`count(*) filter (where ${leads.status} = 'converted')`,
-      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.status} in ('qualified', 'converted')), 0)`,
+      missedCalls: sql<number>`count(*) filter (where ${leads.source} = 'voice_overflow')`,
+      intakeCompleted: sql<number>`count(*) filter (where ${leads.intakeStatus} = 'completed')`,
+      converted: sql<number>`count(*) filter (where ${leads.leadStatus} = 'converted')`,
+      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.leadStatus} in ('qualified', 'converted')), 0)`,
     })
     .from(leads)
     .where(and(eq(leads.businessId, businessId), sql`${leads.createdAt} >= ${since.toISOString()}`, isNull(leads.deletedAt)));
@@ -101,11 +115,11 @@ export async function getLeadStats(businessId: string) {
   const [row] = await db
     .select({
       totalThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${startOfMonth.toISOString()})`,
-      missedCallsThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${startOfMonth.toISOString()} and ${leads.source} = 'missed_call')`,
-      intakeCompleted: sql<number>`count(*) filter (where ${leads.status} in ('intake_completed', 'qualified', 'converted'))`,
-      converted: sql<number>`count(*) filter (where ${leads.status} = 'converted')`,
+      missedCallsThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${startOfMonth.toISOString()} and ${leads.source} = 'voice_overflow')`,
+      intakeCompleted: sql<number>`count(*) filter (where ${leads.intakeStatus} = 'completed')`,
+      converted: sql<number>`count(*) filter (where ${leads.leadStatus} = 'converted')`,
       // Use midpoint of low/high range for a conservative pipeline estimate
-      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.status} in ('qualified', 'converted')), 0)`,
+      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.leadStatus} in ('qualified', 'converted')), 0)`,
     })
     .from(leads)
     .where(eq(leads.businessId, businessId));

@@ -2,52 +2,49 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
-import { getLeadsByBusiness, getLeadStats } from "@/lib/db/queries/leads";
+import {
+  getHomeMetrics,
+  getSourceBreakdown,
+  getPriorityQueue,
+  getRecentLeadsForActivity,
+  getRecentCallsForActivity,
+} from "@/lib/db/queries/dashboard";
+import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
+import { deriveServiceLabel } from "@/lib/verticals/labels";
+import { priorityMeta, intentMeta, initials, timeAgoShort, fmtCents, fmtValueRange } from "@/lib/leads/priority";
+import { Card, CardHeader, CardTitle, CardBody, Badge, StatusPill, MetricCard, Trend, Icon, LinkButton } from "@/components/dashboard/v2/primitives";
 
-function fmt(cents: number) {
-  return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing"];
+
+const SOURCE_SWATCH: Record<string, string> = {
+  voice_overflow: "#2454d8",
+  website_widget: "#6941c6",
+  direct_intake: "#667085",
+  manual: "#98a2b3",
+  email: "#98a2b3",
+};
+
+const SOURCE_LABEL: Record<string, string> = {
+  voice_overflow: "Voice overflow",
+  website_widget: "Website widget",
+  direct_intake: "Direct intake",
+  manual: "Manual",
+  email: "Email",
+};
+
+function fmtDuration(seconds: number) {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const mins = Math.round(seconds / 60);
+  if (mins < 60) return `${mins}m`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
 }
 
-function timeAgo(date: Date) {
-  const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
+function greeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
 }
-
-function UrgencyBadge({ score }: { score: number | null }) {
-  if (!score) return <span className="text-xs text-gray-300">—</span>;
-  const cls =
-    score >= 8 ? "text-red-600 bg-red-50" :
-    score >= 5 ? "text-orange-600 bg-orange-50" :
-    score >= 3 ? "text-yellow-700 bg-yellow-50" :
-    "text-gray-500 bg-gray-100";
-  return <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${cls}`}>{score}/10</span>;
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    sms_sent: "text-blue-600 bg-blue-50",
-    intake_started: "text-purple-600 bg-purple-50",
-    intake_completed: "text-indigo-600 bg-indigo-50",
-    qualified: "text-orange-600 bg-orange-50",
-    converted: "text-green-600 bg-green-50",
-    lost: "text-gray-500 bg-gray-100",
-  };
-  return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-md capitalize ${map[status] ?? "text-gray-500 bg-gray-100"}`}>
-      {status.replace(/_/g, " ")}
-    </span>
-  );
-}
-
-const METRICS = [
-  { key: "totalThisMonth", label: "Leads this month", strip: "bg-orange-400", fmt: (v: number) => v.toString() },
-  { key: "intakeCompletionRate", label: "Intake completion", strip: "bg-blue-400", fmt: (v: number | null) => v != null ? `${v}%` : "—" },
-  { key: "converted", label: "Converted", strip: "bg-green-400", fmt: (v: number) => v.toString() },
-  { key: "estimatedRevenue", label: "Pipeline value", strip: "bg-orange-300", fmt: (v: number) => v > 0 ? fmt(v) : "—" },
-] as const;
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -56,75 +53,288 @@ export default async function DashboardPage() {
   const business = await getBusinessByClerkId(userId);
   if (!business) redirect("/onboarding");
 
-  const [stats, recentLeads] = await Promise.all([
-    getLeadStats(business.id),
-    getLeadsByBusiness(business.id, { limit: 8 }),
+  const [metrics, sources, priorityLeads, recentLeads, recentCalls, verticalConfig] = await Promise.all([
+    getHomeMetrics(business.id),
+    getSourceBreakdown(business.id),
+    getPriorityQueue(business.id, 4),
+    getRecentLeadsForActivity(business.id, 5),
+    getRecentCallsForActivity(business.id, 5),
+    getVerticalConfig(business.vertical),
   ]);
 
+  const isVoiceLive = Boolean(
+    business.twilioPhoneNumber &&
+      !business.isPaused &&
+      business.subscriptionStatus &&
+      ACTIVE_SUBSCRIPTION_STATUSES.includes(business.subscriptionStatus)
+  );
+  const widgetInstalled = sources.some((s) => s.source === "website_widget");
+
+  const captured = metrics.totalLeads || 1; // guard div-by-zero
+  const contactedPct = Math.round((metrics.contactedOrBeyond / captured) * 100);
+  const bookedPct = metrics.contactedOrBeyond > 0 ? Math.round((metrics.bookedOrBeyond / metrics.contactedOrBeyond) * 100) : 0;
+  const wonPct = metrics.bookedOrBeyond > 0 ? Math.round((metrics.convertedCount / metrics.bookedOrBeyond) * 100) : 0;
+
+  // Recent activity feed — synthesized from recent leads + calls (no dedicated events table)
+  type Activity = { key: string; icon: string; iconClass: string; title: string; body: string; time: Date };
+  const activity: Activity[] = [];
+  for (const lead of recentLeads) {
+    const name = lead.callerName ?? lead.callerPhone;
+    if (lead.leadStatus === "converted") {
+      activity.push({
+        key: `won-${lead.id}`,
+        icon: "paid",
+        iconClass: "bg-cv-green-soft text-cv-green",
+        title: "Lead marked won",
+        body: `${fmtCents(lead.confirmedValue ?? lead.estimatedValueHigh) ?? "Revenue"} recorded for ${name}.`,
+        time: lead.updatedAt,
+      });
+    } else if (lead.source === "website_widget" && lead.intakeStatus === "completed") {
+      const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers) ?? "a new job";
+      activity.push({
+        key: `widget-${lead.id}`,
+        icon: "widgets",
+        iconClass: "bg-cv-purple-soft text-cv-purple",
+        title: "Website lead qualified",
+        body: `${service} reported by ${name}.`,
+        time: lead.updatedAt,
+      });
+    } else if (lead.source === "voice_overflow") {
+      const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers) ?? "a call";
+      activity.push({
+        key: `voice-${lead.id}`,
+        icon: "phone_in_talk",
+        iconClass: "bg-cv-primary-soft text-cv-primary",
+        title: "Overflow call captured",
+        body: `${name} reported ${service.toLowerCase()}.`,
+        time: lead.createdAt,
+      });
+    }
+  }
+  for (const call of recentCalls) {
+    if (call.outcome === "abandoned") {
+      activity.push({
+        key: `call-${call.id}`,
+        icon: "phone_missed",
+        iconClass: "bg-cv-gray-soft text-[#667085]",
+        title: "Caller abandoned",
+        body: `${call.callerPhone} hung up before completing intake.`,
+        time: call.createdAt,
+      });
+    }
+  }
+  activity.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+  const topActivity = activity.slice(0, 3);
+
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-900">Dashboard</h1>
-        <Link
-          href="/dashboard/leads/new"
-          className="text-sm font-semibold bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-        >
-          + Add lead
-        </Link>
-      </div>
-
-      {/* Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {METRICS.map((m) => {
-          const raw = stats[m.key as keyof typeof stats] as number | null;
-          return (
-            <div key={m.label} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className={`h-[3px] ${m.strip}`} />
-              <div className="px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-2">{m.label}</p>
-                <p className="text-3xl font-bold text-gray-900 leading-none">{m.fmt(raw as never)}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Recent leads */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Recent Leads</span>
-          <Link href="/dashboard/leads" className="text-xs text-orange-500 font-medium hover:text-orange-600">
-            View all →
-          </Link>
-        </div>
-
-        {recentLeads.length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-gray-400">
-            No leads yet. They appear here once a missed call is recovered or a form is submitted.
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {recentLeads.map((lead) => (
-              <Link
-                key={lead.id}
-                href={`/dashboard/leads/${lead.id}`}
-                className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {lead.callerName ?? lead.callerPhone}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5 font-mono">{lead.callerPhone} · {timeAgo(lead.createdAt)}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <UrgencyBadge score={lead.urgencyScore} />
-                  <StatusBadge status={lead.status} />
-                </div>
-              </Link>
-            ))}
-          </div>
+    <div className="font-cv-body text-cv-ink">
+      <div className="flex flex-wrap gap-2.5 mb-[18px]">
+        <StatusPill color={isVoiceLive ? "green" : "gray"} dot>
+          {isVoiceLive ? "Voice line live" : "Voice line not active"}
+        </StatusPill>
+        <StatusPill color={widgetInstalled ? "green" : "gray"}>
+          <Icon name={widgetInstalled ? "check_circle" : "info"} className="!text-[15px]" />
+          {widgetInstalled ? "Website widget installed" : "Website widget not yet used"}
+        </StatusPill>
+        {metrics.urgentAwaitingCallback > 0 && (
+          <StatusPill color="amber">
+            <Icon name="schedule" className="!text-[15px]" />
+            {metrics.urgentAwaitingCallback} lead{metrics.urgentAwaitingCallback === 1 ? "" : "s"} awaiting callback
+          </StatusPill>
         )}
       </div>
+
+      <div className="flex justify-between items-start gap-6 mb-[22px] flex-col sm:flex-row">
+        <div>
+          <h1 className="font-cv-heading text-[34px] leading-[1.15] tracking-tight">
+            {greeting()}, {business.ownerName?.split(" ")[0] ?? "there"}
+          </h1>
+          <p className="mt-[7px] text-cv-muted text-sm leading-relaxed">
+            Here is what Callverted captured and what needs your attention.
+          </p>
+        </div>
+        <div className="flex gap-2.5 flex-wrap">
+          <LinkButton href="/dashboard/calls">
+            <Icon name="call" />
+            Review calls
+          </LinkButton>
+          <LinkButton href="/dashboard/leads/new" variant="primary">
+            <Icon name="add" />
+            Add lead
+          </LinkButton>
+        </div>
+      </div>
+
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-4">
+        <MetricCard
+          label="Captured opportunity value"
+          value={fmtCents(metrics.capturedValueThisMonth) ?? "$0"}
+          note={`Across ${metrics.capturedCountThisMonth} qualified opportunities this month`}
+          valueColor="var(--color-cv-primary-dark)"
+        />
+        <MetricCard
+          label="Confirmed won revenue"
+          value={
+            <>
+              {fmtCents(metrics.wonRevenueThisMonth) ?? "$0"}
+              {metrics.wonRevenueTrendPct != null && (
+                <Trend direction={metrics.wonRevenueTrendPct >= 0 ? "up" : "down"}>
+                  {Math.abs(metrics.wonRevenueTrendPct)}%
+                </Trend>
+              )}
+            </>
+          }
+          note="From leads marked won by your team"
+        />
+        <MetricCard
+          label="Urgent awaiting callback"
+          value={metrics.urgentAwaitingCallback}
+          note={
+            metrics.urgentAwaitingCallback > 0
+              ? `Oldest has been waiting ${fmtDuration(metrics.oldestUrgentWaitSeconds)}`
+              : "Nothing urgent right now"
+          }
+          valueColor={metrics.urgentAwaitingCallback > 0 ? "var(--color-cv-amber)" : undefined}
+        />
+        <MetricCard
+          label="Average callback time"
+          value={
+            <>
+              {metrics.avgCallbackSeconds != null ? fmtDuration(metrics.avgCallbackSeconds) : "—"}
+              {metrics.avgCallbackTrendSeconds != null && (
+                <Trend direction={metrics.avgCallbackTrendSeconds <= 0 ? "up" : "down"}>
+                  {fmtDuration(Math.abs(metrics.avgCallbackTrendSeconds))}
+                </Trend>
+              )}
+            </>
+          }
+          note="Compared with your previous 30 days"
+        />
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-[1.75fr_minmax(320px,0.85fr)] gap-4">
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Priority leads</CardTitle>
+              <p className="text-[11px] text-cv-muted mt-1">Ranked by urgency, intent, and waiting time</p>
+            </div>
+            <LinkButton href="/dashboard/leads" variant="ghost" size="sm">
+              View all
+            </LinkButton>
+          </CardHeader>
+          <div className="flex flex-col">
+            {priorityLeads.length === 0 ? (
+              <div className="px-5 py-10 text-center text-sm text-cv-muted">
+                No leads waiting on a callback right now.
+              </div>
+            ) : (
+              priorityLeads.map((lead) => {
+                const priority = priorityMeta(lead.urgencyScore);
+                const intent = intentMeta(lead.qualityScore);
+                const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers);
+                const value = fmtValueRange(lead.estimatedValueLow, lead.estimatedValueHigh);
+                return (
+                  <Link
+                    key={lead.id}
+                    href={`/dashboard/leads/${lead.id}`}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] gap-3.5 items-center px-4 py-3.5 border-b border-cv-border last:border-b-0 hover:bg-cv-surface-subtle transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`w-10 h-10 rounded-[11px] grid place-items-center shrink-0 font-extrabold text-xs ${
+                          priority.label === "Urgent" ? "bg-cv-red-soft text-cv-red" : priority.label === "Call today" ? "bg-cv-amber-soft text-cv-amber" : "bg-cv-gray-soft text-[#344054]"
+                        }`}
+                      >
+                        {initials(lead.callerName)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center flex-wrap gap-1.5">
+                          <span className="text-sm font-extrabold">{lead.callerName ?? lead.callerPhone}</span>
+                          <Badge color={priority.color}>{priority.label}</Badge>
+                          <Badge color={intent.color}>{intent.label}</Badge>
+                        </div>
+                        <div className="text-cv-muted text-xs mt-1 truncate">{service ?? "Details pending"}</div>
+                        <div className="flex gap-2.5 items-center mt-[7px] text-cv-muted text-[11px] flex-wrap">
+                          {value && <span>Estimated {value}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="text-right min-w-[60px]">
+                        <strong className="block font-cv-mono text-xs">{timeAgoShort(lead.createdAt)}</strong>
+                        <span className="block text-cv-muted text-[10px] mt-0.5">waiting</span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </Card>
+
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="!text-base">Conversion snapshot</CardTitle>
+              <LinkButton href="/dashboard/reports" variant="ghost" size="sm">
+                Reports
+              </LinkButton>
+            </CardHeader>
+            <CardBody className="flex flex-col gap-[15px]">
+              {[
+                { label: "Captured → contacted", pct: contactedPct },
+                { label: "Contacted → booked", pct: bookedPct },
+                { label: "Booked → won", pct: wonPct },
+              ].map((row) => (
+                <div key={row.label}>
+                  <div className="flex justify-between text-xs font-bold mb-[7px]">
+                    <span>{row.label}</span>
+                    <span className="font-cv-mono">{row.pct}%</span>
+                  </div>
+                  <div className="h-[7px] bg-[#edf0f4] rounded-full overflow-hidden">
+                    <span className="block h-full bg-cv-primary rounded-full" style={{ width: `${row.pct}%` }} />
+                  </div>
+                </div>
+              ))}
+              <div className="h-px bg-cv-border" />
+              {sources.slice(0, 3).map((s) => (
+                <div key={s.source} className="flex justify-between items-center text-xs">
+                  <span className="flex items-center gap-2">
+                    <i className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ background: SOURCE_SWATCH[s.source] ?? "#98a2b3" }} />
+                    {SOURCE_LABEL[s.source] ?? s.source}
+                  </span>
+                  <strong className="font-cv-mono">{s.pct}%</strong>
+                </div>
+              ))}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="!text-base">Recent activity</CardTitle>
+            </CardHeader>
+            <CardBody className="!py-[7px]">
+              {topActivity.length === 0 ? (
+                <p className="text-sm text-cv-muted py-3">No recent activity yet.</p>
+              ) : (
+                topActivity.map((a) => (
+                  <div key={a.key} className="flex gap-[11px] py-[11px] border-b border-cv-border last:border-b-0">
+                    <div className={`w-[31px] h-[31px] rounded-[9px] grid place-items-center shrink-0 ${a.iconClass}`}>
+                      <Icon name={a.icon} className="!text-[17px]" />
+                    </div>
+                    <div className="text-xs leading-relaxed">
+                      <strong className="block text-xs mb-0.5">{a.title}</strong>
+                      {a.body}
+                      <div className="text-[11px] text-cv-muted mt-[3px]">{timeAgoShort(a.time)} ago</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardBody>
+          </Card>
+        </div>
+      </section>
     </div>
   );
 }

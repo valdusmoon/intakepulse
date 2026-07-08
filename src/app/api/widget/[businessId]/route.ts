@@ -27,7 +27,7 @@ export async function GET(
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.callverted.com";
-  const intakeUrl = `${appUrl}/intake/${businessId}?source=embed`;
+  const intakeUrl = `${appUrl}/intake/${businessId}?source=website_widget`;
   const label = (business.businessName ?? "Get a Free Assessment").replace(/'/g, "\\'");
 
   const popupScript = `
@@ -42,10 +42,10 @@ export async function GET(
 
   var style = document.createElement('style');
   style.textContent = [
-    '#ip-btn{position:fixed;bottom:24px;right:24px;z-index:99998;background:#f97316;color:#fff;border:none;',
+    '#ip-btn{position:fixed;bottom:24px;right:24px;z-index:99998;background:#2454d8;color:#fff;border:none;',
     'border-radius:50px;padding:14px 22px;font-size:15px;font-weight:700;font-family:system-ui,sans-serif;',
-    'cursor:pointer;box-shadow:0 4px 20px rgba(249,115,22,0.4);transition:transform .15s,box-shadow .15s;}',
-    '#ip-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(249,115,22,0.5);}',
+    'cursor:pointer;box-shadow:0 4px 20px rgba(36,84,216,0.4);transition:transform .15s,box-shadow .15s;}',
+    '#ip-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(36,84,216,0.5);}',
     '#ip-overlay{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55);}',
     '#ip-overlay.open{display:flex;align-items:center;justify-content:center;}',
     '#ip-modal{background:#fff;border-radius:16px;overflow:hidden;width:min(440px,96vw);',
@@ -125,11 +125,11 @@ export async function GET(
 
   var style = document.createElement('style');
   style.textContent = [
-    '.ip-btn{display:inline-block;background:#f97316;color:#fff;text-decoration:none;',
+    '.ip-btn{display:inline-block;background:#2454d8;color:#fff;text-decoration:none;',
     'border-radius:10px;padding:14px 28px;font-size:15px;font-weight:700;',
-    'font-family:system-ui,sans-serif;box-shadow:0 4px 16px rgba(249,115,22,0.35);',
+    'font-family:system-ui,sans-serif;box-shadow:0 4px 16px rgba(36,84,216,0.35);',
     'transition:transform .15s,box-shadow .15s;}',
-    '.ip-btn:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(249,115,22,0.45);color:#fff;}'
+    '.ip-btn:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(36,84,216,0.45);color:#fff;}'
   ].join('');
   document.head.appendChild(style);
 

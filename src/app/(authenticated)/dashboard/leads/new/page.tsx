@@ -10,5 +10,5 @@ export default async function NewLeadPage() {
   const business = await getBusinessByClerkId(userId);
   if (!business) redirect("/onboarding");
 
-  return <NewLeadForm businessName={business.businessName} />;
+  return <NewLeadForm />;
 }

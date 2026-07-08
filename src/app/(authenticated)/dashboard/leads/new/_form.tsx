@@ -4,17 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
+import { Card, CardHeader, CardTitle, CardBody, FormGroup, Field, Select, TextArea, Button, Icon } from "@/components/dashboard/v2/primitives";
 
 const SOURCES = [
   { value: "manual", label: "Manual entry" },
   { value: "email", label: "Email / referral" },
-  { value: "embed", label: "Website form" },
+  { value: "website_widget", label: "Website form" },
 ];
 
-const inputCls = "w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white";
-const labelCls = "block text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-1.5";
-
-export default function NewLeadForm({ businessName }: { businessName: string }) {
+export default function NewLeadForm() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -26,10 +24,9 @@ export default function NewLeadForm({ businessName }: { businessName: string }) 
     callerEmail: "",
     source: "manual",
     notes: "",
-    sendSms: false,
   });
 
-  function update<K extends keyof typeof form>(field: K, value: typeof form[K]) {
+  function update<K extends keyof typeof form>(field: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (field === "callerPhone") setPhoneError("");
   }
@@ -60,7 +57,6 @@ export default function NewLeadForm({ businessName }: { businessName: string }) 
           callerEmail: form.callerEmail.trim() || undefined,
           source: form.source,
           notes: form.notes || undefined,
-          sendIntakeSms: form.sendSms,
         }),
       });
 
@@ -74,122 +70,65 @@ export default function NewLeadForm({ businessName }: { businessName: string }) 
   }
 
   return (
-    <div className="max-w-md">
-      <div className="flex items-center gap-3 mb-5">
-        <Link href="/dashboard/leads" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
-          ← Leads
-        </Link>
-        <span className="text-gray-200">/</span>
-        <h1 className="text-base font-semibold text-gray-900">New Lead</h1>
-      </div>
+    <div className="font-cv-body text-cv-ink max-w-lg">
+      <Link href="/dashboard/leads" className="inline-flex items-center gap-1.5 text-cv-muted text-xs font-bold mb-3 hover:text-cv-ink transition-colors">
+        <Icon name="arrow_back" className="!text-base" />
+        Back to leads
+      </Link>
+      <h1 className="font-cv-heading text-[28px] leading-[1.15] tracking-tight mb-4">Add a lead</h1>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-600 mb-4">
-          {error}
-        </div>
-      )}
+      {error && <div className="bg-cv-red-soft border border-[#f3c9c3] rounded-[10px] px-4 py-3 text-sm text-cv-red mb-4">{error}</div>}
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        {/* Header */}
-        <div className="px-5 py-3 border-b border-gray-100">
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Manual Lead Entry</span>
-        </div>
-
+      <Card>
+        <CardHeader>
+          <CardTitle className="!text-base">Manual lead entry</CardTitle>
+        </CardHeader>
         <form onSubmit={handleSubmit}>
-          <div className="px-5 py-5 space-y-4">
+          <CardBody className="flex flex-col gap-4">
+            <FormGroup label="Caller name">
+              <Field value={form.callerName} onChange={(e) => update("callerName", e.target.value)} placeholder="Full name" />
+            </FormGroup>
 
-            <div>
-              <label className={labelCls}>Caller Name</label>
-              <input
-                type="text"
-                value={form.callerName}
-                onChange={(e) => update("callerName", e.target.value)}
-                placeholder="Full name"
-                className={inputCls}
-              />
-            </div>
-
-            <div>
-              <label className={labelCls}>Phone Number</label>
-              <input
+            <FormGroup label="Phone number">
+              <Field
                 type="tel"
                 value={form.callerPhone}
                 onChange={(e) => update("callerPhone", e.target.value)}
                 placeholder="(305) 000-0000"
-                className={`${inputCls} ${phoneError ? "border-red-400 focus:ring-red-300" : ""}`}
+                className={phoneError ? "!border-cv-red" : ""}
               />
-              {phoneError && <p className="mt-1 text-xs text-red-500">{phoneError}</p>}
-            </div>
+              {phoneError && <p className="mt-1.5 text-xs text-cv-red">{phoneError}</p>}
+            </FormGroup>
 
-            <div>
-              <label className={labelCls}>Email <span className="normal-case font-normal text-gray-400">(optional)</span></label>
-              <input
-                type="email"
-                value={form.callerEmail}
-                onChange={(e) => update("callerEmail", e.target.value)}
-                placeholder="name@example.com"
-                className={inputCls}
-              />
-            </div>
+            <FormGroup label="Email (optional)">
+              <Field type="email" value={form.callerEmail} onChange={(e) => update("callerEmail", e.target.value)} placeholder="name@example.com" />
+            </FormGroup>
 
-            <div>
-              <label className={labelCls}>Source</label>
-              <select
-                value={form.source}
-                onChange={(e) => update("source", e.target.value)}
-                className={inputCls}
-              >
+            <FormGroup label="Source">
+              <Select value={form.source} onChange={(e) => update("source", e.target.value)}>
                 {SOURCES.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </FormGroup>
 
-            <div>
-              <label className={labelCls}>Notes</label>
-              <textarea
-                value={form.notes}
-                onChange={(e) => update("notes", e.target.value)}
-                rows={3}
-                placeholder="How did they reach out? What did they mention?"
-                className={`${inputCls} resize-none`}
-              />
-            </div>
+            <FormGroup label="Notes">
+              <TextArea value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="How did they reach out? What did they mention?" />
+            </FormGroup>
+          </CardBody>
 
-            {/* SMS checkbox */}
-            <label className="flex items-start gap-3 p-3.5 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-              <input
-                type="checkbox"
-                checked={form.sendSms}
-                onChange={(e) => update("sendSms", e.target.checked)}
-                className="mt-0.5 w-4 h-4 accent-orange-500 shrink-0"
-              />
-              <div>
-                <p className="text-sm font-medium text-gray-700">Send intake link via SMS immediately</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Lead receives: &ldquo;Hi, {businessName} here — tap here to tell us about your situation: [link]&rdquo;
-                </p>
-              </div>
-            </label>
-          </div>
-
-          <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-            <Link
-              href="/dashboard/leads"
-              className="flex-1 text-center border border-gray-200 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-            >
+          <div className="px-5 py-4 border-t border-cv-border flex gap-2.5">
+            <Link href="/dashboard/leads" className="flex-1 text-center border border-cv-border-strong rounded-[9px] py-2.5 text-[13px] font-bold text-cv-ink hover:bg-cv-surface-subtle transition-colors">
               Cancel
             </Link>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-            >
-              {submitting ? "Saving…" : "Save Lead"}
-            </button>
+            <Button type="submit" variant="primary" className="flex-1" disabled={submitting}>
+              {submitting ? "Saving…" : "Save lead"}
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

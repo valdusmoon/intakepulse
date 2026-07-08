@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
 
 const isPublicRoute = createRouteMatcher([
-  '/',
   '/features(.*)',
   '/legal(.*)',
   '/api/webhooks(.*)',
@@ -14,7 +13,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/cron(.*)',
   '/api/inngest(.*)',
   '/api/ai(.*)',
-  '/api/telnyx(.*)',
+  '/api/twilio(.*)',
   '/api/intake(.*)',
   '/intake(.*)',
   '/sign-in(.*)',
@@ -23,7 +22,6 @@ const isPublicRoute = createRouteMatcher([
 ])
 
 const isAuthRoute = createRouteMatcher([
-  '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
 ])
@@ -80,8 +78,13 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Skip Next.js internals, all static files, and the bare "/" marketing
+    // homepage (trailing "|$"). Clerk's auth resolution has a real cost for
+    // every anonymous hit — on a dev/test instance it's a full redirect
+    // handshake, and it's unconditional overhead even in production — so the
+    // highest-traffic anonymous page skips Clerk's middleware entirely rather
+    // than paying that on every visit just to check for a logged-in user.
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)|$).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
   ],

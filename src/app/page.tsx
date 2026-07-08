@@ -1,412 +1,487 @@
 import Link from "next/link";
+import { CallvertedLogo } from "@/components/CallvertedLogo";
+import { HeroPhoneAnimation } from "@/components/marketing/HeroPhoneAnimation";
+import { ProductShowcase } from "@/components/marketing/ProductShowcase";
+import { MissedCallCalculator } from "@/components/marketing/MissedCallCalculator";
+import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 
-const HOW_IT_WORKS = [
-  {
-    step: "01",
-    title: "Prospect calls, no one answers",
-    body: "Your Callverted number rings your real phone. If the call goes unanswered, recovery fires automatically — in seconds, not hours.",
-  },
-  {
-    step: "02",
-    title: "Recovery text goes out instantly",
-    body: "An automated SMS reaches the caller within 30 seconds with a link to your intake form. While your competitor hasn't called back yet, you're already in their hands.",
-  },
-  {
-    step: "03",
-    title: "They fill out the form, get a quote range",
-    body: "6 quick questions qualify the job — damage type, insurance status, severity, timeline. At the end, they see an estimated job value range so they know you're serious.",
-  },
-  {
-    step: "04",
-    title: "You get a scored lead packet. Job recovered.",
-    body: "Urgency score, estimated value, AI reasoning, and a one-tap call button land in your inbox before you even know you missed the call. Call back knowing exactly what you're walking into.",
-  },
+const HERO_PROOF = [
+  { num: "2:47 AM", label: "Call answered after your team misses it" },
+  { num: "90 sec", label: "Typical structured intake window" },
+  { num: "$1.8k–$3.2k", label: "Estimated value shown before callback" },
 ];
 
 const STATS = [
+  { stat: "100×", label: "more likely to make contact responding in 5 min vs. 30" },
+  { stat: "78%", label: "of customers buy from the first business to respond" },
+  { stat: "47 hrs", label: "average industry response time (the gap you're exploiting)" },
+  { stat: "24–48 hrs", label: "window before a delayed emergency turns into a bigger, costlier job" },
+];
+
+const FLOW = [
   {
-    stat: "100×",
-    label: "more likely to make contact responding in 5 min vs. 30 min",
-    source: "MIT / Lead Response Management Study",
+    k: "Missed",
+    title: "Your team rings first",
+    body: "The customer calls your Callverted number and your real phone rings. Answered calls stay completely normal. Callverted only steps in on the ones that would hit voicemail.",
   },
   {
-    stat: "78%",
-    label: "of customers buy from the first business to respond",
-    source: "Lead Response Management Study",
+    k: "Answered",
+    title: "Callverted picks up live",
+    body: "After ~20 seconds with no answer, it answers the same call itself: no voicemail, no missed-call text for a panicked homeowner to ignore.",
   },
   {
-    stat: "47 hrs",
-    label: "average industry response time — the gap you're exploiting",
-    source: "Drift / InsideSales.com",
+    k: "Qualified",
+    title: "It runs the intake",
+    body: "The questions that actually decide the job: what's going on, how urgent it is, what type of service is needed, and whether it's in your service area.",
   },
   {
-    stat: "24–48 hrs",
-    label: "IICRC mitigation window before water damage becomes mold",
-    source: "IICRC S500 Standard",
+    k: "Quoted",
+    title: "It shares an approved range",
+    body: "If you've approved a value range for that job type, the caller hears a realistic estimate. If you haven't, it simply says your team will review. It never invents a price.",
+  },
+  {
+    k: "Reassured",
+    title: "It sets the callback, then alerts you",
+    body: "The caller is told a specialist will call back fast, so they don't dial your competitor next. You get a scored lead packet with urgency, intent, value, summary, transcript, and next action.",
   },
 ];
 
-const PLANS = [
-  {
-    name: "Starter",
-    price: "$299",
-    description: "For owner-operators just getting started with lead recovery.",
-    features: [
-      "1 Callverted number",
-      "Missed-call recovery SMS",
-      "AI-scored lead packets",
-      "Email notifications",
-      "Dashboard + lead management",
-      "1 follow-up text per lead",
-    ],
-    cta: "Start free trial",
-    highlight: false,
-  },
-  {
-    name: "Growth",
-    price: "$499",
-    description: "For growing businesses with higher call volume.",
-    features: [
-      "Everything in Starter",
-      "Embeddable website widget",
-      "Priority SMS delivery",
-      "Multiple team members",
-      "Custom intake questions",
-      "Monthly performance reports",
-    ],
-    cta: "Start free trial",
-    highlight: true,
-  },
-  {
-    name: "Pro",
-    price: "$799",
-    description: "For multi-location operators and franchises.",
-    features: [
-      "Everything in Growth",
-      "Multiple locations / numbers",
-      "CRM integrations",
-      "Custom AI prompt tuning",
-      "Dedicated onboarding call",
-      "SLA support",
-    ],
-    cta: "Contact us",
-    highlight: false,
-  },
+const COMPARISON = [
+  { label: "Voicemail", sub: "Asks the homeowner to do the work. No urgency, no scoring, no service context, no next action.", strong: false },
+  { label: "Missed-call text", sub: "Useful for simple follow-up, but it still depends on a panicked caller seeing and replying to a text.", strong: false },
+  { label: "Callverted", sub: "Answers live, reassures the caller, runs the intake, and delivers a lead packet you can act on immediately.", strong: true },
 ];
+
+const WAVE_HEIGHTS = [32, 58, 42, 74, 48, 90, 60, 36, 78, 52, 28, 68, 84, 44, 58, 96, 62, 34, 72, 48, 88, 54, 38, 66];
 
 const FAQS = [
   {
-    q: "Isn't missed-call text-back already a feature in tools like GoHighLevel or Podium?",
-    a: "Yes — generic text-back is commoditized. What those tools don't do is send a restoration-specific intake form, score the lead by damage type and insurance status, and email you a job-value estimate before you call back. That vertical depth is what Callverted is built around.",
+    q: "Is this just missed-call text-back?",
+    a: "No. Text-back waits for the caller to reply. Callverted answers the call live, asks the intake questions, and creates a scored lead packet.",
   },
   {
-    q: "What happens if the caller doesn't open the text?",
-    a: "Callverted sends one follow-up SMS roughly 4 hours later. That's it — we don't spam your prospects.",
+    q: "Does it replace my phone number?",
+    a: "No. Your team gets the first chance to answer. Callverted only steps in when the call would otherwise be missed or routed to voicemail.",
   },
   {
-    q: "Do I need to change my business phone number?",
-    a: "No. You keep your existing number. Callverted gives you a new number that forwards calls to your real phone. If the call goes unanswered, recovery fires automatically.",
+    q: "Can it handle intake for my specific trade?",
+    a: "Yes. The flow is built around the details that matter for your trade: job type, timing, materials, insurance, service area, and urgency.",
   },
   {
-    q: "What verticals does Callverted support right now?",
-    a: "Water, fire, and mold restoration is fully live. HVAC and personal injury law are in development — join the waitlist to be notified.",
+    q: "Will the AI invent prices?",
+    a: "No. Caller-facing pricing or value guidance should come from rules you approve. If no approved rule exists, Callverted simply says your team will review the details.",
   },
   {
-    q: "How does the AI scoring work?",
-    a: "Scores are calculated from the intake answers using restoration-specific rules (e.g. Category 3 water + hardwood floors = high urgency). GPT-4o then writes the plain-English explanation — it never changes the numbers.",
+    q: "What happens if the caller wants a person?",
+    a: "Callverted can capture the request, mark the lead accordingly, and optionally transfer to a configured urgent number if you enable that behavior.",
   },
   {
-    q: "What's the setup time?",
-    a: "Under 30 minutes. Fill out onboarding, we provision your number, paste it into settings. That's it.",
+    q: "How fast can we launch?",
+    a: "About 30 minutes for basic setup: business profile, forwarding number, service area, intake flow, and a few test calls.",
   },
 ];
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen bg-landing-paper text-[#152033]">
 
-      {/* Nav */}
-      <nav className="border-b border-gray-100 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <span className="text-lg font-bold text-gray-900">Callverted</span>
-          <div className="flex items-center gap-4">
-            <Link href="#pricing" className="text-sm text-gray-500 hover:text-gray-700 hidden sm:block">Pricing</Link>
-            <Link href="/sign-in" className="text-sm text-gray-500 hover:text-gray-700">Log in</Link>
-            <Link
-              href="/sign-up"
-              className="text-sm font-semibold bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-            >
-              Get started free
+      {/* ── Hero (dark) — interactive: click a step to seek the animation ─── */}
+      <div
+        className="relative overflow-hidden text-white"
+        style={{ background: "linear-gradient(180deg,#12224e 0%,#0b1226 48%,#0a0f1c 100%)" }}
+      >
+        {/* Blue light spilling from the top — adds warmth and pop without a floating orb */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-[560px]"
+          style={{ background: "radial-gradient(ellipse 65% 90% at 50% -12%, rgba(91,140,255,0.22), transparent 72%)" }}
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px)",
+            backgroundSize: "26px 26px",
+            maskImage: "radial-gradient(ellipse 80% 60% at 50% 0%, black 34%, transparent 95%)",
+          }}
+          aria-hidden
+        />
+
+        <nav className="relative z-10 border-b border-white/10 px-6 py-4">
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2.5">
+              <CallvertedLogo className="h-8 w-8 shadow-[0_2px_10px_rgba(0,0,0,0.35)]" gradientId="cvLogoNav" />
+              <span className="font-cv-heading text-lg font-bold tracking-tight">Callverted</span>
             </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section className="px-6 py-20 sm:py-28">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-full px-3.5 py-1.5 text-xs font-semibold text-orange-600 mb-6">
-            Built for water, fire & mold restoration
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight tracking-tight mb-5">
-            No inbound lead<br />ever goes unanswered.
-          </h1>
-          <p className="text-lg text-gray-500 mb-8 max-w-xl mx-auto leading-relaxed">
-            When a restoration prospect calls and no one answers, you have minutes — not hours — before they call your competitor. Callverted texts them instantly, captures a full intake, and emails you a scored lead packet before you even know you missed the call.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/sign-up"
-              className="w-full sm:w-auto text-center font-semibold bg-orange-500 text-white px-7 py-3.5 rounded-xl hover:bg-orange-600 transition-colors text-base"
-            >
-              Start free trial
-            </Link>
-            <Link
-              href="#how-it-works"
-              className="w-full sm:w-auto text-center font-medium text-gray-600 px-7 py-3.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors text-base"
-            >
-              See how it works
-            </Link>
-          </div>
-          <p className="mt-4 text-xs text-gray-400">14-day free trial · No credit card required · Setup in under 30 min</p>
-        </div>
-      </section>
-
-      {/* Verticals strip */}
-      <section className="border-y border-gray-100 bg-gray-50 px-6 py-6">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-sm font-medium text-gray-500">
-            <span>Water Restoration</span>
-            <span className="text-gray-300">·</span>
-            <span>Fire Damage</span>
-            <span className="text-gray-300">·</span>
-            <span>Mold Remediation</span>
-            <span className="text-gray-300">·</span>
-            <span className="opacity-40">HVAC (coming soon)</span>
-            <span className="text-gray-300 hidden sm:block">·</span>
-            <span className="opacity-40">PI Law (coming soon)</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="px-6 py-16 sm:py-20">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-center text-xs font-semibold text-gray-400 uppercase tracking-widest mb-10">The speed-to-lead problem is well documented</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {STATS.map((s) => (
-              <div key={s.stat} className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
-                <p className="text-3xl font-extrabold text-orange-500 mb-2">{s.stat}</p>
-                <p className="text-sm text-gray-700 leading-snug mb-3">{s.label}</p>
-                <p className="text-xs text-gray-400">{s.source}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section id="how-it-works" className="px-6 py-16 sm:py-20 bg-gray-50 border-t border-gray-100">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">How it works</h2>
-            <p className="text-gray-500">Four steps from missed call to qualified lead. No manual work from you.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {HOW_IT_WORKS.map((item) => (
-              <div key={item.step} className="bg-white rounded-2xl p-6 border border-gray-200">
-                <div className="text-xs font-bold text-orange-400 tracking-widest mb-3">{item.step}</div>
-                <h3 className="text-base font-bold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{item.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Value callout */}
-      <section className="px-6 py-16 bg-orange-500">
-        <div className="max-w-3xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-center">
-            <div>
-              <p className="text-2xl sm:text-3xl font-bold text-white leading-snug mb-4">
-                One captured job pays for 6+ months of the platform.
-              </p>
-              <p className="text-orange-100 text-sm leading-relaxed">
-                Average residential restoration ticket: <strong className="text-white">$3,000–$8,000.</strong> Sewage and Cat-3 events: <strong className="text-white">$10,000–$50,000+.</strong> A single $5,000 job covers your subscription for over six months.
-              </p>
-            </div>
-            <div className="space-y-3">
-              {[
-                "A missed call at 2am becomes mold by morning",
-                "IICRC requires mitigation within 24–48 hours",
-                "78% of buyers go with whoever responds first",
-                "Your competitors are responding in 47 hours on average",
-              ].map((point) => (
-                <div key={point} className="flex items-start gap-3">
-                  <span className="text-orange-300 mt-0.5 shrink-0">→</span>
-                  <p className="text-sm text-orange-50">{point}</p>
-                </div>
-              ))}
+            <div className="flex items-center gap-5">
+              <Link href="#how" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">How it works</Link>
+              <Link href="#product" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">Product</Link>
+              <Link href="#pricing" className="text-sm text-white/60 hover:text-white transition-colors hidden sm:block">Pricing</Link>
+              <Link href="/sign-in" className="text-sm text-white/60 hover:text-white transition-colors">Log in</Link>
               <Link
                 href="/sign-up"
-                className="mt-2 inline-block font-semibold bg-white text-orange-600 px-6 py-3 rounded-xl hover:bg-orange-50 transition-colors text-sm"
+                className="text-sm font-semibold bg-landing-primary text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
               >
-                Recover your first lead free
+                Start free trial
               </Link>
             </div>
           </div>
-        </div>
-      </section>
+        </nav>
 
-      {/* Why not GHL/Podium */}
-      <section className="px-6 py-16 sm:py-20">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">Built for restoration, not everyone</h2>
-            <p className="text-sm text-gray-500 max-w-xl mx-auto leading-relaxed">
-              GoHighLevel, Podium, Birdeye, and Weave all do missed-call text-back. None of them know what Category 3 water is.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              {
-                label: "Generic tools send a text",
-                sub: "\"Thanks for calling, we'll get back to you.\"",
-                dim: true,
-              },
-              {
-                label: "Callverted captures the job",
-                sub: "8-question intake tuned to water/fire/mold. Damage type, insurance status, affected rooms, severity — all scored before you call back.",
-                dim: false,
-              },
-              {
-                label: "Generic tools give you a notification",
-                sub: "\"New missed call from +1 (555) 000-0000.\"",
-                dim: true,
-              },
-              {
-                label: "Callverted gives you a lead packet",
-                sub: "Urgency score, estimated job value, AI reasoning, and a one-tap call button — formatted for a restoration operator, not a generic sales team.",
-                dim: false,
-              },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className={`rounded-2xl p-5 border ${item.dim ? "bg-gray-50 border-gray-200 opacity-60" : "bg-white border-orange-200"}`}
-              >
-                <p className={`text-sm font-bold mb-1.5 ${item.dim ? "text-gray-500" : "text-gray-900"}`}>{item.label}</p>
-                <p className={`text-sm leading-relaxed ${item.dim ? "text-gray-400 italic" : "text-gray-600"}`}>{item.sub}</p>
+        <section className="relative z-10 px-6 pt-16 pb-20 sm:pt-20 sm:pb-24">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-14 items-center">
+
+            <div className="order-2 lg:order-1">
+              <div className="inline-flex items-center gap-2 bg-white/5 border border-white/15 rounded-full px-3.5 py-1.5 text-xs font-semibold text-landing-primary-glow mb-7">
+                <span className="relative flex h-2 w-2" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-landing-primary-glow opacity-75 animate-ping" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-landing-primary-glow" />
+                </span>
+                AI voice overflow for home service businesses
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="px-6 py-16 sm:py-20 bg-gray-50 border-t border-gray-100">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">Simple pricing</h2>
-            <p className="text-gray-500">One recovered job pays for the whole year.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {PLANS.map((plan) => (
-              <div
-                key={plan.name}
-                className={`rounded-2xl border p-7 flex flex-col ${
-                  plan.highlight
-                    ? "border-orange-400 bg-orange-500 text-white shadow-lg"
-                    : "border-gray-200 bg-white"
-                }`}
-              >
-                {plan.highlight && (
-                  <div className="text-xs font-bold text-orange-200 uppercase tracking-widest mb-3">Most popular</div>
-                )}
-                <div className="mb-4">
-                  <p className={`text-sm font-semibold mb-1 ${plan.highlight ? "text-orange-100" : "text-gray-500"}`}>
-                    {plan.name}
-                  </p>
-                  <p className={`text-4xl font-extrabold ${plan.highlight ? "text-white" : "text-gray-900"}`}>
-                    {plan.price}
-                    <span className={`text-base font-normal ml-1 ${plan.highlight ? "text-orange-200" : "text-gray-400"}`}>/mo</span>
-                  </p>
-                  <p className={`text-sm mt-2 leading-snug ${plan.highlight ? "text-orange-100" : "text-gray-500"}`}>
-                    {plan.description}
-                  </p>
-                </div>
-                <ul className="space-y-2.5 mb-7 flex-1">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm">
-                      <svg
-                        className={`w-4 h-4 shrink-0 mt-0.5 ${plan.highlight ? "text-orange-200" : "text-orange-500"}`}
-                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                      <span className={plan.highlight ? "text-orange-50" : "text-gray-600"}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
+              <h1 className="font-cv-heading text-4xl sm:text-6xl font-bold leading-[1.0] tracking-tight mb-6">
+                The emergency call you missed just became a qualified lead.
+              </h1>
+              <p className="text-lg text-white/60 mb-9 max-w-md leading-relaxed">
+                Callverted picks up when your team can&apos;t, asks the intake questions that matter, estimates
+                job value, and sends a callback-ready lead while the caller is still hot.
+              </p>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-7">
                 <Link
-                  href={plan.name === "Pro" ? "mailto:hello@callverted.com" : "/sign-up"}
-                  className={`text-center text-sm font-semibold py-3 rounded-xl transition-colors ${
-                    plan.highlight
-                      ? "bg-white text-orange-600 hover:bg-orange-50"
-                      : "bg-orange-500 text-white hover:bg-orange-600"
-                  }`}
+                  href="/sign-up"
+                  className="w-full sm:w-auto text-center font-semibold bg-landing-primary text-white px-7 py-3.5 rounded-xl hover:bg-blue-600 transition-colors text-base shadow-[0_10px_40px_-8px_rgba(36,84,216,0.65)]"
                 >
-                  {plan.cta}
+                  Start 14-day trial
+                </Link>
+                <Link
+                  href="#product"
+                  className="w-full sm:w-auto text-center font-medium text-white/80 px-7 py-3.5 rounded-xl border border-white/20 hover:bg-white/5 transition-colors text-base"
+                >
+                  See the lead packet
                 </Link>
               </div>
-            ))}
-          </div>
-          <p className="text-center text-xs text-gray-400 mt-6">All plans include a 14-day free trial. Cancel any time.</p>
-        </div>
-      </section>
+              <p className="text-xs text-white/40 font-cv-mono mb-9">
+                No credit card · Live today · Setup in ~30 min
+              </p>
 
-      {/* FAQ */}
-      <section className="px-6 py-16 sm:py-20">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-2xl font-bold text-gray-900 mb-10 text-center">Frequently asked questions</h2>
-          <div className="space-y-6">
-            {FAQS.map((faq) => (
-              <div key={faq.q} className="border-b border-gray-200 pb-6 last:border-0 last:pb-0">
-                <p className="text-sm font-semibold text-gray-900 mb-2">{faq.q}</p>
-                <p className="text-sm text-gray-500 leading-relaxed">{faq.a}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-lg">
+                {HERO_PROOF.map((p) => (
+                  <div
+                    key={p.label}
+                    className="rounded-2xl border border-white/12 bg-gradient-to-b from-white/[0.09] to-white/[0.02] px-3.5 py-3"
+                  >
+                    <div className="font-cv-mono text-[15px] font-bold text-landing-primary-glow">{p.num}</div>
+                    <div className="text-white/55 text-[11.5px] leading-snug mt-1">{p.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="order-1 lg:order-2">
+              <HeroPhoneAnimation />
+            </div>
+          </div>
+        </section>
+
+        <div className="relative z-10 border-t border-white/10 px-6 py-6">
+          <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-sm font-medium text-white/40">
+            <span className="text-white/70">Plumbing</span>
+            <span className="text-white/15">·</span>
+            <span className="text-white/70">Electrical</span>
+            <span className="text-white/15">·</span>
+            <span className="text-white/70">HVAC</span>
+            <span className="text-white/15 hidden sm:block">·</span>
+            <span className="text-white/70">Restoration</span>
+            <span className="text-white/15 hidden sm:block">·</span>
+            <span className="text-white/70">General contracting</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Stats (light) ────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden px-6 py-14 sm:py-16">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-72 opacity-[0.06]"
+          style={{ background: "radial-gradient(ellipse 55% 100% at 50% 0%, var(--color-landing-primary), transparent 70%)" }}
+          aria-hidden
+        />
+        <ScrollReveal className="relative max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            {STATS.map((s) => (
+              <div key={s.stat} className="bg-white rounded-2xl p-5 border border-[#e3e7ed]">
+                <p className="font-cv-mono text-2xl sm:text-3xl font-bold text-landing-primary mb-2">{s.stat}</p>
+                <p className="text-[13px] text-[#344054] leading-snug">{s.label}</p>
               </div>
             ))}
           </div>
-        </div>
+          <p className="text-center text-[11px] text-[#98a2b3] mt-5">
+            MIT / Lead Response Management Study · Drift/InsideSales.com. Directional figures; confirm current
+            sourcing before using as a compliance-reviewed claim.
+          </p>
+        </ScrollReveal>
       </section>
 
-      {/* Footer CTA */}
-      <section className="px-6 py-20 bg-gray-50 border-t border-gray-100">
-        <div className="max-w-xl mx-auto text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Ready to stop losing leads to voicemail?</h2>
-          <p className="text-gray-500 mb-7 text-sm">Set up in under 30 minutes. First lead recovery is on us.</p>
-          <Link
-            href="/sign-up"
-            className="inline-block font-semibold bg-orange-500 text-white px-8 py-3.5 rounded-xl hover:bg-orange-600 transition-colors"
-          >
-            Start free trial
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-gray-100 px-6 py-8">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
-          <span className="font-semibold text-gray-600">Callverted</span>
-          <div className="flex gap-5">
-            <Link href="/legal/terms" className="hover:text-gray-600">Terms</Link>
-            <Link href="/legal/privacy" className="hover:text-gray-600">Privacy</Link>
-            <Link href="/legal/sms" className="hover:text-gray-600">SMS Policy</Link>
-            <a href="mailto:hello@callverted.com" className="hover:text-gray-600">Contact</a>
+      {/* ── How it works (light) — the recovery flow as a connected timeline ─ */}
+      <section id="how" className="relative overflow-hidden px-6 py-16 sm:py-20 bg-white border-y border-[#e3e7ed]">
+        <div
+          className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full opacity-[0.05] blur-3xl bg-landing-primary"
+          aria-hidden
+        />
+        <ScrollReveal className="relative max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">The recovery flow</p>
+            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold text-[#152033] mb-3 leading-tight">
+              One missed call, recovered in five steps.
+            </h2>
+            <p className="text-[#667085] max-w-xl mx-auto">
+              Every step happens on the original call, while the homeowner is still on the line: urgent, emotional, and
+              expensive to miss.
+            </p>
           </div>
-          <span>© {new Date().getFullYear()} Callverted</span>
+
+          <div className="max-w-2xl mx-auto">
+            <div className="relative">
+              {/* Vertical rail connecting the beats — fades out at the payoff */}
+              <div
+                className="absolute left-[5px] top-2 bottom-2 w-px bg-gradient-to-b from-landing-primary/45 via-landing-primary/20 to-transparent"
+                aria-hidden
+              />
+              <div className="space-y-8">
+                {FLOW.map((s) => (
+                  <div key={s.k} className="relative flex gap-5">
+                    <div className="relative z-10 shrink-0 mt-[7px] w-[11px] h-[11px] rounded-full bg-landing-primary ring-4 ring-white" />
+                    <div>
+                      <p className="font-cv-mono text-[11px] font-bold text-landing-primary uppercase tracking-wider mb-1">{s.k}</p>
+                      <h3 className="font-cv-heading text-lg font-bold text-[#152033] mb-1.5">{s.title}</h3>
+                      <p className="text-sm text-[#667085] leading-relaxed">{s.body}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── Missed-call calculator (dark) ────────────────────────────────── */}
+      <section className="relative overflow-hidden px-6 py-16 sm:py-20 bg-landing-ink text-white">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-64 opacity-[0.22]"
+          style={{ background: "radial-gradient(ellipse 65% 100% at 50% 0%, rgba(91,140,255,.5), transparent 75%)" }}
+          aria-hidden
+        />
+        {/* Ambient waveform — a live call signal, echoing the hero's rings without repeating them */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 flex items-end justify-center gap-[5px] opacity-[0.4]" aria-hidden>
+          {WAVE_HEIGHTS.map((h, i) => (
+            <span key={i} className="cv-wave-bar" style={{ height: `${h}%`, animationDelay: `${(i % 9) * 0.16}s` }} />
+          ))}
         </div>
-      </footer>
+        <ScrollReveal className="relative max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-10 items-center">
+          <div>
+            <p className="text-xs font-bold text-landing-primary-glow uppercase tracking-widest mb-2">Missed-call math</p>
+            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold mb-3 leading-tight">
+              How much emergency revenue is sitting in missed calls?
+            </h2>
+            <p className="text-white/55 leading-relaxed">
+              Drag the slider to your own call volume. It&apos;s meant to make the cost of silence concrete, not to
+              promise every missed call becomes a job.
+            </p>
+          </div>
+          <div className="border border-white/10 bg-white/[0.045] rounded-[24px] p-6 sm:p-7">
+            <MissedCallCalculator />
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── Product showcase (light) — visual proof, not feature bullets ──── */}
+      <section id="product" className="relative overflow-hidden px-6 py-16 sm:py-20 bg-white border-y border-[#e3e7ed]">
+        <div
+          className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full opacity-[0.05] blur-3xl bg-landing-primary"
+          aria-hidden
+        />
+        <ScrollReveal className="relative max-w-3xl mx-auto">
+          <div className="text-center mb-9">
+            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Product proof</p>
+            <h2 className="font-cv-heading text-3xl font-bold text-[#152033] mb-2">Show the product, not another AI promise</h2>
+            <p className="text-[#667085] text-sm">
+              The lead packet is the sell: what happened, why it matters, what it may be worth, and what to do next.
+            </p>
+          </div>
+          <ProductShowcase />
+        </ScrollReveal>
+      </section>
+
+      {/* ── Comparison (light) ───────────────────────────────────────────── */}
+      <section className="relative overflow-hidden px-6 py-16 sm:py-20">
+        <div
+          className="pointer-events-none absolute -bottom-24 left-1/2 -translate-x-1/2 h-72 w-[32rem] opacity-[0.05] blur-3xl"
+          style={{ background: "radial-gradient(ellipse, var(--color-landing-primary), transparent 70%)" }}
+          aria-hidden
+        />
+        <ScrollReveal className="relative max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Why it converts</p>
+            <h2 className="font-cv-heading text-2xl sm:text-3xl font-bold text-[#152033] mb-3">
+              Not a text-back. Not a voicemail. Not a generic bot.
+            </h2>
+            <p className="text-sm text-[#667085]">Emergency callers are often anxious about cost and timing. The first real answer has an advantage.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {COMPARISON.map((item) => (
+              <div
+                key={item.label}
+                className={`rounded-2xl p-6 border ${item.strong ? "bg-white border-landing-primary/30 shadow-md" : "bg-[#f9fafb] border-[#e3e7ed] opacity-75"}`}
+              >
+                <p className={`font-cv-heading text-xl font-bold mb-2 ${item.strong ? "text-[#152033]" : "text-[#475467]"}`}>{item.label}</p>
+                <p className={`text-sm leading-relaxed ${item.strong ? "text-[#475467]" : "text-[#98a2b3]"}`}>{item.sub}</p>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── Pricing (light) ──────────────────────────────────────────────── */}
+      <section id="pricing" className="px-6 py-16 sm:py-20 bg-[#f9fafb] border-y border-[#e3e7ed]">
+        <ScrollReveal className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-10 items-center">
+          <div>
+            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Pricing</p>
+            <h2 className="font-cv-heading text-3xl sm:text-[42px] font-bold text-[#152033] mb-3 leading-tight">
+              Simple enough to say yes. Valuable enough to keep.
+            </h2>
+            <p className="text-[#667085] leading-relaxed">
+              Start with one plan while the product is focused. Higher tiers can come later once usage, minutes, and
+              customer value are proven.
+            </p>
+          </div>
+
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute -inset-8 rounded-[36px] opacity-[0.14] blur-3xl"
+              style={{ background: "radial-gradient(circle at 50% 25%, var(--color-landing-primary), transparent 70%)" }}
+              aria-hidden
+            />
+            <div className="relative rounded-[26px] border border-[#e3e7ed] bg-white p-8 shadow-lg">
+              <div className="flex justify-between items-start gap-4 mb-6">
+              <div>
+                <p className="font-extrabold text-[18px] text-[#152033]">Convert</p>
+                <p className="text-[#667085] text-[13px] mt-1">For home service businesses that miss calls after hours or during jobs.</p>
+              </div>
+              <span className="inline-flex items-center rounded-full border border-[#cfdbff] bg-[#eaf0ff] text-[#173a8f] px-2.5 py-1 text-[11px] font-bold whitespace-nowrap">
+                14-day trial
+              </span>
+            </div>
+            <p className="font-cv-heading text-5xl font-black text-[#152033] tracking-tight">
+              $79<span className="text-base font-semibold text-[#98a2b3] ml-1">/mo</span>
+            </p>
+            <ul className="mt-6 space-y-2.5">
+              {[
+                "AI voice overflow when your team misses a call",
+                "Intake flows tuned to your service categories",
+                "Urgency, intent, and estimated value on every qualified lead",
+                "Business-approved price/value guidance by service category",
+                "Lead dashboard, call log, summaries, and transcripts",
+                "Public intake link and website embed",
+                "Email alerts and weekly performance recap",
+              ].map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm text-[#475467]">
+                  <svg className="w-4 h-4 shrink-0 mt-0.5 text-landing-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/sign-up"
+              className="mt-7 block text-center font-semibold bg-landing-primary text-white py-3 rounded-xl hover:bg-blue-600 transition-colors text-sm"
+            >
+              Start free trial
+            </Link>
+            <p className="text-center text-xs text-[#98a2b3] mt-3">No credit card required. Cancel anytime.</p>
+            </div>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── FAQ (light, accordion — native <details>, no JS needed) ───────── */}
+      <section className="px-6 py-16 sm:py-20">
+        <ScrollReveal className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">FAQ</p>
+            <h2 className="font-cv-heading text-2xl font-bold text-[#152033]">Questions owners ask first</h2>
+          </div>
+          <div className="rounded-2xl border border-[#e3e7ed] bg-white overflow-hidden">
+            {FAQS.map((faq, i) => (
+              <details key={faq.q} className={`group ${i > 0 ? "border-t border-[#e3e7ed]" : ""} [&_summary::-webkit-details-marker]:hidden`}>
+                <summary className="flex items-center justify-between gap-4 cursor-pointer list-none text-sm font-bold text-[#152033] px-5 py-4.5">
+                  {faq.q}
+                  <svg
+                    className="w-4 h-4 shrink-0 text-[#98a2b3] transition-transform group-open:rotate-180"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </summary>
+                <p className="px-5 pb-4.5 text-sm text-[#667085] leading-relaxed">{faq.a}</p>
+              </details>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── Footer CTA + footer (dark, bookends the page) ─────────────────── */}
+      <div className="relative overflow-hidden bg-landing-ink text-white">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.22]"
+          style={{
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px)",
+            backgroundSize: "26px 26px",
+            maskImage: "radial-gradient(ellipse 70% 70% at 50% 20%, black 30%, transparent 90%)",
+          }}
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-72"
+          style={{ background: "radial-gradient(ellipse 60% 90% at 50% -10%, rgba(91,140,255,0.18), transparent 72%)" }}
+          aria-hidden
+        />
+        <section className="relative z-10 px-6 py-20">
+          <ScrollReveal className="max-w-xl mx-auto text-center">
+            <h2 className="font-cv-heading text-2xl sm:text-3xl font-bold mb-3 leading-tight">
+              Stop letting emergency calls become someone else&apos;s job.
+            </h2>
+            <p className="text-white/55 mb-7 text-sm leading-relaxed">
+              Give your team the first ring. Let Callverted catch the calls they can&apos;t answer, qualify the
+              emergency, and push the right leads to the top.
+            </p>
+            <Link
+              href="/sign-up"
+              className="inline-block font-semibold bg-landing-primary text-white px-8 py-3.5 rounded-xl hover:bg-blue-600 transition-colors"
+            >
+              Start 14-day trial
+            </Link>
+          </ScrollReveal>
+        </section>
+
+        <footer className="relative z-10 border-t border-white/10 px-6 py-8">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/40">
+            <div className="flex items-center gap-2">
+              <CallvertedLogo className="h-6 w-6" gradientId="cvLogoFooter" />
+              <span className="font-semibold text-white/70">Callverted</span>
+            </div>
+            <div className="flex gap-5 flex-wrap justify-center">
+              <Link href="#how" className="hover:text-white/70">How it works</Link>
+              <Link href="#product" className="hover:text-white/70">Product</Link>
+              <Link href="/legal/terms" className="hover:text-white/70">Terms</Link>
+              <Link href="/legal/privacy" className="hover:text-white/70">Privacy</Link>
+              <a href="mailto:hello@callverted.com" className="hover:text-white/70">Contact</a>
+            </div>
+            <span>© {new Date().getFullYear()} Callverted</span>
+          </div>
+        </footer>
+      </div>
 
     </div>
   );

@@ -40,14 +40,29 @@ export async function PATCH(
   if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
 
   const body = await req.json();
-  const allowed = ["status", "notes", "callerName", "callerEmail", "convertedAt"] as const;
+  // intakeStatus is deliberately not PATCHable here — it's system-derived from
+  // the actual Q&A progress, not something a business owner manually toggles.
+  const allowed = ["leadStatus", "notes", "callerName", "callerEmail", "convertedAt", "confirmedValue"] as const;
   const safeBody = Object.fromEntries(
     allowed.filter((k) => k in body).map((k) => [k, body[k]])
   );
 
+  const existing = result.lead;
+
   // Set convertedAt automatically when marking converted
-  if (safeBody.status === "converted" && !safeBody.convertedAt) {
+  if (safeBody.leadStatus === "converted" && !safeBody.convertedAt) {
     safeBody.convertedAt = new Date();
+  }
+
+  // Stamp contactedAt the first time leadStatus reaches 'contacted' or beyond —
+  // powers the "average callback time" metric. Never overwritten once set.
+  const CONTACTED_OR_BEYOND = ["contacted", "booked", "estimate_sent", "converted"];
+  if (
+    typeof safeBody.leadStatus === "string" &&
+    CONTACTED_OR_BEYOND.includes(safeBody.leadStatus) &&
+    !existing.contactedAt
+  ) {
+    safeBody.contactedAt = new Date();
   }
 
   const updated = await updateLead(id, safeBody);

@@ -4,12 +4,14 @@ export interface BusinessNotificationPreferences {
   newLead: boolean;
   qualifiedLead: boolean;
   smsNewLead: boolean;
+  weeklyReport: boolean;
 }
 
 const DEFAULT_NOTIFICATION_PREFERENCES: BusinessNotificationPreferences = {
   newLead: true,
   qualifiedLead: true,
   smsNewLead: false,
+  weeklyReport: true,
 };
 
 export const businesses = pgTable("businesses", {
@@ -27,13 +29,38 @@ export const businesses = pgTable("businesses", {
   // V1: hardcoded to 'restoration'. Field exists for future vertical expansion.
   vertical: text("vertical").notNull().default("restoration"),
 
-  // Telnyx — provisioned manually via Telnyx console for V1
+  // Telnyx — dormant. Retained for the deferred SMS/A2P module, not used by the
+  // voice overflow receptionist. See docs/telnyx-a2p-productionization-spec.md
   telnyxPhoneNumber: text("telnyx_phone_number"),
   forwardingNumber: text("forwarding_number"),
   callTimeoutSeconds: integer("call_timeout_seconds").notNull().default(20),
 
-  // SMS template — editable in settings
+  // SMS template — dormant, see Telnyx note above
   missedCallSmsTemplate: text("missed_call_sms_template"),
+
+  // Twilio — the business's dedicated inbound voice number
+  twilioPhoneNumber: text("twilio_phone_number"),
+
+  // 'ring_then_ai' (default): dial forwardingNumber first, AI overflow only on no-answer/busy/failed.
+  // 'ai_immediate': AI answers every call without ringing the business first.
+  overflowMode: text("overflow_mode").notNull().default("ring_then_ai"),
+
+  recordingEnabled: boolean("recording_enabled").notNull().default(false),
+  // Spoken disclosure text if recordingEnabled — read by the AI at call start
+  recordingDisclosure: text("recording_disclosure"),
+
+  // Number to warm-transfer to when the AI classifies a call as urgent/emergency
+  urgentTransferNumber: text("urgent_transfer_number"),
+
+  // Spoken opening line — falls back to a generated default if unset
+  greetingMessage: text("greeting_message"),
+  // Free-text appended to the AI's system instructions for business-specific nuance
+  aiInstructions: text("ai_instructions"),
+  // OpenAI Realtime voice id — 'alloy' | 'ash' | 'coral' | 'marin'
+  voiceName: text("voice_name").notNull().default("alloy"),
+
+  // Emergency kill switch for this tenant only — blocks all inbound call handling
+  isPaused: boolean("is_paused").notNull().default(false),
 
   notificationPreferences: jsonb("notification_preferences")
     .$type<BusinessNotificationPreferences>()

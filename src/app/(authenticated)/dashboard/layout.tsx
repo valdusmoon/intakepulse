@@ -1,11 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
-import Link from "next/link";
 import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
-import { SubscriptionBanner, type BannerState } from "@/components/dashboard/subscription-banner";
-import { NavLinks } from "@/components/dashboard/NavLinks";
-import { NewUserBanner } from "@/components/dashboard/new-user-banner";
+import { getNewLeadsCount } from "@/lib/db/queries/leads";
+import { type BannerState } from "@/components/dashboard/subscription-banner";
+import { DashboardShell } from "@/components/dashboard/v2/Shell";
+
+const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing"];
 
 function getBannerState(business: NonNullable<Awaited<ReturnType<typeof getBusinessByClerkId>>>): BannerState {
   const { subscriptionStatus, trialEndsAt, canceledAt } = business;
@@ -50,29 +50,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const bannerState = getBannerState(business);
+  const newLeadsCount = await getNewLeadsCount(business.id);
+  const isVoiceLive = Boolean(
+    business.twilioPhoneNumber &&
+      !business.isPaused &&
+      business.subscriptionStatus &&
+      ACTIVE_SUBSCRIPTION_STATUSES.includes(business.subscriptionStatus)
+  );
 
   return (
-    <div className="min-h-screen" style={{ background: "#E8EAF0" }}>
-      {/* Top nav */}
-      <nav className="relative bg-white border-b border-gray-200 px-4 py-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
-              <img src="/icon-mark.svg" alt="Callverted" className="w-7 h-7 shrink-0" />
-              <span className="text-sm font-semibold text-gray-900 hidden sm:block">{business.businessName}</span>
-            </Link>
-            <NavLinks />
-          </div>
-          <div className="flex items-center gap-3">
-            <UserButton />
-          </div>
-        </div>
-      </nav>
-
-      <SubscriptionBanner state={bannerState} />
-      <NewUserBanner businessCreatedAt={business.createdAt.toISOString()} />
-
-      <main className="max-w-5xl mx-auto px-4 py-6 sm:p-6">{children}</main>
-    </div>
+    <DashboardShell
+      businessName={business.businessName}
+      serviceArea={business.serviceArea}
+      vertical={business.vertical}
+      isVoiceLive={isVoiceLive}
+      newLeadsCount={newLeadsCount}
+      bannerState={bannerState}
+    >
+      {children}
+    </DashboardShell>
   );
 }

@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq, ilike, sql } from "drizzle-orm";
 import { db } from "../index";
 import { calls, type NewCall } from "../schema/calls";
+import { leads } from "../schema/leads";
 
 export async function createCall(data: NewCall) {
   const result = await db.insert(calls).values(data).returning();
@@ -25,6 +26,12 @@ export async function getCallByLegId(telnyxCallLegId: string) {
   }) ?? null;
 }
 
+export async function getCallByTwilioSid(twilioCallSid: string) {
+  return db.query.calls.findFirst({
+    where: eq(calls.twilioCallSid, twilioCallSid),
+  }) ?? null;
+}
+
 export async function updateCall(
   id: string,
   data: Partial<Omit<NewCall, "id" | "createdAt">>
@@ -35,4 +42,54 @@ export async function updateCall(
     .where(eq(calls.id, id))
     .returning();
   return result[0];
+}
+
+export async function getCallsByBusiness(
+  businessId: string,
+  opts: { outcome?: string; search?: string; limit?: number; offset?: number } = {}
+) {
+  const { outcome, search, limit = 25, offset = 0 } = opts;
+  const filters = [eq(calls.businessId, businessId)];
+  if (outcome) filters.push(eq(calls.outcome, outcome));
+  if (search) filters.push(ilike(calls.callerPhone, `%${search}%`));
+
+  const rows = await db
+    .select({
+      call: calls,
+      leadId: leads.id,
+      leadUrgencyScore: leads.urgencyScore,
+      leadIntakeAnswers: leads.intakeAnswers,
+    })
+    .from(calls)
+    .leftJoin(leads, eq(calls.leadId, leads.id))
+    .where(and(...filters))
+    .orderBy(desc(calls.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  return rows.map((r) => ({ ...r.call, leadId: r.leadId, leadUrgencyScore: r.leadUrgencyScore, leadIntakeAnswers: r.leadIntakeAnswers }));
+}
+
+export async function getCallMetrics(businessId: string) {
+  const [row] = await db
+    .select({
+      inboundTotal: sql<number>`count(*)`,
+      answeredByTeam: sql<number>`count(*) filter (where ${calls.outcome} = 'business_answered')`,
+      overflowCaptured: sql<number>`count(*) filter (where ${calls.outcome} = 'ai_captured')`,
+      overflowStarted: sql<number>`count(*) filter (where ${calls.overflowStartedAt} is not null)`,
+      leadCreated: sql<number>`count(*) filter (where ${calls.leadId} is not null)`,
+    })
+    .from(calls)
+    .where(eq(calls.businessId, businessId));
+
+  const n = (v: unknown) => Number(v ?? 0);
+  const overflowStarted = n(row.overflowStarted);
+  const leadCreated = n(row.leadCreated);
+
+  return {
+    inboundTotal: n(row.inboundTotal),
+    answeredByTeam: n(row.answeredByTeam),
+    overflowCaptured: n(row.overflowCaptured),
+    callerCompletionRate: overflowStarted > 0 ? Math.round((leadCreated / overflowStarted) * 100) : null,
+  };
 }

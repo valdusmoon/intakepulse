@@ -54,6 +54,7 @@ Thumbs.db
 
 # Local reference files
 evolve-review/
+craftcapture/
 /*.jpg
 /*.jpeg
 /*.png

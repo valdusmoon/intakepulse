@@ -16,7 +16,7 @@ async function main() {
   const recentCalls = await db.select().from(calls).orderBy(desc(calls.createdAt)).limit(3);
   const recentLeads = await db.select({
     id: leads.id, callerPhone: leads.callerPhone, source: leads.source,
-    status: leads.status, createdAt: leads.createdAt,
+    intakeStatus: leads.intakeStatus, leadStatus: leads.leadStatus, createdAt: leads.createdAt,
   }).from(leads).orderBy(desc(leads.createdAt)).limit(3);
   const recentFollowups = await db.select().from(followups).orderBy(desc(followups.createdAt)).limit(3);
   const recentSms = await db.select().from(smsEvents).orderBy(desc(smsEvents.createdAt)).limit(3);

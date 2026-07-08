@@ -35,3 +35,131 @@ body {
   color: var(--foreground);
   line-height: 1.6;
 }
+
+/* ─── Dashboard design system (v2 redesign) ──────────────────────────────────
+ * Namespaced with a cv- prefix so these never collide with the (currently
+ * unused) generic --color-* tokens above, or with anything on the marketing
+ * site. Scoped to the authenticated dashboard via Tailwind utilities like
+ * bg-cv-surface, text-cv-ink, border-cv-border, font-cv-heading, etc.
+ */
+@theme {
+  --color-cv-bg: #f6f7f9;
+  --color-cv-surface: #ffffff;
+  --color-cv-surface-subtle: #f9fafb;
+  --color-cv-surface-blue: #f2f6ff;
+  --color-cv-ink: #152033;
+  --color-cv-muted: #667085;
+  --color-cv-muted-2: #98a2b3;
+  --color-cv-border: #e3e7ed;
+  --color-cv-border-strong: #d0d5dd;
+  --color-cv-primary: #2454d8;
+  --color-cv-primary-dark: #173a8f;
+  --color-cv-primary-soft: #eaf0ff;
+  --color-cv-green: #177245;
+  --color-cv-green-soft: #eaf7f0;
+  --color-cv-amber: #a15c00;
+  --color-cv-amber-soft: #fff5df;
+  --color-cv-red: #b42318;
+  --color-cv-red-soft: #fff0ee;
+  --color-cv-purple: #6941c6;
+  --color-cv-purple-soft: #f4f0ff;
+  --color-cv-gray-soft: #f2f4f7;
+
+  --shadow-cv-sm: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+  --shadow-cv-md: 0 8px 24px rgba(16,24,40,.08);
+
+  --font-cv-heading: var(--font-hanken-grotesk), "Hanken Grotesk", sans-serif;
+  --font-cv-body: var(--font-inter), "Inter", sans-serif;
+  --font-cv-mono: var(--font-jetbrains-mono), "JetBrains Mono", monospace;
+}
+
+/* ─── Landing page — dark register of the same brand system ─────────────────
+ * Same blue as the dashboard (brand continuity), reinterpreted for a night/
+ * emergency-call mood in the hero. Scoped to the marketing page only.
+ */
+@theme {
+  --color-landing-ink: #0a0f1c;
+  --color-landing-ink-raised: #121b2e;
+  --color-landing-primary: #2454d8;
+  --color-landing-primary-glow: #5b8cff;
+  --color-landing-alert: #ff5d5d;
+  --color-landing-paper: #f5f6f8;
+  --color-landing-muted: #8b94ab;
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-variation-settings: "FILL" 0, "wght" 430, "GRAD" 0, "opsz" 24;
+  line-height: 1;
+  vertical-align: middle;
+  -webkit-font-smoothing: antialiased;
+}
+.material-symbols-outlined.fill {
+  font-variation-settings: "FILL" 1, "wght" 430, "GRAD" 0, "opsz" 24;
+}
+
+/* ─── Landing hero — signal rings radiating from the phone ───────────────────
+ * A literal call/signal motif (not decorative abstract art): concentric rings
+ * pinging outward the way a live call signal would. Respects reduced motion
+ * at the CSS level as a safety net even though the component also gates it.
+ */
+.cv-signal-ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 300px;
+  height: 300px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(91, 140, 255, 0.4);
+  animation: cv-signal-pulse 3.2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+@keyframes cv-signal-pulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-signal-ring {
+    display: none;
+  }
+}
+
+/* ─── Missed-call calculator — ambient waveform ──────────────────────────────
+ * A "call in progress" signal, distinct from the hero's rings but from the
+ * same family — reinforces the audio/call motif without repeating it.
+ */
+.cv-wave-bar {
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(120, 160, 255, 0.85), rgba(91, 140, 255, 0));
+  transform-origin: bottom;
+  animation: cv-wave-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes cv-wave-pulse {
+  0%, 100% {
+    transform: scaleY(0.28);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-wave-bar {
+    animation: none;
+    transform: scaleY(0.55);
+  }
+}

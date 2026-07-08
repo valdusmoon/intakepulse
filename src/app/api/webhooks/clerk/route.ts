@@ -47,7 +47,7 @@ export async function POST(req: Request) {
         businessName: email.split("@")[0] || "My Business",
         ownerName: fullName,
         ownerEmail: email,
-        ownerPhone: "+15550000000",
+        ownerPhone: null,
         onboardingCompleted: false,
       });
     }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Sora, Inter } from "next/font/google";
+import { Geist, Geist_Mono, Sora, Inter, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -30,9 +30,25 @@ const inter = Inter({
   display: "swap",
 });
 
+// Dashboard design system fonts — headings + mono numerals, applied via
+// Tailwind utilities scoped to the authenticated app (not global by default).
+const hankenGrotesk = Hanken_Grotesk({
+  variable: "--font-hanken-grotesk",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Callverted — No Inbound Lead Ever Goes Unanswered",
-  description: "Missed-call recovery and AI-powered intake for high-ticket service businesses. Every missed call becomes a scored lead.",
+  title: "Callverted: AI voice overflow for home service businesses",
+  description: "Callverted answers missed emergency service calls live, qualifies the job, estimates value, and turns unanswered calls into callback-ready leads.",
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -41,8 +57,8 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "Callverted — No Inbound Lead Ever Goes Unanswered",
-    description: "Missed-call recovery and AI-powered intake for high-ticket service businesses.",
+    title: "Callverted: AI voice overflow for home service businesses",
+    description: "Callverted answers missed emergency service calls live, qualifies the job, and estimates value before you ever call back.",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
     type: "website",
   },
@@ -55,8 +71,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
-      <body className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} ${inter.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} ${inter.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} antialiased`}>
         <ThemeProvider>
           <ErrorBoundary>
             <ToastProvider>

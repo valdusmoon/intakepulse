@@ -30,7 +30,7 @@ export const weeklyReport = inngest.createFunction(
     let skipped = 0;
 
     for (const business of businesses) {
-      if (!business.ownerEmail) {
+      if (!business.ownerEmail || business.notificationPreferences?.weeklyReport === false) {
         skipped++;
         continue;
       }
