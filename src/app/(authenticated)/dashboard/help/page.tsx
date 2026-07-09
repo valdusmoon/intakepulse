@@ -1,31 +1,22 @@
 import {
   Rocket,
-  QrCode,
+  LayoutDashboard,
   Inbox,
-  FileText,
-  FileSignature,
-  CalendarDays,
-  Camera,
-  Bell,
+  Phone,
   Code2,
-  Star,
+  BarChart3,
   Settings2,
   CreditCard,
-  Palette,
+  Star,
 } from "lucide-react";
 
 const sections = [
   { id: "getting-started", label: "Getting Started", icon: Rocket },
-  { id: "quote-link", label: "Quote Link & QR", icon: QrCode },
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "leads", label: "Leads", icon: Inbox },
-  { id: "quotes", label: "Quotes", icon: FileText },
-  { id: "contracts", label: "Contracts", icon: FileSignature },
-  { id: "scheduling", label: "Scheduling", icon: CalendarDays },
-  { id: "job-photos", label: "Job Photos", icon: Camera },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "website-widget", label: "Website Widget", icon: Code2 },
-  { id: "review-requests", label: "Review Requests", icon: Star },
-  { id: "visualization", label: "Visualization", icon: Palette },
+  { id: "calls", label: "Calls", icon: Phone },
+  { id: "capture", label: "Capture", icon: Code2 },
+  { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "settings", label: "Settings", icon: Settings2 },
   { id: "billing", label: "Billing", icon: CreditCard },
 ];
@@ -101,7 +92,7 @@ export default function HelpPage() {
       </div>
 
       <div className="flex gap-8 items-start">
-        {/* Sticky sidebar — desktop only */}
+        {/* Sticky sidebar, desktop only */}
         <aside className="hidden lg:block w-48 flex-shrink-0 sticky top-6">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">On this page</p>
           <nav className="space-y-0.5">
@@ -133,69 +124,65 @@ export default function HelpPage() {
               id="getting-started"
               icon={Rocket}
               title="Getting Started"
-              subtitle="What to do right after you sign up."
+              subtitle="What Callverted does and what to set up first."
             />
             <div className="space-y-4">
               <InfoCard>
-                <SubHeading>Setup</SubHeading>
+                <SubHeading>What Callverted is</SubHeading>
                 <p className="text-sm text-slate-600">
-                  After signing up you&apos;ll complete a one-time onboarding form before accessing the dashboard.
+                  Callverted is an AI voice-overflow receptionist for home-service trades: restoration, HVAC, plumbing, electrical, general contracting, and other service businesses. When a call to your business goes unanswered (or every call, depending on your settings), Callverted picks up, asks a short set of qualifying questions for your trade, and turns the answers into a scored lead. Leads also arrive from a public intake form and an embeddable website widget, not just phone calls.
                 </p>
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>Signing up</SubHeading>
                 <BulletList items={[
-                  "Enter your business name, mobile number, and service area.",
-                  "Set your default sqft labor rate and paint tier — used to generate instant estimates for homeowners.",
-                  "You can update any of these anytime in Settings.",
+                  "Enter your business name and contact info.",
+                  "Pick your trade: this determines the qualifying questions callers are asked and how leads are scored.",
+                  "Get a dedicated Callverted phone number for overflow calls.",
+                  "Start your free trial and land in the dashboard.",
                 ]} />
               </InfoCard>
               <InfoCard>
-                <SubHeading>Your first lead</SubHeading>
+                <SubHeading>Before you go live</SubHeading>
                 <BulletList items={[
-                  "After onboarding, copy your quote link from the dashboard.",
-                  "Share it anywhere — text it to a homeowner, add it to your Google Business Profile, or print the QR code.",
-                  "When a homeowner fills it out, you'll get an email and SMS notification immediately.",
+                  "Add your services and preliminary pricing in Settings so the AI has real numbers to read back to callers.",
+                  "Set your call routing: how long your team rings before Callverted takes over, and what it says.",
+                  "Share your intake link or add the website widget so leads can reach you outside of phone calls too.",
                 ]} />
-                <Tip>The faster you share your link, the faster your first lead comes in. Most contractors get their first lead within 24 hours of sharing.</Tip>
+                <Tip>The AI only ever reads back pricing wording you&apos;ve approved. It never invents a number, so it&apos;s worth setting up pricing rules before your line goes live.</Tip>
               </InfoCard>
             </div>
           </section>
 
-          {/* ── QUOTE LINK & QR ── */}
+          {/* ── DASHBOARD ── */}
           <section>
             <SectionHeading
-              id="quote-link"
-              icon={QrCode}
-              title="Quote Link & QR Code"
-              subtitle="How homeowners find and fill out your form."
+              id="dashboard"
+              icon={LayoutDashboard}
+              title="Dashboard"
+              subtitle="Your home screen for what needs attention right now."
             />
             <div className="space-y-4">
               <InfoCard>
-                <SubHeading>What the form does</SubHeading>
+                <SubHeading>Status pills</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Your quote link leads homeowners through a step-by-step form — service type, room count, home size, condition, and timeline. At the end they enter their contact info and optionally upload photos. Callverted generates an instant ballpark estimate based on your rates.
+                  At the top you&apos;ll see whether your voice line is live, whether the website widget has been used yet, and a callout if any urgent leads are waiting on a callback.
                 </p>
               </InfoCard>
               <InfoCard>
-                <SubHeading>Where to share your link</SubHeading>
+                <SubHeading>Metrics</SubHeading>
                 <BulletList items={[
-                  "Google Business Profile — add it as your website or booking link.",
-                  "Instagram / Facebook bio.",
-                  "Text it directly to homeowners who reach out.",
-                  "Include it in email signatures.",
-                  "Nextdoor profile or neighborhood group posts.",
+                  "Captured opportunity value: the combined estimated value of qualified leads this month.",
+                  "Confirmed won revenue: actual amounts your team has reported for won leads, with a trend vs. last period.",
+                  "Urgent awaiting callback: how many high-urgency leads haven't been contacted, and how long the oldest has waited.",
+                  "Average callback time: how quickly your team typically responds, compared with the previous 30 days.",
                 ]} />
               </InfoCard>
               <InfoCard>
-                <SubHeading>QR code</SubHeading>
+                <SubHeading>Priority leads and conversion snapshot</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Download your QR code from the dashboard. It links directly to your quote form.
+                  The priority list ranks leads by urgency, intent, and how long they&apos;ve been waiting, so you know who to call first. The conversion snapshot shows your captured → contacted → booked → won rates and a breakdown of leads by channel.
                 </p>
-                <BulletList items={[
-                  "Job site signs — homeowners in the neighborhood scan while you're working.",
-                  "Truck decals or door magnets.",
-                  "Leave-behind cards after completing a job.",
-                  "Yard signs with the homeowner's permission.",
-                ]} />
-                <Tip>Job site visibility is one of the highest-converting placements — neighbors see your work in progress and scan right there.</Tip>
               </InfoCard>
             </div>
           </section>
@@ -206,371 +193,139 @@ export default function HelpPage() {
               id="leads"
               icon={Inbox}
               title="Leads"
-              subtitle="Managing the homeowners who fill out your form."
+              subtitle="Every captured opportunity, from calls, forms, and manual entry."
             />
             <div className="space-y-4">
               <InfoCard>
                 <SubHeading>Lead statuses</SubHeading>
                 <BulletList items={[
-                  "New — homeowner just submitted the form.",
-                  "Contacted — you've reached out to them.",
-                  "Quoted — a quote has been sent.",
-                  "Scheduled — contract signed, job is on the calendar.",
-                  "Won — contract signed via Callverted (set automatically).",
-                  "Completed — job physically done. Set this manually to trigger the review request email.",
-                  "Lost — didn't convert. Set manually or triggered automatically if they decline your quote.",
+                  "New: just captured, awaiting a callback.",
+                  "Contacted: you've reached out.",
+                  "Qualified: you've confirmed it's a real opportunity.",
+                  "Booked: an appointment is on the books.",
+                  "Estimate sent: you've quoted the job in person or over the phone.",
+                  "Won: the job closed.",
+                  "Lost: didn't convert.",
                 ]} />
                 <p className="text-sm text-slate-500 pt-1">
-                  Statuses update automatically as you send quotes and contracts — you rarely need to touch them manually. <span className="font-medium">Completed</span> is the one you set when the brushes are down.
+                  You move a lead through these stages yourself from the lead detail page. Nothing advances automatically.
                 </p>
               </InfoCard>
               <InfoCard>
-                <SubHeading>Mark as won</SubHeading>
+                <SubHeading>Priority and intent</SubHeading>
                 <p className="text-sm text-slate-600">
-                  If you close a job over the phone without a formal quote or contract, use the <span className="font-medium">Mark as won</span> button on the lead detail page. You can optionally enter the job amount — it&apos;ll appear in your revenue numbers.
+                  Every completed intake is scored by AI on two dimensions. Priority reflects urgency (<span className="font-medium">Urgent</span>, <span className="font-medium">Call today</span>, or <span className="font-medium">Routine</span>), and intent reflects how likely the caller is to move forward (<span className="font-medium">High intent</span>, <span className="font-medium">Medium intent</span>, or <span className="font-medium">Intent unclear</span>). Use these to decide who to call back first.
                 </p>
               </InfoCard>
               <InfoCard>
-                <SubHeading>Instant estimate</SubHeading>
-                <p className="text-sm text-slate-600">
-                  If a homeowner answers all questions, Callverted generates a ballpark range based on your sqft rate, home size, condition, and paint tier. This shows on the lead detail page and is sent to the homeowner in their confirmation email.
-                </p>
-                <p className="text-sm text-slate-500 pt-1">
-                  The estimate is a ballpark only — always verify on-site before sending a formal quote.
-                </p>
+                <SubHeading>Lead detail page</SubHeading>
+                <BulletList items={[
+                  "Opportunity summary: the AI's reasoning behind the urgency and quality scores, plus recommended next actions.",
+                  "Qualification answers: the trade-specific questions the caller answered.",
+                  "Call evidence: the call summary and full transcript, if the lead came from a phone call. Leads from the intake form or widget won't have a transcript.",
+                  "Timeline: a chronological record of everything that's happened on the lead.",
+                  "Update outcome: set the status, log a confirmed job value once you know the real number, and leave an internal note for your team.",
+                ]} />
               </InfoCard>
               <InfoCard>
-                <SubHeading>Photo analysis</SubHeading>
+                <SubHeading>Filtering and adding leads</SubHeading>
                 <p className="text-sm text-slate-600">
-                  If the homeowner uploads photos, GPT-4o Vision analyzes them and writes condition notes you&apos;ll see on the lead detail page. Useful for scoping the job before you call.
-                </p>
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Request more details</SubHeading>
-                <p className="text-sm text-slate-600">
-                  If a homeowner only partially filled out the form, you can send them a follow-up email from the lead detail page asking them to complete it. The button only shows when the homeowner skipped the project details step.
-                </p>
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Email required for quotes & contracts</SubHeading>
-                <p className="text-sm text-slate-600">
-                  Quotes and contracts are sent by email, so the homeowner needs an email address on file. If one is missing you&apos;ll see an amber banner at the top of the lead — enter it there and the buttons will activate.
+                  Filter the leads list by status, source, priority, or search by name or phone number. Use <span className="font-medium">Add lead</span> to manually log an opportunity that didn&apos;t come through Callverted: a walk-in, a referral, or a call you took yourself.
                 </p>
               </InfoCard>
             </div>
           </section>
 
-          {/* ── QUOTES ── */}
+          {/* ── CALLS ── */}
           <section>
             <SectionHeading
-              id="quotes"
-              icon={FileText}
-              title="Quotes"
-              subtitle="Build and send professional quotes directly from the lead."
+              id="calls"
+              icon={Phone}
+              title="Calls"
+              subtitle="Every inbound call to your Callverted number."
             />
             <div className="space-y-4">
               <InfoCard>
-                <SubHeading>Creating a quote</SubHeading>
-                <p className="text-sm text-slate-600">
-                  Open a lead and click <span className="font-medium">Quote</span>. Choose a template (Interior, Exterior, Interior + Exterior, or Custom) to pre-load common line items, then edit quantities and prices.
-                </p>
+                <SubHeading>Call outcomes</SubHeading>
                 <BulletList items={[
-                  "Add or remove line items as needed.",
-                  "Set a flat or percentage discount.",
-                  "Add a tax rate if applicable.",
-                  "Set issue date and expiry date.",
-                  "Add a message to the homeowner and an optional deposit note.",
-                  "Internal notes are for you only — the homeowner never sees them.",
+                  "Business answered: your team picked up before Callverted stepped in.",
+                  "Captured by Callverted: no one answered in time, so the AI took the call and ran qualification.",
+                  "Caller abandoned: the caller hung up before completing the intake questions.",
+                  "Error: the call transfer failed.",
                 ]} />
               </InfoCard>
               <InfoCard>
-                <SubHeading>Sending a quote</SubHeading>
+                <SubHeading>Call details</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Click <span className="font-medium">Send Quote</span>. The homeowner receives an email with a link to a hosted quote page where they can review the full breakdown and accept or decline.
+                  Click <span className="font-medium">Details</span> on any call to expand its AI-generated summary and full turn-by-turn transcript in place. There&apos;s no audio recording playback in the dashboard: call evidence is text only.
                 </p>
-                <BulletList items={[
-                  "You can save a draft first and come back to it.",
-                  "Once sent, you can resend at any time (e.g. after a verbal price change).",
-                  "You'll see when the homeowner views the quote.",
-                  "Download a PDF copy at any time from the quote page.",
-                ]} />
-                <Tip>Prices are always recalculated server-side when you save — the homeowner always sees accurate numbers even if you edit after sending.</Tip>
               </InfoCard>
               <InfoCard>
-                <SubHeading>When the homeowner responds</SubHeading>
-                <BulletList items={[
-                  "Accepted — the lead moves to Quoted. Send a contract to close the job.",
-                  "Declined — the lead moves to Lost. You can still reach out manually.",
-                ]} />
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Voiding a quote</SubHeading>
+                <SubHeading>Metrics and filtering</SubHeading>
                 <p className="text-sm text-slate-600">
-                  If a homeowner wants a revised price after you&apos;ve already sent a quote, void it and create a new one. Click <span className="font-medium">Void</span> on the quote page — the old link stops working and you&apos;ll be dropped into a blank editor for the new quote.
-                </p>
-                <p className="text-sm text-slate-500 pt-1">
-                  You can void a quote that is sent or accepted. Voiding rewinds the lead status back to Contacted.
+                  The top of the page shows total inbound calls, how many your team answered directly, how many Callverted captured, and your caller completion rate (the share of AI-answered calls that finished enough of the intake to become a lead). Filter by outcome or search by caller number.
                 </p>
               </InfoCard>
             </div>
           </section>
 
-          {/* ── CONTRACTS ── */}
+          {/* ── CAPTURE ── */}
           <section>
             <SectionHeading
-              id="contracts"
-              icon={FileSignature}
-              title="Contracts"
-              subtitle="Send a service agreement and collect an electronic signature."
-            />
-            <div className="space-y-4">
-              <InfoCard>
-                <SubHeading>Creating a contract</SubHeading>
-                <p className="text-sm text-slate-600">
-                  Open a lead and click <span className="font-medium">Contract</span>. If you&apos;ve already sent a quote, the contract body is pre-filled with the line items, project total, and payment terms from that quote. Edit the text freely before sending.
-                </p>
-                <p className="text-sm text-slate-500 pt-1">
-                  You don&apos;t need a quote to send a contract — useful for jobs you closed verbally.
-                </p>
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Sending a contract</SubHeading>
-                <p className="text-sm text-slate-600">
-                  Click <span className="font-medium">Send Contract</span>. The homeowner receives an email with a link to a signing page where they can read the full agreement and sign with their full name.
-                </p>
-                <BulletList items={[
-                  "You'll see when the homeowner views the contract.",
-                  "Once signed, you'll receive a signed PDF by email.",
-                  "The lead moves to Scheduled automatically when signed.",
-                  "You can resend the contract at any time.",
-                ]} />
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Electronic signatures</SubHeading>
-                <p className="text-sm text-slate-600">
-                  Signatures collected through Callverted are valid under the ESIGN Act. The signed PDF includes the signer&apos;s name, email, and timestamp as a record.
-                </p>
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Voiding a contract</SubHeading>
-                <p className="text-sm text-slate-600">
-                  If a job falls through after the contract was sent or signed, click <span className="font-medium">Void</span> on the contract page. The signing link stops working and you can draft a new contract if needed. Voiding rewinds the lead status back to Quoted.
-                </p>
-              </InfoCard>
-            </div>
-          </section>
-
-          {/* ── SCHEDULING ── */}
-          <section>
-            <SectionHeading
-              id="scheduling"
-              icon={CalendarDays}
-              title="Scheduling"
-              subtitle="Set job dates, assign staff, and see everything on the calendar."
-            />
-            <div className="space-y-4">
-              <InfoCard>
-                <SubHeading>Scheduling a job</SubHeading>
-                <p className="text-sm text-slate-600">
-                  Open a lead and click <span className="font-medium">Schedule</span>. Set a start date, end date, and optionally assign staff members from your team. A confirmation email goes to the homeowner automatically.
-                </p>
-                <BulletList items={[
-                  "You can also schedule directly from the Schedule page using the + Schedule job button — useful when you're planning your week.",
-                  "You can reschedule at any time — the homeowner gets an updated confirmation.",
-                  "Staff members are managed in Settings under the Staff tab.",
-                ]} />
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Calendar view</SubHeading>
-                <p className="text-sm text-slate-600">
-                  The calendar shows all scheduled jobs by date. Click any day to filter jobs to that date. Multi-day jobs show a dot on every day they span.
-                </p>
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Export to Google Calendar / Apple Calendar</SubHeading>
-                <p className="text-sm text-slate-600">
-                  Click <span className="font-medium">Export .ics</span> on the schedule page to download a calendar file containing all your scheduled jobs. Import it into Google Calendar, Apple Calendar, or Outlook.
-                </p>
-                <BulletList items={[
-                  "Re-importing the same file won't create duplicates — each job has a stable unique ID.",
-                  "Re-export whenever you add or reschedule jobs to keep your external calendar current.",
-                ]} />
-              </InfoCard>
-            </div>
-          </section>
-
-          {/* ── JOB PHOTOS ── */}
-          <section>
-            <SectionHeading
-              id="job-photos"
-              icon={Camera}
-              title="Job Photos"
-              subtitle="Document before, progress, and after shots directly on the lead."
-            />
-            <div className="space-y-4">
-              <InfoCard>
-                <SubHeading>Uploading photos</SubHeading>
-                <p className="text-sm text-slate-600">
-                  On any lead detail page, scroll to the <span className="font-medium">Job Photos</span> section. Upload photos in three categories: Before, Progress, and After. Photos are stored securely and accessible only to your account.
-                </p>
-                <BulletList items={[
-                  "Upload directly from your phone or computer.",
-                  "Add as many photos as you need per category.",
-                  "Delete individual photos at any time.",
-                ]} />
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Why document the job</SubHeading>
-                <BulletList items={[
-                  "Protects you if a homeowner disputes the quality of work.",
-                  "Before/after comparisons are useful for your portfolio and reviews.",
-                  "Progress photos keep a record if a job spans multiple days.",
-                ]} />
-                <Tip>Take an after photo before you pack up — you won&apos;t be going back to get it later.</Tip>
-              </InfoCard>
-            </div>
-          </section>
-
-          {/* ── NOTIFICATIONS ── */}
-          <section>
-            <SectionHeading
-              id="notifications"
-              icon={Bell}
-              title="Notifications"
-              subtitle="Stay in the loop on every key event — by email and SMS."
-            />
-            <div className="space-y-4">
-              <InfoCard>
-                <SubHeading>Your notifications (painter)</SubHeading>
-                <p className="text-sm text-slate-600">
-                  Callverted sends you email and SMS notifications for key events. You can toggle each on or off in <span className="font-medium">Settings → Notifications</span>.
-                </p>
-                <BulletList items={[
-                  "New lead submitted — email + SMS.",
-                  "Homeowner contacts you through the form — email + SMS.",
-                  "Quote accepted or declined — email + SMS.",
-                  "Contract signed — email + SMS.",
-                  "Job scheduled — email + SMS.",
-                  "Weekly nudge reminders for leads that need attention — email.",
-                ]} />
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Homeowner notifications</SubHeading>
-                <p className="text-sm text-slate-600">
-                  These emails always go out — they&apos;re part of the core workflow and can&apos;t be turned off.
-                </p>
-                <BulletList items={[
-                  "Estimate confirmation after they submit the form.",
-                  "Quote email with a link to review and accept or decline.",
-                  "Contract email with a link to read and sign.",
-                  "Schedule confirmation with the job date.",
-                  "Review request email when you mark the job Completed.",
-                ]} />
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>SMS delivery</SubHeading>
-                <p className="text-sm text-slate-600">
-                  SMS notifications go to the mobile number on your account. Make sure it&apos;s current in Settings. Standard carrier message rates may apply.
-                </p>
-              </InfoCard>
-            </div>
-          </section>
-
-          {/* ── WEBSITE WIDGET ── */}
-          <section>
-            <SectionHeading
-              id="website-widget"
+              id="capture"
               icon={Code2}
-              title="Website Widget"
-              subtitle="Embed your quote form directly on your website."
+              title="Capture"
+              subtitle="The three ways leads reach you."
             />
             <div className="space-y-4">
               <InfoCard>
-                <SubHeading>How it works</SubHeading>
+                <SubHeading>Direct intake link</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Copy the embed snippet from <span className="font-medium">Settings → Share</span> and paste it into your website. Visitors can fill out your quote form without leaving your site.
+                  A public qualification form hosted at your own URL. Share it in ads, email signatures, or your Google Business Profile. Copy the link from the Capture page.
                 </p>
-                <BulletList items={[
-                  "Works on any website — Squarespace, Wix, WordPress, custom HTML.",
-                  "The widget matches your branding automatically.",
-                  "All leads from the widget land in your dashboard the same as the standalone link.",
-                ]} />
               </InfoCard>
               <InfoCard>
-                <SubHeading>Standalone link vs. widget</SubHeading>
+                <SubHeading>Website widget</SubHeading>
                 <p className="text-sm text-slate-600">
-                  The standalone link is best for sharing in texts, social bios, and Google Business Profile. The widget is best for your website where you want visitors to stay on your page.
+                  An embeddable snippet you add to your existing website so visitors can get qualified without leaving your site. Copy the embed code from the Capture page.
                 </p>
-                <Tip>If you don&apos;t have a website, the standalone link and QR code cover everything — no widget needed.</Tip>
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>Voice overflow</SubHeading>
+                <p className="text-sm text-slate-600">
+                  Calls to your Callverted number that go unanswered by your team. Configure how it rings and answers in Settings → Call setup.
+                </p>
+                <Tip>All three channels run the same qualifying questions and pricing rules, and every lead lands in the same place: your Leads list.</Tip>
               </InfoCard>
             </div>
           </section>
 
-          {/* ── REVIEW REQUESTS ── */}
+          {/* ── REPORTS ── */}
           <section>
             <SectionHeading
-              id="review-requests"
-              icon={Star}
-              title="Review Requests"
-              subtitle="Automatically ask homeowners for a Google review when a job is done."
+              id="reports"
+              icon={BarChart3}
+              title="Reports"
+              subtitle="How captured opportunities turn into revenue."
             />
             <div className="space-y-4">
               <InfoCard>
-                <SubHeading>How it works</SubHeading>
+                <SubHeading>Conversion funnel</SubHeading>
                 <p className="text-sm text-slate-600">
-                  When you mark a lead as <span className="font-medium">Completed</span>, Callverted automatically sends the homeowner a warm email asking for a Google review. They click the link and land directly on your Google review page — no extra steps.
-                </p>
-                <BulletList items={[
-                  "One review request per job — it won't send again if you change the status.",
-                  "Only sends if the homeowner has an email address on file.",
-                  "Only sends if you have a Google Review URL set in Settings.",
-                ]} />
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Setting up your Google Review URL</SubHeading>
-                <p className="text-sm text-slate-600">
-                  Go to <span className="font-medium">Settings → Google Review URL</span> and paste your Google Business Profile review link. To find it: open your Google Business Profile, click <span className="font-medium">Ask for reviews</span>, and copy the short link.
-                </p>
-                <Tip>If your Google Review URL isn&apos;t set, review request emails won&apos;t go out — make sure it&apos;s filled in before you start marking jobs Completed.</Tip>
-              </InfoCard>
-              <InfoCard>
-                <SubHeading>Timing</SubHeading>
-                <p className="text-sm text-slate-600">
-                  The review request fires immediately when you mark the job Completed — while the job is still fresh in the homeowner&apos;s mind. This is intentional: the sooner after a good job, the higher the chance they leave a review.
+                  Tracks leads from captured through qualified, contacted, and won, and calls out the stage with the biggest drop-off so you know where to focus.
                 </p>
               </InfoCard>
-            </div>
-          </section>
-
-          {/* ── VISUALIZATION ── */}
-          <section>
-            <SectionHeading
-              id="visualization"
-              icon={Palette}
-              title="Color Visualization"
-              subtitle="Show homeowners a before-and-after preview before the first brush stroke."
-            />
-            <div className="space-y-4">
               <InfoCard>
-                <SubHeading>How it works</SubHeading>
+                <SubHeading>Captured vs. won</SubHeading>
                 <p className="text-sm text-slate-600">
-                  On any lead detail page, open the <span className="font-medium">Visualizer</span> tab. The homeowner uploads a photo of the room and selects a paint color — Callverted uses AI to apply the color to the walls and generates a side-by-side before-and-after preview.
+                  A daily chart comparing leads captured against leads won, over the last 14, 30, or 90 days.
                 </p>
-                <BulletList items={[
-                  "Works on interior and exterior photos.",
-                  "Homeowners can try multiple colors and compare.",
-                  "The preview is generated in seconds.",
-                  "Helps homeowners commit to a color before you start — fewer change-of-mind situations.",
-                ]} />
               </InfoCard>
               <InfoCard>
-                <SubHeading>Why it helps close jobs</SubHeading>
-                <BulletList items={[
-                  "Homeowners who can visualize the result feel more confident moving forward.",
-                  "Reduces uncertainty — fewer questions and delays before signing.",
-                  "Makes your presentation more professional than a contractor who just shows a paint chip.",
-                ]} />
-                <Tip>Use the visualizer during your estimate call or walkthrough — it turns a sales conversation into a visual experience.</Tip>
+                <SubHeading>Performance by channel</SubHeading>
+                <p className="text-sm text-slate-600">
+                  Breaks down leads, wins, and confirmed revenue by source (voice overflow, website widget, direct intake, or manual entry) so you can see which channel is actually paying off.
+                </p>
               </InfoCard>
             </div>
           </section>
@@ -581,23 +336,32 @@ export default function HelpPage() {
               id="settings"
               icon={Settings2}
               title="Settings"
-              subtitle="Update your rates, business info, notifications, and more."
+              subtitle="Call routing, pricing, notifications, and your business profile."
             />
             <div className="space-y-4">
               <InfoCard>
-                <SubHeading>What you can update</SubHeading>
-                <BulletList items={[
-                  "Business name and service area.",
-                  "Owner name, email, and mobile number.",
-                  "Default sqft labor rate and paint tier — affects estimates on all future leads.",
-                  "Google Review URL — required for automated review requests.",
-                  "Notification preferences — toggle email and SMS notifications on or off.",
-                  "Copy your quote link or download your QR code.",
-                  "Manage staff members for job assignment.",
-                  "Copy the website widget embed snippet.",
-                  "Export all your data as a CSV file.",
-                ]} />
-                <Tip>If you raise your rates, update your sqft rate here so estimates stay accurate.</Tip>
+                <SubHeading>Call setup</SubHeading>
+                <p className="text-sm text-slate-600">
+                  Set the number your team&apos;s calls forward to, how long it rings before Callverted takes over, and whether Callverted rings alongside your team first or answers immediately. You can also customize the AI&apos;s greeting, choose its voice, set an urgent transfer number for live emergency transfers, add extra instructions for the AI, and optionally enable call recording with a spoken disclosure.
+                </p>
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>Services & pricing</SubHeading>
+                <p className="text-sm text-slate-600">
+                  Add a pricing rule per service: a range, a fixed price, a starting-at price, or &quot;inspection required.&quot; Whatever wording that produces is exactly what the AI reads back to callers on the phone. It never estimates or invents a number on its own.
+                </p>
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>Notifications</SubHeading>
+                <p className="text-sm text-slate-600">
+                  Choose whether you get an email for every qualified lead and whether you receive a weekly performance recap. Notifications are sent by email; there&apos;s no SMS notification option currently.
+                </p>
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>Business profile</SubHeading>
+                <p className="text-sm text-slate-600">
+                  Update your business name, owner name, service area, and website. Your trade (vertical) is set during onboarding and shown here, since it determines your qualifying questions.
+                </p>
               </InfoCard>
             </div>
           </section>
@@ -608,20 +372,20 @@ export default function HelpPage() {
               id="billing"
               icon={CreditCard}
               title="Billing"
-              subtitle="Manage your subscription."
+              subtitle="Manage your subscription from Settings → Billing."
             />
             <div className="space-y-4">
               <InfoCard>
                 <SubHeading>Plan</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Callverted is one plan — <span className="font-semibold">$79/month</span> — with everything included: quote form, instant estimates, photo analysis, lead dashboard, quotes, contracts, electronic signatures, scheduling, color visualization, job photos, email + SMS notifications, automated review requests, website widget, QR code, and data export. No add-ons, no upsells.
+                  Callverted is one plan: <span className="font-semibold">$79/month</span>, with a 14-day free trial. It includes AI voice overflow, the public intake form and website widget, AI-driven lead scoring with reasoning and recommended actions, business-approved pricing rules, the full lead dashboard, and email alerts on qualified leads plus a weekly recap. No add-ons, no lead caps.
                 </p>
               </InfoCard>
               <InfoCard>
                 <SubHeading>Managing your subscription</SubHeading>
                 <BulletList items={[
-                  "Click Manage Subscription on the Billing page to open the Stripe portal.",
-                  "From there you can update your payment method, download invoices, or cancel.",
+                  "Open the Billing tab in Settings and click Manage subscription to reach the Stripe billing portal.",
+                  "From there you can update your payment method, view invoices, or cancel.",
                   "Cancellation takes effect at the end of your current billing period.",
                   "Your leads and data are preserved if you come back.",
                 ]} />
