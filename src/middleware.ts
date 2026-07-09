@@ -6,7 +6,6 @@ import { logger } from '@/lib/logger'
 const isPublicRoute = createRouteMatcher([
   '/features(.*)',
   '/legal(.*)',
-  '/api/webhooks(.*)',
   '/api/stripe/webhook',
   '/api/leads/public(.*)',
   '/api/leads/public/company(.*)',

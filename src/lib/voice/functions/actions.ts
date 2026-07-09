@@ -44,8 +44,9 @@ export interface PriceRangeResult {
 /**
  * Reads a business-approved message for a service category — never composes
  * a price. serviceCategory should match a pricingRules row's serviceCategory
- * for this business (for the restoration vertical: damage_type's value, e.g.
- * "water" | "fire" | "mold").
+ * for this business — the value of the vertical's primary (first) intake
+ * question, e.g. "water" | "fire" | "mold" for restoration, or "ac_repair" |
+ * "furnace_replacement" | ... for HVAC.
  */
 export async function getPriceRangeForCategory(
   ctx: FlowContext,
@@ -69,7 +70,7 @@ export interface CaptureLeadResult {
  * that label is reserved for a new-customer flow that began but didn't finish
  * (e.g. fallback_voicemail after retries are exhausted).
  */
-function deriveIntakeStatus(ctx: FlowContext): "not_started" | "started" | "completed" | "abandoned" {
+export function deriveIntakeStatus(ctx: FlowContext): "not_started" | "started" | "completed" | "abandoned" {
   const { session, verticalConfig } = ctx;
   if (session.isNewCustomer !== true) return "not_started";
 
@@ -106,7 +107,7 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
   session.leadId = lead.id;
   await updateCall(session.callId, { leadId: lead.id, outcome: "ai_captured" });
 
-  const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions);
+  const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions, verticalConfig.baseValueLow);
   const reasoning = await assessLead(lead.id, answers, scores, verticalConfig.aiPromptTemplate);
 
   if (business.notificationPreferences?.qualifiedLead !== false) {

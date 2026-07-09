@@ -3,9 +3,10 @@ import { db } from "../index";
 import { verticalConfigs, type NewVerticalConfig } from "../schema/verticalConfigs";
 
 export async function getVerticalConfig(vertical: string) {
-  return db.query.verticalConfigs.findFirst({
+  const config = await db.query.verticalConfigs.findFirst({
     where: eq(verticalConfigs.vertical, vertical),
-  }) ?? null;
+  });
+  return config ?? null;
 }
 
 export async function upsertVerticalConfig(data: NewVerticalConfig) {
@@ -19,6 +20,7 @@ export async function upsertVerticalConfig(data: NewVerticalConfig) {
         questions: data.questions,
         scoringRules: data.scoringRules,
         aiPromptTemplate: data.aiPromptTemplate,
+        baseValueLow: data.baseValueLow,
         updatedAt: new Date(),
       },
     })

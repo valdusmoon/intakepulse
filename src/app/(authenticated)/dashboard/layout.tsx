@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
-import { getNewLeadsCount } from "@/lib/db/queries/leads";
+import { getNewLeadsCount, getLeadsByBusiness } from "@/lib/db/queries/leads";
 import { type BannerState } from "@/components/dashboard/subscription-banner";
 import { DashboardShell } from "@/components/dashboard/v2/Shell";
 
@@ -45,12 +45,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!userId) redirect("/sign-in");
 
   const business = await getBusinessByClerkId(userId);
-  if (!business || !business.onboardingCompleted) {
+  if (!business) {
     redirect("/onboarding");
   }
 
   const bannerState = getBannerState(business);
-  const newLeadsCount = await getNewLeadsCount(business.id);
+  const [newLeadsCount, recentNewLeads] = await Promise.all([
+    getNewLeadsCount(business.id),
+    getLeadsByBusiness(business.id, { leadStatus: "new", limit: 5 }),
+  ]);
   const isVoiceLive = Boolean(
     business.twilioPhoneNumber &&
       !business.isPaused &&
@@ -65,6 +68,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       vertical={business.vertical}
       isVoiceLive={isVoiceLive}
       newLeadsCount={newLeadsCount}
+      recentNewLeads={recentNewLeads}
       bannerState={bannerState}
     >
       {children}

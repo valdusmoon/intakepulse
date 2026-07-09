@@ -1,4 +1,4 @@
-import type { BusinessNotificationPreferences } from "@/lib/db/schema/businesses";
+import type { BusinessNotificationPreferences, CustomServiceOption } from "@/lib/db/schema/businesses";
 
 /**
  * Voice call session state and context — one instance per active Media Stream
@@ -6,7 +6,7 @@ import type { BusinessNotificationPreferences } from "@/lib/db/schema/businesses
  */
 
 /**
- * The hardcoded restoration-vertical flow (see state-machine/restoration-flow.ts).
+ * The call's bookend flow (see state-machine/call-flow.ts).
  * "qualification" is a single state that internally walks the vertical's
  * configured questions one at a time — session.qualificationIndex tracks which.
  */
@@ -104,6 +104,7 @@ export interface BusinessCallData {
   callerNumber: string;
   notificationPreferences: BusinessNotificationPreferences;
   voiceName: string;
+  customServiceOptions: CustomServiceOption[];
 }
 
 export type CallOutcome = "in_progress" | "business_answered" | "ai_captured" | "abandoned" | "error";

@@ -9,27 +9,31 @@ export async function createCall(data: NewCall) {
 }
 
 export async function getCallByControlId(telnyxCallControlId: string) {
-  return db.query.calls.findFirst({
+  const call = await db.query.calls.findFirst({
     where: eq(calls.telnyxCallControlId, telnyxCallControlId),
-  }) ?? null;
+  });
+  return call ?? null;
 }
 
 export async function getCallByLeadId(leadId: string) {
-  return db.query.calls.findFirst({
+  const call = await db.query.calls.findFirst({
     where: eq(calls.leadId, leadId),
-  }) ?? null;
+  });
+  return call ?? null;
 }
 
 export async function getCallByLegId(telnyxCallLegId: string) {
-  return db.query.calls.findFirst({
+  const call = await db.query.calls.findFirst({
     where: eq(calls.telnyxCallLegId, telnyxCallLegId),
-  }) ?? null;
+  });
+  return call ?? null;
 }
 
 export async function getCallByTwilioSid(twilioCallSid: string) {
-  return db.query.calls.findFirst({
+  const call = await db.query.calls.findFirst({
     where: eq(calls.twilioCallSid, twilioCallSid),
-  }) ?? null;
+  });
+  return call ?? null;
 }
 
 export async function updateCall(

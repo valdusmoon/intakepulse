@@ -8,7 +8,8 @@ export async function createAiAssessment(data: NewAiAssessment) {
 }
 
 export async function getAiAssessmentByLeadId(leadId: string) {
-  return db.query.aiAssessments.findFirst({
+  const assessment = await db.query.aiAssessments.findFirst({
     where: eq(aiAssessments.leadId, leadId),
-  }) ?? null;
+  });
+  return assessment ?? null;
 }

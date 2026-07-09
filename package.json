@@ -11,6 +11,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -45,7 +47,6 @@
     "remotion": "^4.0.486",
     "resend": "^6.4.2",
     "stripe": "^18.3.0",
-    "svix": "^1.45.1",
     "tailwind-merge": "^3.3.1",
     "twilio": "^6.0.2",
     "ws": "^8.21.0"
@@ -66,6 +67,7 @@
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
     "tsx": "^4.20.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

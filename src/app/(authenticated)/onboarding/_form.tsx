@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ArrowLeft, Check, Wind, Building2, Droplets } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Wind, Droplets, Wrench, Zap, Hammer, MoreHorizontal } from "lucide-react";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { validateAndNormalizeEmail } from "@/lib/utils/email-validation";
 import { Field, Icon } from "@/components/dashboard/v2/primitives";
@@ -14,6 +14,14 @@ interface FormData {
   ownerPhone: string;
   serviceArea: string;
   vertical: string;
+  twilioPhoneNumber: string;
+}
+
+/** Yellow "this isn't real yet" banner — same treatment on both mock steps so it reads as one deliberate pattern, not an inconsistency. */
+function MockNotice({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 mb-4 text-xs text-amber-800">{children}</div>
+  );
 }
 
 function StepDots({ current, total }: { current: number; total: number }) {
@@ -75,7 +83,7 @@ function Step1({
   return (
     <div>
       <div className="mb-8">
-        <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 1 of 3</p>
+        <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 1 of 4</p>
         <h1 className="font-cv-heading text-2xl font-bold text-cv-ink">Tell us about your business</h1>
         <p className="text-sm text-cv-muted mt-1">This appears on lead notifications and the AI's greeting.</p>
       </div>
@@ -127,64 +135,88 @@ const VERTICALS = [
     icon: Droplets,
     label: "Water / Fire / Mold Restoration",
     description: "Emergency remediation, drying, structural restoration.",
-    available: true,
-  },
-  {
-    key: "pi_law",
-    icon: Building2,
-    label: "Personal Injury Law",
-    description: "Auto accidents, slip and fall, workers' comp.",
-    available: false,
   },
   {
     key: "hvac",
     icon: Wind,
-    label: "HVAC Services",
-    description: "Emergency repairs, installs, maintenance calls.",
-    available: false,
+    label: "HVAC",
+    description: "AC and heating repair, replacement, ductwork.",
+  },
+  {
+    key: "plumbing",
+    icon: Wrench,
+    label: "Plumbing",
+    description: "Leaks, clogs, water heaters, emergency calls.",
+  },
+  {
+    key: "electrical",
+    icon: Zap,
+    label: "Electrical",
+    description: "Panel upgrades, rewiring, EV chargers, emergency calls.",
+  },
+  {
+    key: "general_contracting",
+    icon: Hammer,
+    label: "General Contracting",
+    description: "Repairs, renovations, additions.",
+  },
+  {
+    key: "other",
+    icon: MoreHorizontal,
+    label: "Other",
+    description: "A general intake flow that fits any service business.",
   },
 ];
 
-function Step2({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+function Step2({
+  form,
+  update,
+  onNext,
+  onBack,
+}: {
+  form: FormData;
+  update: (k: keyof FormData, v: string | number) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
   return (
     <div>
       <div className="mb-8">
-        <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 2 of 3</p>
+        <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 2 of 4</p>
         <h1 className="font-cv-heading text-2xl font-bold text-cv-ink">What type of business?</h1>
         <p className="text-sm text-cv-muted mt-1">Your vertical determines the intake questions and scoring model.</p>
       </div>
 
       <div className="flex flex-col gap-3">
-        {VERTICALS.map(({ key, icon: VertIcon, label, description, available }) => (
-          <div
-            key={key}
-            className={`relative rounded-xl border-2 p-4 transition-colors ${
-              available ? "border-cv-primary bg-cv-surface-blue" : "border-cv-border bg-white opacity-60"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${available ? "bg-cv-primary-soft" : "bg-cv-gray-soft"}`}>
-                <VertIcon className={`w-5 h-5 ${available ? "text-cv-primary" : "text-cv-muted-2"}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+        {VERTICALS.map(({ key, icon: VertIcon, label, description }) => {
+          const selected = form.vertical === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => update("vertical", key)}
+              className={`relative text-left rounded-xl border-2 p-4 transition-colors ${
+                selected ? "border-cv-primary bg-cv-surface-blue" : "border-cv-border bg-white hover:bg-cv-surface-subtle"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${selected ? "bg-cv-primary-soft" : "bg-cv-gray-soft"}`}>
+                  <VertIcon className={`w-5 h-5 ${selected ? "text-cv-primary" : "text-cv-muted-2"}`} />
+                </div>
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-cv-ink">{label}</p>
-                  {available && <span className="text-xs font-bold bg-cv-primary text-white px-2 py-0.5 rounded-full">Selected</span>}
-                  {!available && <span className="text-xs font-bold bg-cv-gray-soft text-cv-muted px-2 py-0.5 rounded-full">Coming soon</span>}
+                  <p className="text-xs text-cv-muted mt-0.5">{description}</p>
                 </div>
-                <p className="text-xs text-cv-muted mt-0.5">{description}</p>
+                {selected && (
+                  <div className="w-5 h-5 rounded-full bg-cv-primary flex items-center justify-center shrink-0 mt-0.5">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                )}
               </div>
-              {available && (
-                <div className="w-5 h-5 rounded-full bg-cv-primary flex items-center justify-center shrink-0 mt-0.5">
-                  <Check className="w-3 h-3 text-white" />
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+            </button>
+          );
+        })}
       </div>
-
-      <p className="text-xs text-cv-muted mt-4 text-center">More verticals coming soon. Each uses the same infrastructure — just different intake questions and scoring logic.</p>
 
       <div className="mt-8 flex gap-3">
         <button
@@ -204,53 +236,118 @@ function Step2({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   );
 }
 
-// ─── Step 3: Call setup preview ─────────────────────────────────────────────────
+// ─── Step 3: Number (mock Twilio provisioning) ─────────────────────────────────
 
-function Step3({
-  onBack,
-  onSubmit,
-  loading,
-  error,
-}: {
-  form: FormData;
-  update: (k: keyof FormData, v: string | number) => void;
-  onBack: () => void;
-  onSubmit: () => void;
-  loading: boolean;
-  error: string;
-}) {
+function fmtDisplayNumber(e164: string) {
+  const m = e164.match(/^\+1(\d{3})(\d{3})(\d{4})$/);
+  return m ? `(${m[1]}) ${m[2]}-${m[3]}` : e164;
+}
+
+function Step3Number({ onNext, onBack }: { onNext: (phoneNumber: string) => void; onBack: () => void }) {
+  const [areaCode, setAreaCode] = useState("");
+  const [numbers, setNumbers] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSearch() {
+    if (!/^\d{3}$/.test(areaCode)) {
+      setError("Enter a 3-digit area code.");
+      return;
+    }
+    setError("");
+    setSearching(true);
+    setNumbers([]);
+    setSelected(null);
+    try {
+      const res = await fetch("/api/twilio/numbers/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ areaCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Search failed.");
+      setNumbers(data.numbers);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleSelect(phoneNumber: string) {
+    setError("");
+    setPurchasing(true);
+    try {
+      const res = await fetch("/api/twilio/numbers/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to assign number.");
+      setSelected(phoneNumber);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setPurchasing(false);
+    }
+  }
+
   return (
     <div>
       <div className="mb-8">
-        <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 3 of 3</p>
-        <h1 className="font-cv-heading text-2xl font-bold text-cv-ink">One last thing</h1>
-        <p className="text-sm text-cv-muted mt-1">How your Callverted number works.</p>
+        <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 3 of 4</p>
+        <h1 className="font-cv-heading text-2xl font-bold text-cv-ink">Get your number</h1>
+        <p className="text-sm text-cv-muted mt-1">Search for a phone number near your service area.</p>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="rounded-xl bg-cv-surface-subtle border border-cv-border p-4 flex flex-col gap-3">
-          {[
-            ["Missed call detected", "A prospect calls your Callverted number. If unanswered after ~20 seconds, the AI answers automatically."],
-            ["AI qualifies the caller", "Callverted asks a few quick questions and gives a price range if you've configured one."],
-            ["You get notified", "Once the call ends, you receive an email with the scored lead and a recommended next step."],
-          ].map(([title, desc]) => (
-            <div key={title} className="flex gap-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-cv-primary mt-2 shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-cv-ink">{title}</p>
-                <p className="text-xs text-cv-muted mt-0.5">{desc}</p>
-              </div>
+      <MockNotice>Test mode — these are placeholder numbers, not real working lines. Real Twilio provisioning isn't wired up yet.</MockNotice>
+
+      {!selected ? (
+        <>
+          <div className="flex gap-2">
+            <Field
+              value={areaCode}
+              onChange={(e) => setAreaCode(e.target.value.replace(/\D/g, "").slice(0, 3))}
+              placeholder="Area code, e.g. 512"
+            />
+            <button
+              onClick={handleSearch}
+              disabled={searching}
+              className="shrink-0 px-4 rounded-xl bg-cv-primary text-white font-bold text-sm hover:bg-cv-primary-dark disabled:opacity-60 transition-colors"
+            >
+              {searching ? "Searching…" : "Search"}
+            </button>
+          </div>
+          {numbers.length > 0 && (
+            <div className="mt-4 flex flex-col gap-2">
+              {numbers.map((n) => (
+                <button
+                  key={n}
+                  onClick={() => handleSelect(n)}
+                  disabled={purchasing}
+                  className="flex items-center justify-between px-4 py-3 rounded-xl border border-cv-border hover:border-cv-primary hover:bg-cv-surface-blue transition-colors text-left disabled:opacity-60"
+                >
+                  <span className="font-cv-mono font-bold text-sm">{fmtDisplayNumber(n)}</span>
+                  <span className="text-xs text-cv-primary font-bold">{purchasing ? "Assigning…" : "Select"}</span>
+                </button>
+              ))}
             </div>
-          ))}
+          )}
+        </>
+      ) : (
+        <div className="rounded-xl bg-cv-surface-blue border border-[#dce5ff] p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-cv-primary flex items-center justify-center shrink-0">
+            <Check className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-cv-ink">{fmtDisplayNumber(selected)}</p>
+            <p className="text-xs text-cv-muted">Assigned to your account (test mode)</p>
+          </div>
         </div>
-
-        <div className="rounded-xl bg-cv-surface-blue border border-[#dce5ff] p-4">
-          <p className="text-sm font-bold text-cv-primary-dark mb-1">Getting your number</p>
-          <p className="text-xs text-cv-primary-dark/80">
-            Email <span className="font-bold">setup@callverted.com</span> after finishing — we&apos;ll provision your dedicated number within 1 business day. Paste it in Settings once you have it.
-          </p>
-        </div>
-      </div>
+      )}
 
       {error && <p className="mt-4 text-sm text-cv-red">{error}</p>}
 
@@ -262,20 +359,112 @@ function Step3({
           <ArrowLeft className="w-4 h-4" />
         </button>
         <button
-          onClick={onSubmit}
-          disabled={loading}
+          onClick={() => selected && onNext(selected)}
+          disabled={!selected}
           className="flex-1 flex items-center justify-center gap-2 bg-cv-primary text-white font-bold py-3 rounded-xl hover:bg-cv-primary-dark disabled:opacity-60 transition-colors"
         >
-          {loading ? "Saving…" : (<>Finish setup <ArrowRight className="w-4 h-4" /></>)}
+          Continue <ArrowRight className="w-4 h-4" />
         </button>
       </div>
     </div>
   );
 }
 
-// ─── Step 4: Done ─────────────────────────────────────────────────────────────
+// ─── Step 4: Payment (mock trial activation) ───────────────────────────────────
 
-function Step4({ router }: { router: ReturnType<typeof useRouter> }) {
+function Step4Payment({
+  onNext,
+  onBack,
+  onTrialStarted,
+  finishing,
+  finishError,
+}: {
+  onNext: () => void;
+  onBack: () => void;
+  onTrialStarted: (trialEndsAt: string) => void;
+  finishing: boolean;
+  finishError: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleStart() {
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/onboarding/mock-subscribe", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to start trial.");
+      setStarted(true);
+      onTrialStarted(data.trialEndsAt);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-8">
+        <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 4 of 4</p>
+        <h1 className="font-cv-heading text-2xl font-bold text-cv-ink">Start your free trial</h1>
+        <p className="text-sm text-cv-muted mt-1">14 days free, then $79/mo. Cancel anytime.</p>
+      </div>
+
+      <MockNotice>Test mode — card collection isn&apos;t wired up yet. Clicking below just marks your account as trialing.</MockNotice>
+
+      <div className="rounded-xl border border-cv-border p-4">
+        <p className="text-sm font-bold text-cv-ink mb-2">What you get</p>
+        <ul className="flex flex-col gap-1.5 text-xs text-cv-muted">
+          <li>AI voice overflow — answers and qualifies calls your team can&apos;t get to</li>
+          <li>Lead dashboard, call log, summaries, and transcripts</li>
+          <li>Business-approved pricing rules, configured per service category</li>
+        </ul>
+      </div>
+
+      {started && (
+        <div className="mt-4 rounded-xl bg-cv-green-soft border border-[#c9ead8] p-4 flex items-center gap-3">
+          <Check className="w-5 h-5 text-cv-green shrink-0" />
+          <p className="text-sm font-bold text-cv-ink">Trial started (test mode)</p>
+        </div>
+      )}
+
+      {(error || finishError) && <p className="mt-4 text-sm text-cv-red">{error || finishError}</p>}
+
+      <div className="mt-8 flex gap-3">
+        <button
+          onClick={onBack}
+          className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-cv-border text-cv-ink text-sm font-bold hover:bg-cv-surface-subtle transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        {!started ? (
+          <button
+            onClick={handleStart}
+            disabled={loading}
+            className="flex-1 flex items-center justify-center gap-2 bg-cv-primary text-white font-bold py-3 rounded-xl hover:bg-cv-primary-dark disabled:opacity-60 transition-colors"
+          >
+            {loading ? "Starting…" : "Start free trial (test mode)"}
+          </button>
+        ) : (
+          <button
+            onClick={onNext}
+            disabled={finishing}
+            className="flex-1 flex items-center justify-center gap-2 bg-cv-primary text-white font-bold py-3 rounded-xl hover:bg-cv-primary-dark disabled:opacity-60 transition-colors"
+          >
+            {finishing ? "Finishing…" : (<>Continue <ArrowRight className="w-4 h-4" /></>)}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 5: Done ─────────────────────────────────────────────────────────────
+
+function Step5Done({ router }: { router: ReturnType<typeof useRouter> }) {
   return (
     <div className="text-center">
       <div className="w-16 h-16 rounded-full bg-cv-green-soft flex items-center justify-center mx-auto mb-6">
@@ -283,26 +472,8 @@ function Step4({ router }: { router: ReturnType<typeof useRouter> }) {
       </div>
       <h1 className="font-cv-heading text-2xl font-bold text-cv-ink mb-2">You&apos;re all set!</h1>
       <p className="text-sm text-cv-muted mb-8 max-w-sm mx-auto">
-        Your account is configured. Once Callverted provisions your dedicated number, you&apos;ll start recovering missed calls automatically.
+        Your number and trial are active (test mode) — start testing the full call flow from your dashboard.
       </p>
-
-      <div className="rounded-xl bg-cv-surface-subtle border border-cv-border p-4 text-left mb-8">
-        <p className="text-sm font-bold text-cv-ink mb-3">Next steps</p>
-        <ol className="flex flex-col gap-2 text-sm text-cv-muted">
-          <li className="flex gap-2">
-            <span className="font-bold text-cv-primary shrink-0">1.</span>
-            Email <span className="font-bold">setup@callverted.com</span> to request your number.
-          </li>
-          <li className="flex gap-2">
-            <span className="font-bold text-cv-primary shrink-0">2.</span>
-            Paste your assigned number into <span className="font-bold">Settings → Call setup</span>.
-          </li>
-          <li className="flex gap-2">
-            <span className="font-bold text-cv-primary shrink-0">3.</span>
-            Forward your business line to your Callverted number.
-          </li>
-        </ol>
-      </div>
 
       <button
         onClick={() => router.push("/dashboard")}
@@ -318,9 +489,10 @@ function Step4({ router }: { router: ReturnType<typeof useRouter> }) {
 
 export function OnboardingForm() {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
+  const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState("");
   const [form, setForm] = useState<FormData>({
     businessName: "",
     ownerName: "",
@@ -328,15 +500,21 @@ export function OnboardingForm() {
     ownerPhone: "",
     serviceArea: "",
     vertical: "restoration",
+    twilioPhoneNumber: "",
   });
 
   function update(field: keyof FormData, value: string | number) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  async function handleSubmit() {
-    setLoading(true);
-    setError("");
+  // The only write to the businesses table in the entire onboarding flow —
+  // business info, vertical, chosen number, and trial state are all held in
+  // local state until here, then submitted in one atomic call. That's on
+  // purpose: a business existing at all is now itself proof onboarding
+  // finished, so there's no separate "in progress" state to track or resume.
+  async function handleFinishOnboarding() {
+    setFinishing(true);
+    setFinishError("");
     try {
       const res = await fetch("/api/business", {
         method: "POST",
@@ -349,17 +527,20 @@ export function OnboardingForm() {
           forwardingNumber: form.ownerPhone || undefined,
           serviceArea: form.serviceArea || undefined,
           vertical: form.vertical,
+          twilioPhoneNumber: form.twilioPhoneNumber,
+          subscriptionStatus: "trialing",
+          trialEndsAt,
         }),
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to save. Please try again.");
+        throw new Error(data.error || "Failed to finish setup. Please try again.");
       }
-      setStep(4);
+      setStep(5);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setFinishError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
-      setLoading(false);
+      setFinishing(false);
     }
   }
 
@@ -375,13 +556,30 @@ export function OnboardingForm() {
           </div>
         </div>
 
-        {step < 4 && <StepDots current={step} total={3} />}
+        {step < 5 && <StepDots current={step} total={4} />}
 
         <div className="bg-white rounded-2xl border border-cv-border shadow-cv-sm p-7">
           {step === 1 && <Step1 form={form} update={update} onNext={() => setStep(2)} />}
-          {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} />}
-          {step === 3 && <Step3 form={form} update={update} onBack={() => setStep(2)} onSubmit={handleSubmit} loading={loading} error={error} />}
-          {step === 4 && <Step4 router={router} />}
+          {step === 2 && <Step2 form={form} update={update} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
+          {step === 3 && (
+            <Step3Number
+              onNext={(phoneNumber) => {
+                update("twilioPhoneNumber", phoneNumber);
+                setStep(4);
+              }}
+              onBack={() => setStep(2)}
+            />
+          )}
+          {step === 4 && (
+            <Step4Payment
+              onNext={handleFinishOnboarding}
+              onBack={() => setStep(3)}
+              onTrialStarted={setTrialEndsAt}
+              finishing={finishing}
+              finishError={finishError}
+            />
+          )}
+          {step === 5 && <Step5Done router={router} />}
         </div>
       </div>
     </div>

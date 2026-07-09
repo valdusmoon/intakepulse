@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
 import { Icon } from "./primitives";
+import { timeAgoShort } from "@/lib/leads/priority";
 import type { BannerState } from "@/components/dashboard/subscription-banner";
 import { SubscriptionBannerV2 } from "./SubscriptionBannerV2";
 import { CallvertedLogo } from "@/components/CallvertedLogo";
@@ -38,12 +39,20 @@ const VERTICAL_ICONS: Record<string, string> = {
   electrical: "electrical_services",
 };
 
+export interface RecentLead {
+  id: string;
+  callerName: string | null;
+  callerPhone: string;
+  createdAt: Date;
+}
+
 interface Props {
   businessName: string;
   serviceArea: string | null;
   vertical: string;
   isVoiceLive: boolean;
   newLeadsCount: number;
+  recentNewLeads: RecentLead[];
   bannerState: BannerState;
   children: React.ReactNode;
 }
@@ -54,11 +63,13 @@ export function DashboardShell({
   vertical,
   isVoiceLive,
   newLeadsCount,
+  recentNewLeads,
   bannerState,
   children,
 }: Props) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   function isActive(href: string, exact: boolean) {
     return exact ? pathname === href : pathname.startsWith(href);
@@ -147,18 +158,59 @@ export function DashboardShell({
             >
               <Icon name={mobileOpen ? "close" : "menu"} />
             </button>
-            <div className="relative w-[300px] hidden md:block">
-              <Icon name="search" className="!text-xl absolute left-3 top-2.5 text-cv-muted-2" />
-              <input
-                placeholder="Search leads, calls, or phone numbers"
-                className="w-full h-10 pl-[39px] pr-3 border border-cv-border rounded-[10px] bg-cv-surface-subtle outline-none focus:border-cv-primary focus:ring-[3px] focus:ring-cv-primary/10 focus:bg-white text-sm"
-              />
-            </div>
           </div>
           <div className="flex items-center gap-3">
-            <button className="w-10 h-10 rounded-[10px] grid place-items-center text-cv-muted hover:bg-cv-surface-subtle hover:text-cv-ink">
-              <Icon name="notifications" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setNotifOpen((o) => !o)}
+                className="relative w-10 h-10 rounded-[10px] grid place-items-center text-cv-muted hover:bg-cv-surface-subtle hover:text-cv-ink"
+                aria-label="Notifications"
+              >
+                <Icon name="notifications" />
+                {newLeadsCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 min-w-[15px] h-[15px] px-1 grid place-items-center rounded-full bg-cv-red text-white text-[9px] font-extrabold">
+                    {newLeadsCount > 9 ? "9+" : newLeadsCount}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+                  <div className="absolute right-0 top-[calc(100%+8px)] w-[300px] bg-white border border-cv-border rounded-[14px] shadow-cv-sm z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-cv-border">
+                      <strong className="text-[13px]">New leads</strong>
+                    </div>
+                    {recentNewLeads.length === 0 ? (
+                      <p className="px-4 py-6 text-center text-xs text-cv-muted">No new leads right now.</p>
+                    ) : (
+                      <div className="max-h-80 overflow-y-auto">
+                        {recentNewLeads.map((lead) => (
+                          <Link
+                            key={lead.id}
+                            href={`/dashboard/leads/${lead.id}`}
+                            onClick={() => setNotifOpen(false)}
+                            className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-cv-border last:border-b-0 hover:bg-cv-surface-subtle transition-colors"
+                          >
+                            <div className="min-w-0">
+                              <strong className="block text-xs truncate">{lead.callerName ?? lead.callerPhone}</strong>
+                              <span className="block text-[11px] text-cv-muted truncate">{lead.callerPhone}</span>
+                            </div>
+                            <span className="text-[10px] text-cv-muted shrink-0">{timeAgoShort(lead.createdAt)}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                    <Link
+                      href="/dashboard/leads?status=new"
+                      onClick={() => setNotifOpen(false)}
+                      className="block px-4 py-2.5 text-center text-xs font-bold text-cv-primary hover:bg-cv-surface-subtle transition-colors"
+                    >
+                      View all new leads
+                    </Link>
+                  </div>
+                </>
+              )}
+            </div>
             <Link
               href="/dashboard/leads/new"
               className="hidden sm:inline-flex items-center justify-center gap-2 rounded-[9px] border border-cv-primary bg-cv-primary text-white font-bold text-xs min-h-[34px] px-[11px] hover:bg-cv-primary-dark transition-colors"

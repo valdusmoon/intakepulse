@@ -47,7 +47,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Callverted: AI voice overflow for home service businesses",
+  title: "Callverted | Lead Recovery",
   description: "Callverted answers missed emergency service calls live, qualifies the job, estimates value, and turns unanswered calls into callback-ready leads.",
   icons: {
     icon: [
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "Callverted: AI voice overflow for home service businesses",
+    title: "Callverted | Lead Recovery",
     description: "Callverted answers missed emergency service calls live, qualifies the job, and estimates value before you ever call back.",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
     type: "website",

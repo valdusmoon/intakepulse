@@ -6,7 +6,8 @@ import { getCallsByBusiness, getCallMetrics } from "@/lib/db/queries/calls";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel } from "@/lib/verticals/labels";
 import { priorityMeta } from "@/lib/leads/priority";
-import { Card, MetricCard, Badge, Icon } from "@/components/dashboard/v2/primitives";
+import { Card, MetricCard, Icon } from "@/components/dashboard/v2/primitives";
+import { CallRow } from "./_call-row";
 
 const OUTCOMES = [
   { value: "", label: "All outcomes" },
@@ -133,10 +134,10 @@ export default async function CallsPage({
             <table className="w-full min-w-[920px] border-collapse">
               <thead>
                 <tr>
-                  {["Caller", "Date and time", "Outcome", "Service", "Duration", "Lead", "Recording"].map((h, i) => (
+                  {["Caller", "Date and time", "Outcome", "Service", "Duration", "Lead", "Recording", "Details"].map((h, i) => (
                     <th
                       key={h}
-                      className={`px-3.5 py-[11px] bg-cv-surface-subtle border-b border-cv-border text-left text-[10px] tracking-wide uppercase text-cv-muted font-semibold ${i === 6 ? "text-right" : ""}`}
+                      className={`px-3.5 py-[11px] bg-cv-surface-subtle border-b border-cv-border text-left text-[10px] tracking-wide uppercase text-cv-muted font-semibold ${i >= 6 ? "text-right" : ""}`}
                     >
                       {h}
                     </th>
@@ -149,41 +150,19 @@ export default async function CallsPage({
                   const service = deriveServiceLabel(verticalConfig, call.leadIntakeAnswers);
                   const priority = call.leadId ? priorityMeta(call.leadUrgencyScore) : null;
                   return (
-                    <tr key={call.id} className="hover:bg-[#fbfcfd] border-b border-cv-border last:border-b-0">
-                      <td className="px-3.5 py-3.5 text-xs align-middle">
-                        <strong className="block text-[13px]">{call.callerPhone}</strong>
-                      </td>
-                      <td className="px-3.5 py-3.5 text-xs align-middle whitespace-nowrap">{fmtDateTime(call.createdAt)}</td>
-                      <td className="px-3.5 py-3.5 align-middle">
-                        <div className="flex items-center gap-1.5">
-                          <div className={`w-[31px] h-[31px] rounded-[9px] grid place-items-center shrink-0 ${meta.iconClass}`}>
-                            <Icon name={meta.icon} className="!text-[17px]" />
-                          </div>
-                          <div>
-                            <strong className="block text-[13px]">{meta.label}</strong>
-                            <div className="text-[11px] text-cv-muted">{meta.sub}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3.5 py-3.5 text-xs align-middle">{service ?? "—"}</td>
-                      <td className="px-3.5 py-3.5 align-middle font-cv-mono text-xs">{fmtDuration(call.durationSeconds)}</td>
-                      <td className="px-3.5 py-3.5 align-middle">
-                        {call.leadId && priority ? <Badge color={priority.color}>{priority.label}</Badge> : <span className="text-cv-muted text-xs">—</span>}
-                      </td>
-                      <td className="px-3.5 py-3.5 align-middle text-right">
-                        {call.recordingUrl ? (
-                          <a
-                            href={call.leadId ? `/dashboard/leads/${call.leadId}` : call.recordingUrl}
-                            className="inline-flex items-center gap-1.5 text-cv-primary text-xs font-bold hover:underline whitespace-nowrap"
-                          >
-                            <Icon name="play_arrow" className="!text-base" />
-                            Play
-                          </a>
-                        ) : (
-                          <span className="text-cv-muted text-xs">Not recorded</span>
-                        )}
-                      </td>
-                    </tr>
+                    <CallRow
+                      key={call.id}
+                      callerPhone={call.callerPhone}
+                      dateTime={fmtDateTime(call.createdAt)}
+                      outcomeMeta={meta}
+                      service={service}
+                      duration={fmtDuration(call.durationSeconds)}
+                      leadId={call.leadId}
+                      priority={priority}
+                      recordingUrl={call.recordingUrl}
+                      summary={call.summary}
+                      transcript={call.transcript}
+                    />
                   );
                 })}
               </tbody>

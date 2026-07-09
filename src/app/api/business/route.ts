@@ -1,9 +1,14 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { createBusiness, getBusinessByClerkId, updateBusiness } from "@/lib/db/queries/businesses";
+import { createPricingRulesBulk } from "@/lib/db/queries/pricingRules";
 import { sendSignupNotification, sendWelcomeEmail } from "@/lib/email/notifications";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { validateAndNormalizeEmail } from "@/lib/utils/email-validation";
+import { PRICING_TEMPLATES } from "@/lib/verticals/pricingTemplates";
+import { logger } from "@/lib/logger";
+
+const KNOWN_VERTICALS = Object.keys(PRICING_TEMPLATES);
 
 export async function GET() {
   const { userId } = await auth();
@@ -18,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { businessName, ownerName, ownerEmail, ownerPhone, serviceArea, vertical } = body;
+  const { businessName, ownerName, ownerEmail, ownerPhone, serviceArea, vertical, twilioPhoneNumber, subscriptionStatus, trialEndsAt } = body;
 
   if (!businessName || !ownerName) {
     return NextResponse.json({ error: "businessName and ownerName are required" }, { status: 400 });
@@ -36,7 +41,19 @@ export async function POST(req: NextRequest) {
     normalizedPhone = phoneResult.normalized!;
   }
 
+  let normalizedTwilioNumber: string | null = null;
+  if (twilioPhoneNumber) {
+    const phoneResult = validateAndNormalizePhone(twilioPhoneNumber);
+    if (!phoneResult.isValid) return NextResponse.json({ error: phoneResult.error }, { status: 422 });
+    normalizedTwilioNumber = phoneResult.normalized!;
+  }
+
+  // Onboarding submits the whole form in one shot at the very end (business
+  // info + vertical + chosen number + trial state), so a business existing at
+  // all is itself proof onboarding finished — this only hits the update branch
+  // on a double-submit (e.g. a retried request after a network hiccup).
   const existing = await getBusinessByClerkId(userId);
+  const resolvedVertical = KNOWN_VERTICALS.includes(vertical) ? vertical : existing?.vertical ?? "other";
 
   if (existing) {
     const updated = await updateBusiness(existing.id, {
@@ -46,7 +63,10 @@ export async function POST(req: NextRequest) {
       ownerPhone: normalizedPhone ?? existing.ownerPhone ?? null,
       forwardingNumber: normalizedPhone ?? existing.forwardingNumber ?? null,
       serviceArea: serviceArea ?? null,
-      onboardingCompleted: true,
+      vertical: resolvedVertical,
+      twilioPhoneNumber: normalizedTwilioNumber ?? existing.twilioPhoneNumber ?? null,
+      subscriptionStatus: subscriptionStatus ?? existing.subscriptionStatus ?? null,
+      trialEndsAt: trialEndsAt ? new Date(trialEndsAt) : existing.trialEndsAt ?? null,
     });
     return NextResponse.json(updated, { status: 200 });
   }
@@ -59,8 +79,35 @@ export async function POST(req: NextRequest) {
     ownerPhone: normalizedPhone,
     forwardingNumber: normalizedPhone,
     serviceArea: serviceArea ?? null,
-    onboardingCompleted: true,
+    vertical: resolvedVertical,
+    twilioPhoneNumber: normalizedTwilioNumber,
+    subscriptionStatus: subscriptionStatus ?? null,
+    trialEndsAt: trialEndsAt ? new Date(trialEndsAt) : null,
   });
+
+  const starterRules = PRICING_TEMPLATES[resolvedVertical] ?? [];
+  try {
+    await createPricingRulesBulk(
+      starterRules.map((rule) => ({
+        businessId: business.id,
+        vertical: resolvedVertical,
+        serviceCategory: rule.serviceCategory,
+        pricingType: rule.pricingType,
+        minimumAmount: rule.minimumAmount ?? null,
+        maximumAmount: rule.maximumAmount ?? null,
+        fixedAmount: rule.fixedAmount ?? null,
+        startingAmount: rule.startingAmount ?? null,
+        approvedCustomerMessage: rule.approvedCustomerMessage,
+        isActive: true,
+      }))
+    );
+  } catch (error) {
+    logger.error("Failed to create starter pricing rules for new business", {
+      businessId: business.id,
+      vertical: resolvedVertical,
+      error: String(error),
+    });
+  }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://callverted.com";
   const dashboardUrl = `${appUrl}/dashboard`;

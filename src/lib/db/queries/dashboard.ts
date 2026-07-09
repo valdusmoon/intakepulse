@@ -125,23 +125,43 @@ export async function getChannelPerformance(businessId: string) {
 export async function getDailyCapturedVsWon(businessId: string, days = 14) {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  const rows = await db
+  // Captured and won are bucketed by two different dates on purpose: a lead
+  // captured today may not convert for weeks, so bucketing both by createdAt
+  // would hide a win on the day it actually happened (or drop it entirely if
+  // the lead was captured outside the selected range).
+  const capturedRows = await db
     .select({
       day: sql<string>`to_char(${leads.createdAt}, 'YYYY-MM-DD')`,
       captured: sql<number>`count(*)`,
-      won: sql<number>`count(*) filter (where ${leads.leadStatus} = 'converted')`,
     })
     .from(leads)
     .where(and(eq(leads.businessId, businessId), isNull(leads.deletedAt), sql`${leads.createdAt} >= ${since.toISOString()}`))
-    .groupBy(sql`to_char(${leads.createdAt}, 'YYYY-MM-DD')`)
-    .orderBy(sql`to_char(${leads.createdAt}, 'YYYY-MM-DD')`);
+    .groupBy(sql`to_char(${leads.createdAt}, 'YYYY-MM-DD')`);
 
-  const byDay = new Map(rows.map((r) => [r.day, { captured: Number(r.captured), won: Number(r.won) }]));
+  const wonRows = await db
+    .select({
+      day: sql<string>`to_char(${leads.convertedAt}, 'YYYY-MM-DD')`,
+      won: sql<number>`count(*)`,
+    })
+    .from(leads)
+    .where(
+      and(
+        eq(leads.businessId, businessId),
+        isNull(leads.deletedAt),
+        eq(leads.leadStatus, "converted"),
+        sql`${leads.convertedAt} >= ${since.toISOString()}`
+      )
+    )
+    .groupBy(sql`to_char(${leads.convertedAt}, 'YYYY-MM-DD')`);
+
+  const capturedByDay = new Map(capturedRows.map((r) => [r.day, Number(r.captured)]));
+  const wonByDay = new Map(wonRows.map((r) => [r.day, Number(r.won)]));
+
   const series: { day: string; captured: number; won: number }[] = [];
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
     const key = d.toISOString().slice(0, 10);
-    series.push({ day: key, ...(byDay.get(key) ?? { captured: 0, won: 0 }) });
+    series.push({ day: key, captured: capturedByDay.get(key) ?? 0, won: wonByDay.get(key) ?? 0 });
   }
   return series;
 }

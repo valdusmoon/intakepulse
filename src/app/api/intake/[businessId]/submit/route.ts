@@ -54,7 +54,7 @@ async function assessAndNotify(
     const config = await getVerticalConfig(business.vertical);
     if (!config) return;
 
-    const scores = scoreLeadFromAnswers(answers, config.scoringRules, config.questions);
+    const scores = scoreLeadFromAnswers(answers, config.scoringRules, config.questions, config.baseValueLow);
     const reasoning = await assessLead(leadId, answers, scores, config.aiPromptTemplate);
 
     const lead = await getLeadById(leadId);

@@ -42,7 +42,7 @@ import {
   questionDtmfMap,
   questionOptions,
   zipPrompt,
-} from "./restoration-flow";
+} from "./call-flow";
 import { captureLead, checkServiceArea, getPriceRangeForCategory, transferCallAction } from "../functions/actions";
 import { INTERRUPTION } from "../config/constants";
 
@@ -267,7 +267,11 @@ async function continueQualification(ctx: FlowContext, client: RealtimeClient): 
 
 async function enterPriceEligibility(ctx: FlowContext, client: RealtimeClient): Promise<void> {
   ctx.session.state = "price_eligibility";
-  const category = ctx.session.conversationContext.answers.damage_type;
+  // The first question in a vertical's config doubles as its primary
+  // category (e.g. damage type, service type) — read it generically rather
+  // than a hardcoded key so this works for every vertical.
+  const primaryQuestionKey = ctx.verticalConfig.questions[0]?.key;
+  const category = primaryQuestionKey ? ctx.session.conversationContext.answers[primaryQuestionKey] : undefined;
   const price = category
     ? await getPriceRangeForCategory(ctx, category)
     : { eligible: false, message: "The team will need to review the details before discussing pricing." };

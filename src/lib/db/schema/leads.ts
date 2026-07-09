@@ -38,7 +38,7 @@ export const leads = pgTable("leads", {
   confirmedValue: integer("confirmed_value"), // cents
 
   // Intake answers stored as a single JSONB object keyed to vertical config question keys.
-  // e.g. { damage_type: "water", water_category: "cat_2", flooring: "hardwood", ... }
+  // e.g. { service_type: "water", urgency: "emergency", time_since_issue: "today", has_coverage: "covered" }
   // Nullable — a lead exists before intake is completed (do not assume this is populated).
   intakeAnswers: jsonb("intake_answers").$type<Record<string, string | string[]>>(),
 

@@ -8,7 +8,6 @@ export interface ScoringResult {
   estimatedValueHigh: number; // cents
 }
 
-const BASE_VALUE_LOW = 150000;  // $1,500 base
 const URGENCY_CAP = 15;
 const QUALITY_CAP = 65;
 
@@ -24,7 +23,8 @@ function answerMatches(answer: string | string[] | undefined, ruleValue: string)
 export function scoreLeadFromAnswers(
   rawAnswers: Answers,
   rules: ScoringRule[],
-  questions: VerticalQuestion[]
+  questions: VerticalQuestion[],
+  baseValueLow: number
 ): ScoringResult {
   // Only score answers the user actually saw — orphaned conditional answers are excluded
   const answers = filterAnswersToVisible(questions, rawAnswers);
@@ -42,7 +42,7 @@ export function scoreLeadFromAnswers(
 
   const urgencyScore = clamp(1, 10, Math.round(1 + (urgencyTotal / URGENCY_CAP) * 9));
   const qualityScore = clamp(1, 100, Math.round(1 + (qualityTotal / QUALITY_CAP) * 99));
-  const estimatedValueLow = BASE_VALUE_LOW + valueTotal;
+  const estimatedValueLow = baseValueLow + valueTotal;
   const estimatedValueHigh = Math.round(estimatedValueLow * 2);
 
   return { urgencyScore, qualityScore, estimatedValueLow, estimatedValueHigh };

@@ -1,5 +1,6 @@
 import { getBusinessById } from "@/lib/db/queries/businesses";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
+import { withCustomServiceOptions } from "@/lib/verticals/customOptions";
 import { IntakeForm } from "./_form";
 
 const UUID_RE =
@@ -46,7 +47,7 @@ export default async function IntakePage({
     <IntakeForm
       businessId={businessId}
       businessName={business.businessName}
-      questions={config.questions}
+      questions={withCustomServiceOptions(config.questions, business.customServiceOptions)}
       leadId={leadId}
       source={source}
     />

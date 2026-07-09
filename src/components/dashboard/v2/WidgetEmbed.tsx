@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "./primitives";
+import { Button, Icon } from "./primitives";
 
 const APP_URL =
   typeof window !== "undefined" ? window.location.origin : process.env.NEXT_PUBLIC_APP_URL ?? "https://app.callverted.com";
@@ -60,7 +60,9 @@ export function WidgetEmbed({ businessId }: { businessId: string }) {
         ))}
       </div>
 
-      <div className="bg-[#101828] text-[#d0d5dd] rounded-[10px] p-3.5 font-cv-mono text-[11px] leading-relaxed whitespace-pre-wrap break-all">
+      <WidgetPreview mode={mode} />
+
+      <div className="bg-[#101828] text-[#d0d5dd] rounded-[10px] p-3.5 font-cv-mono text-[11px] leading-relaxed whitespace-pre-wrap break-all mt-3">
         {snippet}
       </div>
 
@@ -74,6 +76,56 @@ export function WidgetEmbed({ businessId }: { businessId: string }) {
       </div>
 
       <p className="text-[11px] text-cv-muted mt-3 leading-relaxed">{descriptions[mode]}</p>
+    </div>
+  );
+}
+
+/** A tiny "browser" mockup showing where the widget appears and how it behaves on a real page. */
+function WidgetPreview({ mode }: { mode: WidgetMode }) {
+  return (
+    <div className="relative rounded-[10px] border border-cv-border bg-white overflow-hidden h-[132px] mb-1">
+      {/* Browser chrome */}
+      <div className="h-5 bg-cv-surface-subtle border-b border-cv-border flex items-center gap-1 px-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-cv-border-strong" />
+        <span className="w-1.5 h-1.5 rounded-full bg-cv-border-strong" />
+        <span className="w-1.5 h-1.5 rounded-full bg-cv-border-strong" />
+      </div>
+
+      {/* Page content skeleton */}
+      <div className="p-3 flex flex-col gap-1.5">
+        <div className="h-1.5 w-2/3 rounded-full bg-cv-gray-soft" />
+        <div className="h-1.5 w-5/6 rounded-full bg-cv-gray-soft" />
+        <div className="h-1.5 w-1/2 rounded-full bg-cv-gray-soft" />
+
+        {mode === "inline" && (
+          <div className="mt-1.5 rounded-md border border-dashed border-cv-primary bg-cv-primary-soft/40 p-2 flex flex-col gap-1.5">
+            <div className="h-1.5 w-1/3 rounded-full bg-cv-primary/30" />
+            <div className="h-4 w-full rounded bg-white border border-cv-border" />
+            <div className="h-4 w-full rounded bg-white border border-cv-border" />
+          </div>
+        )}
+
+        {mode === "button" && (
+          <div className="mt-2 inline-flex items-center gap-1 self-start bg-cv-primary text-white text-[9px] font-bold px-2.5 py-1.5 rounded-md">
+            Get a Free Quote
+          </div>
+        )}
+      </div>
+
+      {mode === "popup" && (
+        <>
+          {/* The opened widget panel */}
+          <div className="absolute bottom-9 right-2.5 w-[104px] rounded-lg border border-cv-border bg-white shadow-cv-sm p-2 flex flex-col gap-1">
+            <div className="h-1.5 w-2/3 rounded-full bg-cv-primary-soft" />
+            <div className="h-1.5 w-full rounded-full bg-cv-gray-soft" />
+            <div className="h-3.5 w-full rounded bg-cv-surface-subtle border border-cv-border" />
+          </div>
+          {/* The floating launcher button */}
+          <div className="absolute bottom-2.5 right-2.5 w-7 h-7 rounded-full bg-cv-primary text-white grid place-items-center shadow-cv-sm">
+            <Icon name="chat_bubble" filled className="!text-sm" />
+          </div>
+        </>
+      )}
     </div>
   );
 }

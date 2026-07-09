@@ -1,4 +1,4 @@
-import { jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 // Question definition stored in the questions JSONB array
 export interface VerticalQuestion {
@@ -24,7 +24,7 @@ export interface ScoringRule {
 export const verticalConfigs = pgTable("vertical_configs", {
   id: uuid("id").primaryKey().defaultRandom(),
 
-  // Unique per vertical — 'restoration' | 'pi_law' | 'hvac' | etc.
+  // Unique per vertical — 'restoration' | 'hvac' | 'plumbing' | 'electrical' | 'general_contracting' | 'other'
   vertical: text("vertical").notNull().unique(),
   displayName: text("display_name").notNull(),
 
@@ -38,6 +38,11 @@ export const verticalConfigs = pgTable("vertical_configs", {
   // Prompt template for the GPT reasoning pass. Receives already-computed scores
   // + intake answers. Returns plain-English reasoning only — never scores.
   aiPromptTemplate: text("ai_prompt_template").notNull(),
+
+  // Floor for estimatedValueLow (cents) before scoringRules valueBonus is added.
+  // Per-vertical because job sizes vary wildly — a cheap thermostat call and a
+  // restoration job shouldn't share the same $1,500 floor.
+  baseValueLow: integer("base_value_low").notNull().default(150000),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

@@ -102,7 +102,7 @@ export async function assessLead(
         {
           role: "system",
           content:
-            "You are an expert restoration industry consultant. Respond only with the JSON object requested. Do not change the provided scores.",
+            "You are an expert home services industry consultant. Respond only with the JSON object requested. Do not change the provided scores.",
         },
         { role: "user", content: prompt },
       ],

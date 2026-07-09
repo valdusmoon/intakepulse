@@ -2,6 +2,12 @@ import { boolean, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle
 import { businesses } from "./businesses";
 import { leads } from "./leads";
 
+export interface CallTranscriptEntry {
+  role: "user" | "assistant";
+  message: string;
+  timestamp?: number;
+}
+
 export const calls = pgTable("calls", {
   id: uuid("id").primaryKey().defaultRandom(),
   businessId: uuid("business_id").notNull().references(() => businesses.id),
@@ -40,6 +46,10 @@ export const calls = pgTable("calls", {
   recordingUrl: text("recording_url"),
   // Short AI-generated summary of the call, written when the voice session ends
   summary: text("summary"),
+  // Full turn-by-turn transcript, written when the voice session ends — the
+  // source of truth for what was actually said (pricing disputes, QA, debugging),
+  // distinct from the AI-generated summary above.
+  transcript: jsonb("transcript").$type<CallTranscriptEntry[]>(),
 
   rawPayload: jsonb("raw_payload"), // full provider webhook payload for debugging
 

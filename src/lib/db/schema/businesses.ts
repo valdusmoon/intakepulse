@@ -7,6 +7,11 @@ export interface BusinessNotificationPreferences {
   weeklyReport: boolean;
 }
 
+export interface CustomServiceOption {
+  value: string;
+  label: string;
+}
+
 const DEFAULT_NOTIFICATION_PREFERENCES: BusinessNotificationPreferences = {
   newLead: true,
   qualifiedLead: true,
@@ -26,8 +31,16 @@ export const businesses = pgTable("businesses", {
   timezone: text("timezone").notNull().default("America/New_York"),
   websiteUrl: text("website_url"),
 
-  // V1: hardcoded to 'restoration'. Field exists for future vertical expansion.
+  // Selected during onboarding — see src/lib/verticals/pricingTemplates.ts and
+  // scripts/seed-verticals.ts for the set of supported verticals.
   vertical: text("vertical").notNull().default("restoration"),
+
+  // Extra service categories this business added itself (Settings > Services &
+  // pricing > Add service, when typing something not in the vertical's preset
+  // menu). Merged into the vertical's primary question options everywhere
+  // they're read — see src/lib/verticals/customOptions.ts — so the live call
+  // and public intake form can actually offer/recognize them, not just price them.
+  customServiceOptions: jsonb("custom_service_options").$type<CustomServiceOption[]>().notNull().default([]),
 
   // Telnyx — dormant. Retained for the deferred SMS/A2P module, not used by the
   // voice overflow receptionist. See docs/telnyx-a2p-productionization-spec.md
@@ -66,8 +79,6 @@ export const businesses = pgTable("businesses", {
     .$type<BusinessNotificationPreferences>()
     .notNull()
     .default(DEFAULT_NOTIFICATION_PREFERENCES),
-
-  onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
 
   // Stripe billing
   stripeCustomerId: text("stripe_customer_id").unique(),

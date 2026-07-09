@@ -8,20 +8,22 @@ export async function createLead(data: NewLead) {
 }
 
 export async function getLeadById(id: string) {
-  return db.query.leads.findFirst({
+  const lead = await db.query.leads.findFirst({
     where: and(eq(leads.id, id), isNull(leads.deletedAt)),
-  }) ?? null;
+  });
+  return lead ?? null;
 }
 
 export async function getLeadByPhoneAndBusiness(callerPhone: string, businessId: string) {
-  return db.query.leads.findFirst({
+  const lead = await db.query.leads.findFirst({
     where: and(
       eq(leads.callerPhone, callerPhone),
       eq(leads.businessId, businessId),
       isNull(leads.deletedAt),
     ),
     orderBy: asc(leads.createdAt),
-  }) ?? null;
+  });
+  return lead ?? null;
 }
 
 export async function getLeadsByBusiness(

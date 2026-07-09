@@ -3,15 +3,14 @@ import { db } from "../index";
 import { pricingRules, type NewPricingRule } from "../schema/pricingRules";
 
 export async function getActivePricingRule(businessId: string, serviceCategory: string) {
-  return (
-    db.query.pricingRules.findFirst({
-      where: and(
-        eq(pricingRules.businessId, businessId),
-        eq(pricingRules.serviceCategory, serviceCategory),
-        eq(pricingRules.isActive, true)
-      ),
-    }) ?? null
-  );
+  const rule = await db.query.pricingRules.findFirst({
+    where: and(
+      eq(pricingRules.businessId, businessId),
+      eq(pricingRules.serviceCategory, serviceCategory),
+      eq(pricingRules.isActive, true)
+    ),
+  });
+  return rule ?? null;
 }
 
 export async function getPricingRulesByBusiness(businessId: string) {
@@ -23,6 +22,11 @@ export async function getPricingRulesByBusiness(businessId: string) {
 export async function createPricingRule(data: NewPricingRule) {
   const result = await db.insert(pricingRules).values(data).returning();
   return result[0];
+}
+
+export async function createPricingRulesBulk(rows: NewPricingRule[]) {
+  if (rows.length === 0) return [];
+  return db.insert(pricingRules).values(rows).returning();
 }
 
 export async function updatePricingRule(
@@ -38,7 +42,8 @@ export async function updatePricingRule(
 }
 
 export async function getPricingRuleById(id: string) {
-  return db.query.pricingRules.findFirst({ where: eq(pricingRules.id, id) }) ?? null;
+  const rule = await db.query.pricingRules.findFirst({ where: eq(pricingRules.id, id) });
+  return rule ?? null;
 }
 
 export async function deletePricingRule(id: string) {

@@ -8,13 +8,14 @@ export async function createFollowup(data: NewFollowup) {
 }
 
 export async function getPendingFollowup(leadId: string) {
-  return db.query.followups.findFirst({
+  const followup = await db.query.followups.findFirst({
     where: and(
       eq(followups.leadId, leadId),
       isNull(followups.sentAt),
       isNull(followups.canceledAt),
     ),
-  }) ?? null;
+  });
+  return followup ?? null;
 }
 
 export async function getFollowupsByLead(leadId: string) {

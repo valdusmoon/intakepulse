@@ -5,9 +5,10 @@ import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { getLeadsByBusiness } from "@/lib/db/queries/leads";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel, deriveReasonLine } from "@/lib/verticals/labels";
-import { priorityMeta, intentMeta, timeAgoShort, fmtValueRange } from "@/lib/leads/priority";
+import { priorityMeta, intentMeta, statusMeta, sourceLabel, timeAgoShort, fmtValueRange } from "@/lib/leads/priority";
 import { Card, Badge, LinkButton, Icon } from "@/components/dashboard/v2/primitives";
 import { FilterSelect } from "./_filter-select";
+import { LeadRowActions } from "./lead-row-actions";
 
 const STATUSES = [
   { value: "", label: "All statuses" },
@@ -142,7 +143,7 @@ export default async function LeadsPage({
             <table className="w-full min-w-[920px] border-collapse">
               <thead>
                 <tr>
-                  {["Lead", "Source", "Service", "Priority", "Intent and reason", "Est. value", "Waiting", ""].map((h) => (
+                  {["Lead", "Source", "Service", "Status", "Priority", "Intent and reason", "Est. value", "Waiting", ""].map((h) => (
                     <th
                       key={h}
                       className="px-3.5 py-[11px] bg-cv-surface-subtle border-b border-cv-border text-left text-[10px] tracking-wide uppercase text-cv-muted font-semibold"
@@ -156,6 +157,7 @@ export default async function LeadsPage({
                 {leadRows.map((lead) => {
                   const p = priorityMeta(lead.urgencyScore);
                   const intent = intentMeta(lead.qualityScore);
+                  const status = statusMeta(lead.leadStatus);
                   const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers);
                   const reason = deriveReasonLine(verticalConfig, lead.intakeAnswers);
                   const value = fmtValueRange(lead.estimatedValueLow, lead.estimatedValueHigh);
@@ -166,11 +168,17 @@ export default async function LeadsPage({
                         <span className="block text-cv-muted mt-[3px]">{lead.callerPhone}</span>
                       </td>
                       <td className="px-3.5 py-3.5 align-middle">
-                        <div className="w-[31px] h-[31px] rounded-lg grid place-items-center bg-cv-gray-soft text-[#475467]" title={lead.source}>
-                          <Icon name={SOURCE_ICON[lead.source] ?? "help"} className="!text-[17px]" />
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-[31px] h-[31px] rounded-lg grid place-items-center bg-cv-gray-soft text-[#475467] shrink-0">
+                            <Icon name={SOURCE_ICON[lead.source] ?? "help"} className="!text-[17px]" />
+                          </div>
+                          <span className="text-xs text-cv-ink whitespace-nowrap">{sourceLabel(lead.source)}</span>
                         </div>
                       </td>
                       <td className="px-3.5 py-3.5 text-xs align-middle">{service ?? "—"}</td>
+                      <td className="px-3.5 py-3.5 align-middle">
+                        <Badge color={status.color}>{status.label}</Badge>
+                      </td>
                       <td className="px-3.5 py-3.5 align-middle">
                         <Badge color={p.color}>{p.label}</Badge>
                       </td>
@@ -183,9 +191,8 @@ export default async function LeadsPage({
                       <td className="px-3.5 py-3.5 align-middle font-cv-mono font-bold text-xs whitespace-nowrap">{value ?? "—"}</td>
                       <td className="px-3.5 py-3.5 align-middle font-cv-mono text-xs">{timeAgoShort(lead.createdAt)}</td>
                       <td className="px-3.5 py-3.5 align-middle text-right">
-                        <Link href={`/dashboard/leads/${lead.id}`} className="text-cv-primary text-xs font-bold hover:underline whitespace-nowrap">
-                          Open
-                        </Link>
+                        {/* hasEmail is false until a "request project details" email endpoint actually exists — see lead-row-actions.tsx */}
+                        <LeadRowActions leadId={lead.id} hasEmail={false} />
                       </td>
                     </tr>
                   );

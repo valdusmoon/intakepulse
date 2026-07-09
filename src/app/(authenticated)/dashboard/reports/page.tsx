@@ -6,23 +6,7 @@ import { getCallMetrics } from "@/lib/db/queries/calls";
 import { getReportsFunnel, getChannelPerformance, getDailyCapturedVsWon } from "@/lib/db/queries/dashboard";
 import { Card, CardHeader, CardTitle, CardBody, MetricCard } from "@/components/dashboard/v2/primitives";
 import { RangeSelect } from "./_range-select";
-import { fmtCents } from "@/lib/leads/priority";
-
-const SOURCE_SWATCH: Record<string, string> = {
-  voice_overflow: "#2454d8",
-  website_widget: "#6941c6",
-  direct_intake: "#667085",
-  manual: "#98a2b3",
-  email: "#98a2b3",
-};
-
-const SOURCE_LABEL: Record<string, string> = {
-  voice_overflow: "Voice overflow",
-  website_widget: "Website widget",
-  direct_intake: "Direct intake",
-  manual: "Manual entry",
-  email: "Email",
-};
+import { fmtCents, sourceLabel, sourceSwatch } from "@/lib/leads/priority";
 
 const RANGES = [
   { value: "14", label: "Last 14 days" },
@@ -164,8 +148,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           {channels.map((c) => (
             <div key={c.source} className="grid grid-cols-4 gap-2.5 items-center py-3 border-t border-cv-border text-xs">
               <span className="flex items-center gap-2">
-                <i className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ background: SOURCE_SWATCH[c.source] ?? "#98a2b3" }} />
-                <strong>{SOURCE_LABEL[c.source] ?? c.source}</strong>
+                <i className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ background: sourceSwatch(c.source) }} />
+                <strong>{sourceLabel(c.source)}</strong>
               </span>
               <span className="font-cv-mono">{c.leadCount}</span>
               <span className="font-cv-mono">{c.wonCount}</span>

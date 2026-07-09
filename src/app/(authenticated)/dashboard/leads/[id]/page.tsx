@@ -9,21 +9,13 @@ import { getSmsEventsByLead } from "@/lib/db/queries/smsEvents";
 import { getCallByLeadId } from "@/lib/db/queries/calls";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { formatIntakeAnswers, deriveServiceLabel } from "@/lib/verticals/labels";
-import { priorityMeta, intentMeta, fmtCents, fmtValueRange, timeAgoShort } from "@/lib/leads/priority";
+import { priorityMeta, intentMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort } from "@/lib/leads/priority";
 import { Card, CardHeader, CardTitle, CardBody, Badge, LinkButton, Icon } from "@/components/dashboard/v2/primitives";
 import { LeadDetailClient } from "./_client";
 
 function fmtTime(date: Date | string) {
   return new Date(date).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
-
-const SOURCE_LABEL: Record<string, string> = {
-  voice_overflow: "Voice overflow",
-  website_widget: "Website widget",
-  direct_intake: "Direct intake",
-  manual: "Manual entry",
-  email: "Email",
-};
 
 // Build a flat, time-sorted event list from available data
 function buildTimeline(
@@ -39,7 +31,7 @@ function buildTimeline(
       events.push({ key: "call_missed", label: "Missed — no answer", time: new Date(call.missedAt) });
     }
   } else if (lead.source !== "voice_overflow") {
-    events.push({ key: "lead_created", label: `Lead created via ${SOURCE_LABEL[lead.source] ?? lead.source}`, time: new Date(lead.createdAt) });
+    events.push({ key: "lead_created", label: `Lead created via ${sourceLabel(lead.source)}`, time: new Date(lead.createdAt) });
   }
 
   for (const sms of smsEvents) {
@@ -112,10 +104,20 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <Badge color={intent.color}>{intent.label}</Badge>
           </div>
           <p className="mt-[7px] text-cv-muted text-sm">
-            {SOURCE_LABEL[lead.source] ?? lead.source} · captured {timeAgoShort(lead.createdAt)} ago · {lead.callerPhone}
+            {sourceLabel(lead.source)} · captured {timeAgoShort(lead.createdAt)} ago · {lead.callerPhone}
+            {lead.callerEmail && <> · {lead.callerEmail}</>}
           </p>
         </div>
         <div className="flex gap-2.5">
+          {lead.callerEmail && (
+            <a
+              href={`mailto:${lead.callerEmail}`}
+              className="inline-flex items-center justify-center gap-2 rounded-[9px] border border-cv-border-strong bg-white text-cv-ink font-bold text-[13px] min-h-10 px-3.5 hover:bg-cv-surface-subtle transition-colors"
+            >
+              <Icon name="mail" className="!text-base" />
+              Email
+            </a>
+          )}
           <a
             href={`tel:${lead.callerPhone}`}
             className="inline-flex items-center justify-center gap-2 rounded-[9px] border border-cv-primary bg-cv-primary text-white font-bold text-[13px] min-h-10 px-3.5 hover:bg-cv-primary-dark transition-colors"
@@ -135,10 +137,28 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </CardHeader>
             <CardBody className="flex flex-col gap-4">
               {assessment ? (
-                <div className="p-3.5 bg-cv-surface-blue border border-[#dce5ff] rounded-[10px] text-[13px] leading-relaxed">
-                  <strong>{assessment.recommendedActions[0] ?? "Review and follow up."}</strong>
-                  <br />
-                  {assessment.qualityReasoning}
+                <div className="flex flex-col gap-3">
+                  <div className="p-3.5 bg-cv-surface-blue border border-[#dce5ff] rounded-[10px] text-[13px] leading-relaxed">
+                    <p>
+                      <strong>Urgency:</strong> {assessment.urgencyReasoning}
+                    </p>
+                    <p className="mt-2">
+                      <strong>Quality:</strong> {assessment.qualityReasoning}
+                    </p>
+                  </div>
+                  {assessment.recommendedActions.length > 0 && (
+                    <div>
+                      <span className="block text-[10px] uppercase tracking-wide font-extrabold text-cv-muted mb-1.5">Recommended actions</span>
+                      <ul className="flex flex-col gap-1.5">
+                        {assessment.recommendedActions.map((action, i) => (
+                          <li key={i} className="text-[13px] leading-relaxed flex gap-2">
+                            <span className="text-cv-primary">•</span>
+                            {action}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-cv-muted">AI assessment pending — intake not yet completed.</p>
@@ -150,7 +170,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 </div>
                 <div>
                   <span className="block text-[10px] uppercase tracking-wide font-extrabold text-cv-muted">Source</span>
-                  <strong className="block mt-[5px] text-[13px]">{SOURCE_LABEL[lead.source] ?? lead.source}</strong>
+                  <strong className="block mt-[5px] text-[13px]">{sourceLabel(lead.source)}</strong>
                 </div>
                 <div>
                   <span className="block text-[10px] uppercase tracking-wide font-extrabold text-cv-muted">Preliminary range</span>
@@ -213,10 +233,24 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   <p className="text-[13px] leading-relaxed text-cv-ink">
                     {call?.summary ?? "No summary was generated for this call."}
                   </p>
-                  <p className="text-[11px] text-cv-muted mt-3 italic">
-                    Full turn-by-turn transcript logging isn&apos;t wired up yet — this is the AI-generated call summary.
-                  </p>
                 </div>
+                {call?.transcript && call.transcript.length > 0 ? (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide font-extrabold text-cv-muted mb-2">Transcript</p>
+                    <div className="flex flex-col gap-2 max-h-80 overflow-y-auto border border-cv-border rounded-[11px] p-3.5 bg-cv-surface-subtle">
+                      {call.transcript.map((entry, i) => (
+                        <p key={i} className="text-[13px] leading-relaxed">
+                          <span className={`font-bold ${entry.role === "assistant" ? "text-cv-primary" : "text-cv-ink"}`}>
+                            {entry.role === "assistant" ? "Callverted: " : "Caller: "}
+                          </span>
+                          {entry.message}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-cv-muted italic">No turn-by-turn transcript was recorded for this call.</p>
+                )}
               </>
             )}
           </CardBody>

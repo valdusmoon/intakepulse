@@ -1,12 +1,12 @@
 /**
- * Hardcoded restoration-vertical flow content — the fixed/near-fixed prompt text
- * for each bookend state. Deliberately NOT a generic multi-vertical engine yet
- * (see docs plan, Phase 5) — this proves the hard-state-machine approach for one
- * real, already-scorable vertical before generalizing.
+ * Fixed/near-fixed prompt text for each bookend state of a call (greeting,
+ * confirmation, goodbye, etc.), shared across every vertical.
  *
- * The qualification loop itself (the 6 damage/room/insurance/timing questions)
- * is fully data-driven from verticalConfigs.questions — nothing vertical-specific
- * is hardcoded there. Only these bookend states are fixed here.
+ * The qualification loop itself (the intake questions) is fully data-driven
+ * from verticalConfigs.questions — nothing vertical-specific is hardcoded
+ * there. These bookend prompts reference the vertical config generically too
+ * (e.g. confirmationLine reads verticalConfig.questions[0] rather than a
+ * hardcoded key), so adding a new vertical only means writing new seed data.
  */
 
 import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
@@ -76,14 +76,20 @@ export function callbackPreferencePrompt(): string {
 }
 
 export function confirmationLine(ctx: FlowContext): string {
-  const { session, business } = ctx;
+  const { session, business, verticalConfig } = ctx;
   const name = session.conversationContext.callerName || "there";
-  const damageType = session.conversationContext.answers.damage_type;
   const zip = session.conversationContext.zipCode;
   const callback = session.conversationContext.callbackPreference;
 
+  // The first question in a vertical's config doubles as its primary
+  // category (e.g. damage type, service type) — reference it generically
+  // rather than a hardcoded key so this line works for every vertical.
+  const primaryQuestion = verticalConfig.questions[0];
+  const primaryAnswer = primaryQuestion ? session.conversationContext.answers[primaryQuestion.key] : undefined;
+  const primaryLabel = primaryQuestion?.options?.find((o) => o.value === primaryAnswer)?.label;
+
   const parts = [`Thanks, ${name}.`];
-  if (damageType) parts.push(`I have this as a ${damageType} damage issue${zip ? ` in ZIP code ${zip}` : ""}.`);
+  if (primaryLabel) parts.push(`I have this noted as ${primaryLabel}${zip ? ` in ZIP code ${zip}` : ""}.`);
   parts.push(`${business.businessName} has received the request and will call you back${callback ? ` ${callback}` : " as soon as possible"}.`);
   return parts.join(" ");
 }

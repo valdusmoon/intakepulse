@@ -8,7 +8,7 @@ export default async function OnboardingPage() {
   if (!userId) redirect("/sign-in");
 
   const business = await getBusinessByClerkId(userId);
-  if (business?.onboardingCompleted) redirect("/dashboard");
+  if (business) redirect("/dashboard");
 
   return <OnboardingForm />;
 }

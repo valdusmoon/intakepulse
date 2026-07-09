@@ -17,6 +17,46 @@ export function intentMeta(qualityScore: number | null): { label: string; color:
   return { label: "Intent unclear", color: "gray" };
 }
 
+const STATUS_META: Record<string, { label: string; color: BadgeColor }> = {
+  new: { label: "New", color: "gray" },
+  contacted: { label: "Contacted", color: "blue" },
+  qualified: { label: "Qualified", color: "purple" },
+  booked: { label: "Booked", color: "blue" },
+  estimate_sent: { label: "Estimate sent", color: "amber" },
+  converted: { label: "Won", color: "green" },
+  lost: { label: "Lost", color: "red" },
+};
+
+export function statusMeta(leadStatus: string): { label: string; color: BadgeColor } {
+  return STATUS_META[leadStatus] ?? { label: leadStatus, color: "gray" };
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  voice_overflow: "Voice overflow",
+  website_widget: "Website widget",
+  direct_intake: "Direct intake",
+  manual: "Manual entry",
+  email: "Email",
+};
+
+/** Human-readable label for a lead's raw `source` enum value — never show the DB value itself in the UI. */
+export function sourceLabel(source: string): string {
+  return SOURCE_LABELS[source] ?? source;
+}
+
+const SOURCE_SWATCHES: Record<string, string> = {
+  voice_overflow: "#2454d8",
+  website_widget: "#6941c6",
+  direct_intake: "#667085",
+  manual: "#98a2b3",
+  email: "#98a2b3",
+};
+
+/** Swatch/dot color for a lead's raw `source` enum value, for consistent channel color-coding across the dashboard. */
+export function sourceSwatch(source: string): string {
+  return SOURCE_SWATCHES[source] ?? "#98a2b3";
+}
+
 export function initials(name: string | null) {
   if (!name) return "—";
   const parts = name.trim().split(/\s+/);

@@ -4,6 +4,7 @@ import { HeroPhoneAnimation } from "@/components/marketing/HeroPhoneAnimation";
 import { ProductShowcase } from "@/components/marketing/ProductShowcase";
 import { MissedCallCalculator } from "@/components/marketing/MissedCallCalculator";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
+import { AuthAwareNavCta } from "@/components/marketing/AuthAwareNavCta";
 
 const HERO_PROOF = [
   { num: "2:47 AM", label: "Call answered after your team misses it" },
@@ -14,7 +15,7 @@ const HERO_PROOF = [
 const STATS = [
   { stat: "100×", label: "more likely to make contact responding in 5 min vs. 30" },
   { stat: "78%", label: "of customers buy from the first business to respond" },
-  { stat: "47 hrs", label: "average industry response time (the gap you're exploiting)" },
+  { stat: "47 hrs", label: "average industry response time to a new lead" },
   { stat: "24–48 hrs", label: "window before a delayed emergency turns into a bigger, costlier job" },
 ];
 
@@ -116,13 +117,7 @@ export default function HomePage() {
               <Link href="#how" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">How it works</Link>
               <Link href="#product" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">Product</Link>
               <Link href="#pricing" className="text-sm text-white/60 hover:text-white transition-colors hidden sm:block">Pricing</Link>
-              <Link href="/sign-in" className="text-sm text-white/60 hover:text-white transition-colors">Log in</Link>
-              <Link
-                href="/sign-up"
-                className="text-sm font-semibold bg-landing-primary text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Start free trial
-              </Link>
+              <AuthAwareNavCta />
             </div>
           </div>
         </nav>
@@ -160,7 +155,7 @@ export default function HomePage() {
                 </Link>
               </div>
               <p className="text-xs text-white/40 font-cv-mono mb-9">
-                No credit card · Live today · Setup in ~30 min
+                14-day free trial · Live today · Setup in ~30 min
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-lg">
@@ -214,8 +209,7 @@ export default function HomePage() {
             ))}
           </div>
           <p className="text-center text-[11px] text-[#98a2b3] mt-5">
-            MIT / Lead Response Management Study · Drift/InsideSales.com. Directional figures; confirm current
-            sourcing before using as a compliance-reviewed claim.
+            Source: MIT / Lead Response Management Study · Drift/InsideSales.com
           </p>
         </ScrollReveal>
       </section>
@@ -396,7 +390,7 @@ export default function HomePage() {
             >
               Start free trial
             </Link>
-            <p className="text-center text-xs text-[#98a2b3] mt-3">No credit card required. Cancel anytime.</p>
+            <p className="text-center text-xs text-[#98a2b3] mt-3">14-day free trial. Cancel anytime.</p>
             </div>
           </div>
         </ScrollReveal>

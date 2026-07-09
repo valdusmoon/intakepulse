@@ -3,27 +3,31 @@ import { db } from "../index";
 import { businesses, type NewBusiness } from "../schema/businesses";
 
 export async function getBusinessByClerkId(clerkUserId: string) {
-  return db.query.businesses.findFirst({
+  const business = await db.query.businesses.findFirst({
     where: eq(businesses.clerkUserId, clerkUserId),
-  }) ?? null;
+  });
+  return business ?? null;
 }
 
 export async function getBusinessById(id: string) {
-  return db.query.businesses.findFirst({
+  const business = await db.query.businesses.findFirst({
     where: eq(businesses.id, id),
-  }) ?? null;
+  });
+  return business ?? null;
 }
 
 export async function getBusinessByTelnyxNumber(telnyxPhoneNumber: string) {
-  return db.query.businesses.findFirst({
+  const business = await db.query.businesses.findFirst({
     where: eq(businesses.telnyxPhoneNumber, telnyxPhoneNumber),
-  }) ?? null;
+  });
+  return business ?? null;
 }
 
 export async function getBusinessByTwilioNumber(twilioPhoneNumber: string) {
-  return db.query.businesses.findFirst({
+  const business = await db.query.businesses.findFirst({
     where: eq(businesses.twilioPhoneNumber, twilioPhoneNumber),
-  }) ?? null;
+  });
+  return business ?? null;
 }
 
 export async function getAllBusinesses() {

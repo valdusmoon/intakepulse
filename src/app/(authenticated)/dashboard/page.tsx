@@ -11,26 +11,10 @@ import {
 } from "@/lib/db/queries/dashboard";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel } from "@/lib/verticals/labels";
-import { priorityMeta, intentMeta, initials, timeAgoShort, fmtCents, fmtValueRange } from "@/lib/leads/priority";
+import { priorityMeta, intentMeta, initials, timeAgoShort, fmtCents, fmtValueRange, sourceLabel, sourceSwatch } from "@/lib/leads/priority";
 import { Card, CardHeader, CardTitle, CardBody, Badge, StatusPill, MetricCard, Trend, Icon, LinkButton } from "@/components/dashboard/v2/primitives";
 
 const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing"];
-
-const SOURCE_SWATCH: Record<string, string> = {
-  voice_overflow: "#2454d8",
-  website_widget: "#6941c6",
-  direct_intake: "#667085",
-  manual: "#98a2b3",
-  email: "#98a2b3",
-};
-
-const SOURCE_LABEL: Record<string, string> = {
-  voice_overflow: "Voice overflow",
-  website_widget: "Website widget",
-  direct_intake: "Direct intake",
-  manual: "Manual",
-  email: "Email",
-};
 
 function fmtDuration(seconds: number) {
   if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -301,8 +285,8 @@ export default async function DashboardPage() {
               {sources.slice(0, 3).map((s) => (
                 <div key={s.source} className="flex justify-between items-center text-xs">
                   <span className="flex items-center gap-2">
-                    <i className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ background: SOURCE_SWATCH[s.source] ?? "#98a2b3" }} />
-                    {SOURCE_LABEL[s.source] ?? s.source}
+                    <i className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ background: sourceSwatch(s.source) }} />
+                    {sourceLabel(s.source)}
                   </span>
                   <strong className="font-cv-mono">{s.pct}%</strong>
                 </div>

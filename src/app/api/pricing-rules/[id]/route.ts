@@ -1,7 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
-import { getPricingRuleById, updatePricingRule, deletePricingRule } from "@/lib/db/queries/pricingRules";
+import { getBusinessByClerkId, updateBusiness } from "@/lib/db/queries/businesses";
+import { getPricingRuleById, getPricingRulesByBusiness, updatePricingRule, deletePricingRule } from "@/lib/db/queries/pricingRules";
+import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 
 async function getAuthorizedRule(userId: string, ruleId: string) {
   const [business, rule] = await Promise.all([getBusinessByClerkId(userId), getPricingRuleById(ruleId)]);
@@ -33,6 +34,40 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body = await req.json();
   const safeBody = Object.fromEntries(ALLOWED.filter((k) => k in body).map((k) => [k, body[k]]));
+
+  if (typeof safeBody.serviceCategory === "string") {
+    const { business } = result;
+    const verticalConfig = await getVerticalConfig(business.vertical);
+    const knownValues = new Set([
+      ...(verticalConfig?.questions[0]?.options ?? []).map((o) => o.value),
+      ...business.customServiceOptions.map((o) => o.value),
+    ]);
+    if (!knownValues.has(safeBody.serviceCategory)) {
+      const label = typeof body.serviceLabel === "string" && body.serviceLabel.trim() ? body.serviceLabel.trim() : safeBody.serviceCategory;
+      await updateBusiness(business.id, {
+        customServiceOptions: [...business.customServiceOptions, { value: safeBody.serviceCategory, label }],
+      });
+    }
+  }
+
+  // Only re-check when this edit could newly create a collision — changing
+  // the category, or reactivating a rule, are the two ways that happens.
+  if ("serviceCategory" in safeBody || "isActive" in safeBody) {
+    const { rule } = result;
+    const effectiveCategory = safeBody.serviceCategory ?? rule.serviceCategory;
+    const effectiveActive = safeBody.isActive ?? rule.isActive;
+    if (effectiveActive) {
+      const existingRules = await getPricingRulesByBusiness(rule.businessId);
+      const duplicate = existingRules.find((r) => r.id !== id && r.serviceCategory === effectiveCategory && r.isActive);
+      if (duplicate) {
+        const label = typeof body.serviceLabel === "string" && body.serviceLabel.trim() ? body.serviceLabel.trim() : effectiveCategory;
+        return NextResponse.json(
+          { error: `An active pricing rule for "${label}" already exists — edit that one instead.` },
+          { status: 409 }
+        );
+      }
+    }
+  }
 
   const updated = await updatePricingRule(id, safeBody);
   return NextResponse.json(updated);

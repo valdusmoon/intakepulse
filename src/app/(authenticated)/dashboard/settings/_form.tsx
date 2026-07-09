@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Business } from "@/lib/db/schema/businesses";
 import type { PricingRule, PricingType } from "@/lib/db/schema/pricingRules";
+import { labelForCategory, resolveServiceCategory, buildApprovedMessage } from "@/lib/verticals/pricingRuleHelpers";
 import {
   Card,
   CardHeader,
@@ -22,8 +23,6 @@ const TABS = [
   { key: "call", label: "Call setup", icon: "phone_in_talk" },
   { key: "pricing", label: "Services & pricing", icon: "sell" },
   { key: "notifications", label: "Notifications", icon: "notifications" },
-  { key: "team", label: "Team", icon: "group" },
-  { key: "integrations", label: "Integrations", icon: "extension" },
   { key: "billing", label: "Billing", icon: "credit_card" },
   { key: "business", label: "Business profile", icon: "business" },
 ] as const;
@@ -92,8 +91,6 @@ export function SettingsTabs({ business, pricingRules, serviceOptions, initialTa
         {tab === "call" && <CallSetupPanel business={business} />}
         {tab === "pricing" && <PricingPanel businessId={business.id} vertical={business.vertical} initialRules={pricingRules} serviceOptions={serviceOptions} />}
         {tab === "notifications" && <NotificationsPanel business={business} />}
-        {tab === "team" && <TeamPanel business={business} />}
-        {tab === "integrations" && <IntegrationsPanel />}
         {tab === "billing" && <BillingPanel />}
         {tab === "business" && <BusinessProfilePanel business={business} />}
       </div>
@@ -275,6 +272,56 @@ function centsToDollarsStr(cents: number | null) {
   return cents != null ? String(cents / 100) : "";
 }
 
+type EditableRule = PricingRule & { serviceLabel: string };
+
+/** Free-text input with a custom suggestions panel — no native <datalist>, so there's no browser-specific dropdown-arrow chrome to fight. */
+function ServiceComboBox({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const filtered = options.filter((o) => o.label.toLowerCase().includes(value.trim().toLowerCase()));
+
+  return (
+    <div className="relative">
+      <Field
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 120)}
+        placeholder="e.g. Duct cleaning"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-10 mt-1 w-full max-h-48 overflow-auto rounded-lg border border-cv-border bg-white shadow-cv-sm">
+          {filtered.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              // onMouseDown (not onClick) so the selection registers before the input's onBlur closes the panel.
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(o.label);
+                setOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-cv-surface-subtle"
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PricingPanel({
   businessId,
   vertical,
@@ -286,15 +333,20 @@ function PricingPanel({
   initialRules: PricingRule[];
   serviceOptions: { value: string; label: string }[];
 }) {
-  const [rules, setRules] = useState(initialRules);
+  const [rules, setRules] = useState<EditableRule[]>(
+    initialRules.map((r) => ({ ...r, serviceLabel: labelForCategory(serviceOptions, r.serviceCategory) }))
+  );
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   function addRule() {
-    const draft: PricingRule = {
+    const draft: EditableRule = {
       id: `draft-${Date.now()}`,
       businessId,
       vertical,
-      serviceCategory: serviceOptions[0]?.value ?? "",
+      serviceCategory: "",
+      serviceLabel: "",
       pricingType: "preliminary_range",
       minimumAmount: null,
       maximumAmount: null,
@@ -309,21 +361,25 @@ function PricingPanel({
     setRules((r) => [...r, draft]);
   }
 
-  function update(id: string, patch: Partial<PricingRule>) {
+  function update(id: string, patch: Partial<EditableRule>) {
     setRules((r) => r.map((rule) => (rule.id === id ? { ...rule, ...patch } : rule)));
   }
 
-  async function saveRule(rule: PricingRule) {
+  async function saveRule(rule: EditableRule) {
     setSavingId(rule.id);
+    setError("");
     try {
+      const serviceCategory = resolveServiceCategory(serviceOptions, rule.serviceLabel);
+      const approvedCustomerMessage = buildApprovedMessage(rule);
       const payload = {
-        serviceCategory: rule.serviceCategory,
+        serviceCategory,
+        serviceLabel: rule.serviceLabel.trim(),
         pricingType: rule.pricingType,
         minimumAmount: rule.minimumAmount,
         maximumAmount: rule.maximumAmount,
         fixedAmount: rule.fixedAmount,
         startingAmount: rule.startingAmount,
-        approvedCustomerMessage: rule.approvedCustomerMessage,
+        approvedCustomerMessage,
         disclaimer: rule.disclaimer,
         isActive: rule.isActive,
       };
@@ -333,23 +389,49 @@ function PricingPanel({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...payload, vertical }),
         });
-        const created = await res.json();
-        setRules((r) => r.map((x) => (x.id === rule.id ? created : x)));
+        const body = await res.json();
+        if (!res.ok) {
+          setError(body.error || "Failed to save service.");
+          return;
+        }
+        setRules((r) => r.map((x) => (x.id === rule.id ? { ...body, serviceLabel: rule.serviceLabel.trim() } : x)));
       } else {
-        await fetch(`/api/pricing-rules/${rule.id}`, {
+        const res = await fetch(`/api/pricing-rules/${rule.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setError(body.error || "Failed to save service.");
+          return;
+        }
+        update(rule.id, { serviceCategory });
       }
+    } catch {
+      setError("Failed to save service — check your connection and try again.");
     } finally {
       setSavingId(null);
     }
   }
 
   async function removeRule(id: string) {
+    setError("");
     if (!id.startsWith("draft-")) {
-      await fetch(`/api/pricing-rules/${id}`, { method: "DELETE" });
+      setRemovingId(id);
+      try {
+        const res = await fetch(`/api/pricing-rules/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setError(body.error || "Failed to remove service.");
+          return;
+        }
+      } catch {
+        setError("Failed to remove service — check your connection and try again.");
+        return;
+      } finally {
+        setRemovingId(null);
+      }
     }
     setRules((r) => r.filter((rule) => rule.id !== id));
   }
@@ -367,18 +449,17 @@ function PricingPanel({
         </Button>
       </CardHeader>
       <CardBody className="flex flex-col gap-4">
+        {error && <p className="text-sm text-cv-red">{error}</p>}
         {rules.length === 0 && <p className="text-sm text-cv-muted py-4 text-center">No pricing rules yet — add one so the voice AI can quote a real range.</p>}
         {rules.map((rule) => (
           <div key={rule.id} className="border border-cv-border rounded-xl p-3.5 flex flex-col gap-2.5">
             <div className="grid grid-cols-1 sm:grid-cols-[1.4fr_1fr_1fr] gap-2.5">
-              <FormGroup label="Service">
-                <Select value={rule.serviceCategory} onChange={(e) => update(rule.id, { serviceCategory: e.target.value })}>
-                  {serviceOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Select>
+              <FormGroup label="Service" help="Pick a preset or type your own.">
+                <ServiceComboBox
+                  value={rule.serviceLabel}
+                  onChange={(v) => update(rule.id, { serviceLabel: v })}
+                  options={serviceOptions}
+                />
               </FormGroup>
               <FormGroup label="Pricing type">
                 <Select value={rule.pricingType} onChange={(e) => update(rule.id, { pricingType: e.target.value as PricingType })}>
@@ -426,21 +507,18 @@ function PricingPanel({
                 {rule.pricingType === "inspection_required" && <Badge color="gray">No amount</Badge>}
               </FormGroup>
             </div>
-            <FormGroup label="Caller-facing wording">
-              <TextArea
-                value={rule.approvedCustomerMessage}
-                onChange={(e) => update(rule.id, { approvedCustomerMessage: e.target.value })}
-                placeholder="The exact sentence the AI reads verbatim to callers."
-              />
-            </FormGroup>
+            <div className="text-xs text-cv-muted bg-cv-surface-subtle border border-cv-border rounded-lg px-3 py-2.5">
+              <span className="font-bold text-cv-ink">Caller hears: </span>
+              {buildApprovedMessage(rule) || "Fill in the amount to generate the wording."}
+            </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5">
                 <Toggle checked={rule.isActive} onChange={(v) => update(rule.id, { isActive: v })} />
                 <span className="text-xs text-cv-muted">{rule.isActive ? "Live" : "Disabled"}</span>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="danger" onClick={() => removeRule(rule.id)}>
-                  Remove
+                <Button size="sm" variant="danger" onClick={() => removeRule(rule.id)} disabled={removingId === rule.id}>
+                  {removingId === rule.id ? "Removing…" : "Remove"}
                 </Button>
                 <Button size="sm" variant="primary" onClick={() => saveRule(rule)} disabled={savingId === rule.id}>
                   {savingId === rule.id ? "Saving…" : "Save"}
@@ -483,8 +561,8 @@ function NotificationsPanel({ business }: { business: Business }) {
 
         <div className="flex justify-between items-center py-3.5 border-t border-cv-border">
           <div>
-            <strong className="block text-xs">Email every qualified lead</strong>
-            <span className="block text-cv-muted text-[10px] mt-1">Turn off to stop lead emails entirely — not recommended.</span>
+            <strong className="block text-xs">Notify me for every qualified lead</strong>
+            <span className="block text-cv-muted text-[10px] mt-1">Sends you an email when a new lead is qualified. Turn off to stop these notifications entirely — not recommended.</span>
           </div>
           <Toggle checked={qualifiedLead} onChange={setQualifiedLead} />
         </div>
@@ -495,14 +573,6 @@ function NotificationsPanel({ business }: { business: Business }) {
           </div>
           <Toggle checked={weeklyReport} onChange={setWeeklyReport} />
         </div>
-        <div className="flex justify-between items-center py-3.5 border-t border-cv-border opacity-50">
-          <div>
-            <strong className="block text-xs">SMS alerts</strong>
-            <span className="block text-cv-muted text-[10px] mt-1">Text alert to your mobile number for urgent leads. Coming soon.</span>
-          </div>
-          <Toggle checked={false} onChange={() => {}} />
-        </div>
-
         {error && <p className="text-sm text-cv-red">{error}</p>}
         <Button
           variant="primary"
@@ -518,74 +588,6 @@ function NotificationsPanel({ business }: { business: Business }) {
         >
           {loading ? "Saving…" : saved ? "Saved ✓" : "Save notifications"}
         </Button>
-      </CardBody>
-    </Card>
-  );
-}
-
-// ─── Team (stub) ─────────────────────────────────────────────────────────────
-
-function TeamPanel({ business }: { business: Business }) {
-  return (
-    <Card>
-      <CardHeader>
-        <div>
-          <CardTitle className="!text-base">Team</CardTitle>
-          <p className="text-[11px] text-cv-muted mt-1">Control who can receive and work leads.</p>
-        </div>
-        <Button size="sm" disabled title="Multi-user accounts are coming soon">
-          <Icon name="person_add" className="!text-base" />
-          Invite
-        </Button>
-      </CardHeader>
-      <CardBody>
-        <div className="flex items-center gap-3 py-2">
-          <div className="w-10 h-10 rounded-[11px] grid place-items-center bg-cv-gray-soft text-[#344054] font-extrabold text-xs shrink-0">
-            {business.ownerName
-              .split(" ")
-              .slice(0, 2)
-              .map((p) => p[0]?.toUpperCase())
-              .join("")}
-          </div>
-          <div>
-            <strong className="block text-[13px]">{business.ownerName}</strong>
-            <span className="block text-cv-muted text-xs mt-0.5">Owner · {business.ownerEmail}</span>
-          </div>
-          <Badge color="blue" className="ml-auto">
-            Admin
-          </Badge>
-        </div>
-        <p className="text-xs text-cv-muted mt-3">Additional team members with their own logins are coming soon.</p>
-      </CardBody>
-    </Card>
-  );
-}
-
-// ─── Integrations (stub) ─────────────────────────────────────────────────────
-
-function IntegrationsPanel() {
-  const items = [
-    { name: "Webhook", desc: "Send lead.created, lead.qualified, and lead.updated events." },
-    { name: "Zapier", desc: "Connect Callverted to thousands of apps." },
-    { name: "Jobber", desc: "Push qualified leads into customer and request records." },
-    { name: "Housecall Pro", desc: "Push qualified leads for scheduling and dispatch." },
-  ];
-  return (
-    <Card>
-      <CardHeader>
-        <div>
-          <CardTitle className="!text-base">Integrations</CardTitle>
-          <p className="text-[11px] text-cv-muted mt-1">Push qualified opportunities into the tools your team already uses.</p>
-        </div>
-      </CardHeader>
-      <CardBody className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-        {items.map((i) => (
-          <div key={i.name} className="border border-cv-border rounded-[11px] p-3.5">
-            <strong className="text-xs">{i.name}</strong>
-            <p className="text-[11px] text-cv-muted mt-1.5 mb-3">{i.desc}</p>
-            <Badge color="gray">Coming soon</Badge>
-          </div>
-        ))}
       </CardBody>
     </Card>
   );

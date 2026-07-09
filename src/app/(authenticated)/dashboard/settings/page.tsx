@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { getPricingRulesByBusiness } from "@/lib/db/queries/pricingRules";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
+import { withCustomServiceOptions } from "@/lib/verticals/customOptions";
 import { SettingsTabs } from "./_form";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -29,7 +30,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <SettingsTabs
         business={business}
         pricingRules={pricingRules}
-        serviceOptions={verticalConfig?.questions[0]?.options ?? []}
+        serviceOptions={
+          verticalConfig ? withCustomServiceOptions(verticalConfig.questions, business.customServiceOptions)[0]?.options ?? [] : []
+        }
         initialTab={sp.tab}
       />
     </div>

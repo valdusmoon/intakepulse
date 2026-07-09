@@ -25,8 +25,8 @@ async function main() {
   console.log(`✓ Set telnyxPhoneNumber = ${FAKE_TELNYX_NUMBER} on business ${BUSINESS_ID}`);
   console.log(`\nNow start the dev server (npm run dev) and run these curl commands in order:\n`);
 
-  const callControlId = "test-ctrl-" + Date.now();
-  const callLegId = "test-leg-" + Date.now();
+  const callControlId = `test-ctrl-${Date.now()}`;
+  const callLegId = `test-leg-${Date.now()}`;
   const callerPhone = "+16465559999"; // fake caller
 
   console.log("── Step 1: call.initiated (someone calls our Telnyx number) ──");

@@ -10,6 +10,7 @@ import { getPricingRulesByBusiness } from "@/lib/db/queries/pricingRules";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { updateCall } from "@/lib/db/queries/calls";
 import { logger } from "@/lib/logger";
+import { withCustomServiceOptions } from "@/lib/verticals/customOptions";
 import { RealtimeClient } from "./realtime-client";
 import { generateCorrelationId } from "./correlation";
 import { AUDIO_FORMATS, OPENAI_CONFIG } from "./config/constants";
@@ -81,6 +82,7 @@ export async function loadBusinessCallData(
     callerNumber,
     notificationPreferences: business.notificationPreferences,
     voiceName: business.voiceName,
+    customServiceOptions: business.customServiceOptions,
   };
 }
 
@@ -109,7 +111,10 @@ export async function buildFlowContext(
   return {
     session,
     business,
-    verticalConfig,
+    verticalConfig: {
+      ...verticalConfig,
+      questions: withCustomServiceOptions(verticalConfig.questions, business.customServiceOptions),
+    },
     pricingRules: pricingRules.filter((r) => r.isActive),
     onComplete,
   };
@@ -203,6 +208,7 @@ export async function endCall(session: SessionState): Promise<void> {
       endedAt: new Date(),
       durationSeconds,
       summary,
+      transcript: session.conversationContext.transcript,
     });
   } catch (error) {
     logger.error("Failed to finalize call", { correlationId: session.correlationId, error: String(error) });
