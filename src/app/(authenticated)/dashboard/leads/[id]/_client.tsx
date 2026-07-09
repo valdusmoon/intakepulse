@@ -35,15 +35,17 @@ export function LeadDetailClient({ lead, hasPendingFollowup }: Props) {
   const [notes, setNotes] = useState(lead.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
   const [cancelingFollowup, setCancelingFollowup] = useState(false);
   const [followupCanceled, setFollowupCanceled] = useState(false);
 
   async function saveOutcome() {
     setSaving(true);
     setSaved(false);
+    setError("");
     try {
       const dollars = parseFloat(confirmedValue);
-      await fetch(`/api/leads/${lead.id}`, {
+      const res = await fetch(`/api/leads/${lead.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -52,9 +54,16 @@ export function LeadDetailClient({ lead, hasPendingFollowup }: Props) {
           confirmedValue: !isNaN(dollars) ? Math.round(dollars * 100) : null,
         }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error || "Failed to save — please try again.");
+        return;
+      }
       setSaved(true);
       router.refresh();
       setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setError("Failed to save — check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -97,6 +106,7 @@ export function LeadDetailClient({ lead, hasPendingFollowup }: Props) {
           <FormGroup label="Internal note">
             <TextArea placeholder="Add a note for your team" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </FormGroup>
+          {error && <p className="text-sm text-cv-red">{error}</p>}
           <Button variant="primary" onClick={saveOutcome} disabled={saving}>
             {saving ? "Saving…" : saved ? "Saved ✓" : "Save outcome"}
           </Button>
