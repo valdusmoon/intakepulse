@@ -15,25 +15,37 @@ export interface RealtimeClientConfig {
 
 export type ToolChoice = "none" | "auto" | { type: "function"; name: string };
 
+interface TurnDetectionConfig {
+  type: string;
+  threshold: number;
+  prefix_padding_ms: number;
+  silence_duration_ms: number;
+  // Server VAD still detects speech start/stop (needed for reliable end-of-turn
+  // detection) but these two flags stop it from acting on that detection itself —
+  // the state-machine engine decides exactly when to interrupt or respond.
+  create_response: boolean;
+  interrupt_response: boolean;
+}
+
+/**
+ * GA Realtime API session shape (as of the 2026-07 GA release — audio config
+ * moved from flat top-level fields to a nested audio.input/audio.output
+ * object, and "modalities" was renamed "output_modalities").
+ */
 export interface RealtimeSessionConfig {
-  modalities: string[];
+  type: "realtime";
   instructions: string;
-  voice: string;
-  input_audio_format: string;
-  output_audio_format: string;
-  input_audio_transcription?: {
-    model: string;
-  };
-  turn_detection?: {
-    type: string;
-    threshold: number;
-    prefix_padding_ms: number;
-    silence_duration_ms: number;
-    // Server VAD still detects speech start/stop (needed for reliable end-of-turn
-    // detection) but these two flags stop it from acting on that detection itself —
-    // the state-machine engine decides exactly when to interrupt or respond.
-    create_response: boolean;
-    interrupt_response: boolean;
+  output_modalities: string[];
+  audio: {
+    input: {
+      format: { type: string };
+      transcription?: { model: string };
+      turn_detection?: TurnDetectionConfig | null;
+    };
+    output: {
+      format: { type: string };
+      voice: string;
+    };
   };
   tools?: unknown[];
   tool_choice?: ToolChoice;
@@ -44,7 +56,7 @@ export interface RealtimeSessionConfig {
  *  single state, or ask the model to say one specific fixed line). */
 export interface ResponseOverrides {
   instructions?: string;
-  modalities?: string[];
+  output_modalities?: string[];
   tools?: unknown[];
   tool_choice?: ToolChoice;
 }
@@ -70,7 +82,6 @@ export class RealtimeClient {
       this.ws = new WebSocket(url, {
         headers: {
           Authorization: `Bearer ${this.config.apiKey}`,
-          "OpenAI-Beta": "realtime=v1",
         },
       });
 
@@ -94,23 +105,33 @@ export class RealtimeClient {
     });
   }
 
-  async configureSession(config: Partial<RealtimeSessionConfig>): Promise<void> {
+  async configureSession(opts: {
+    instructions?: string;
+    voice?: string;
+    turnDetection?: TurnDetectionConfig;
+  } = {}): Promise<void> {
     const sessionConfig: RealtimeSessionConfig = {
-      modalities: ["text", "audio"],
-      instructions: this.config.instructions || "You are a helpful AI assistant.",
-      voice: this.config.voice || "alloy",
-      input_audio_format: "g711_ulaw",
-      output_audio_format: "g711_ulaw",
-      input_audio_transcription: { model: "whisper-1" },
-      turn_detection: {
-        type: "server_vad",
-        threshold: 0.5,
-        prefix_padding_ms: 300,
-        silence_duration_ms: 700,
-        create_response: false,
-        interrupt_response: false,
+      type: "realtime",
+      instructions: opts.instructions ?? this.config.instructions ?? "You are a helpful AI assistant.",
+      output_modalities: ["audio"],
+      audio: {
+        input: {
+          format: { type: "audio/pcmu" }, // g711 μ-law, matches Twilio's Media Stream codec
+          transcription: { model: "whisper-1" },
+          turn_detection: opts.turnDetection ?? {
+            type: "server_vad",
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 700,
+            create_response: false,
+            interrupt_response: false,
+          },
+        },
+        output: {
+          format: { type: "audio/pcmu" },
+          voice: opts.voice ?? this.config.voice ?? "alloy",
+        },
       },
-      ...config,
     };
 
     this.sendEvent("session.update", { session: sessionConfig });

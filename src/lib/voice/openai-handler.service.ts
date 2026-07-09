@@ -28,7 +28,7 @@ export class OpenAIHandlerService {
   }
 
   private handleAudioResponses(openaiClient: RealtimeClient, twilioWs: WebSocket, ctx: FlowContext): void {
-    openaiClient.on("response.audio.delta", (event) => {
+    openaiClient.on("response.output_audio.delta", (event) => {
       const { session } = ctx;
       const mulawAudio = event.delta; // Already base64-encoded μ-law from OpenAI
 

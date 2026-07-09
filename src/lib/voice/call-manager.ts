@@ -13,7 +13,7 @@ import { logger } from "@/lib/logger";
 import { withCustomServiceOptions } from "@/lib/verticals/customOptions";
 import { RealtimeClient } from "./realtime-client";
 import { generateCorrelationId } from "./correlation";
-import { AUDIO_FORMATS, OPENAI_CONFIG } from "./config/constants";
+import { OPENAI_CONFIG } from "./config/constants";
 import type { BusinessCallData, CallOutcome, SessionState } from "./types/session";
 import type { FlowContext } from "./state-machine/types";
 
@@ -137,13 +137,9 @@ export async function initializeOpenAI(voiceName: string = OPENAI_CONFIG.VOICE):
   await client.connect();
 
   await client.configureSession({
-    modalities: ["text", "audio"],
     instructions: BASE_INSTRUCTIONS,
     voice: voiceName,
-    input_audio_format: AUDIO_FORMATS.TWILIO_INPUT,
-    output_audio_format: AUDIO_FORMATS.TWILIO_OUTPUT,
-    input_audio_transcription: { model: "whisper-1" },
-    turn_detection: {
+    turnDetection: {
       type: "server_vad",
       threshold: OPENAI_CONFIG.VAD_THRESHOLD,
       prefix_padding_ms: OPENAI_CONFIG.PREFIX_PADDING_MS,

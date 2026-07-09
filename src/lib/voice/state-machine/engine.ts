@@ -146,7 +146,7 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
     } else {
       client.createResponse({
         instructions: `The caller said: "${transcript}". Extract their ZIP code.`,
-        modalities: ["text"],
+        output_modalities: ["text"],
         tools: [EXTRACT_ZIP_TOOL],
         tool_choice: { type: "function", name: "extract_zip" },
       });
@@ -181,7 +181,7 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
   const allowedValues = options.map((o) => o.value);
   client.createResponse({
     instructions: `The caller said: "${transcript}". Classify their answer.`,
-    modalities: ["text"],
+    output_modalities: ["text"],
     tools: [buildClassifyAnswerTool(allowedValues)],
     tool_choice: { type: "function", name: "classify_answer" },
   });
@@ -394,7 +394,7 @@ async function handleStateFailure(ctx: FlowContext, client: RealtimeClient): Pro
   // before giving up to voicemail.
   client.createResponse({
     instructions: "The caller's last answer didn't match what was asked. Classify what they actually want.",
-    modalities: ["text"],
+    output_modalities: ["text"],
     tools: [DETECT_INTENT_TOOL],
     tool_choice: { type: "function", name: "detect_intent" },
   });

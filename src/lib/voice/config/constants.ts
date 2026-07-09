@@ -20,13 +20,6 @@ export const TIMEOUTS = {
   GOODBYE_DELAY: 1200,
 } as const;
 
-export const AUDIO_FORMATS = {
-  TWILIO_INPUT: "g711_ulaw",
-  TWILIO_OUTPUT: "g711_ulaw",
-  SAMPLE_RATE: 8000,
-  CHANNELS: 1,
-} as const;
-
 export const OPENAI_CONFIG = {
   VOICE: "alloy" as const,
 
