@@ -134,7 +134,7 @@ export default async function CallsPage({
             <table className="w-full min-w-[920px] border-collapse">
               <thead>
                 <tr>
-                  {["Caller", "Date and time", "Outcome", "Service", "Duration", "Lead", "Recording", "Details"].map((h, i) => (
+                  {["Caller", "Date and time", "Outcome", "Service", "Duration", "Lead", "Details"].map((h, i) => (
                     <th
                       key={h}
                       className={`px-3.5 py-[11px] bg-cv-surface-subtle border-b border-cv-border text-left text-[10px] tracking-wide uppercase text-cv-muted font-semibold ${i >= 6 ? "text-right" : ""}`}
@@ -159,7 +159,6 @@ export default async function CallsPage({
                       duration={fmtDuration(call.durationSeconds)}
                       leadId={call.leadId}
                       priority={priority}
-                      recordingUrl={call.recordingUrl}
                       summary={call.summary}
                       transcript={call.transcript}
                     />

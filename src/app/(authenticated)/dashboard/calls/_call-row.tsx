@@ -19,7 +19,6 @@ export function CallRow({
   duration,
   leadId,
   priority,
-  recordingUrl,
   summary,
   transcript,
 }: {
@@ -30,7 +29,6 @@ export function CallRow({
   duration: string;
   leadId: string | null;
   priority: { label: string; color: BadgeColor } | null;
-  recordingUrl: string | null;
   summary: string | null;
   transcript: CallTranscriptEntry[] | null;
 }) {
@@ -61,19 +59,6 @@ export function CallRow({
           {leadId && priority ? <Badge color={priority.color}>{priority.label}</Badge> : <span className="text-cv-muted text-xs">—</span>}
         </td>
         <td className="px-3.5 py-3.5 align-middle text-right">
-          {recordingUrl ? (
-            <a
-              href={leadId ? `/dashboard/leads/${leadId}` : recordingUrl}
-              className="inline-flex items-center gap-1.5 text-cv-primary text-xs font-bold hover:underline whitespace-nowrap"
-            >
-              <Icon name="play_arrow" className="!text-base" />
-              Play
-            </a>
-          ) : (
-            <span className="text-cv-muted text-xs">Not recorded</span>
-          )}
-        </td>
-        <td className="px-3.5 py-3.5 align-middle text-right">
           {hasDetails ? (
             <button
               type="button"
@@ -90,7 +75,7 @@ export function CallRow({
       </tr>
       {expanded && (
         <tr className="border-b border-cv-border bg-cv-surface-subtle">
-          <td colSpan={8} className="px-4 py-4">
+          <td colSpan={7} className="px-4 py-4">
             <div className="flex flex-col gap-3 max-w-3xl">
               <div>
                 <p className="text-[10px] uppercase tracking-wide font-extrabold text-cv-muted mb-1.5">Summary</p>

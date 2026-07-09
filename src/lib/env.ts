@@ -29,7 +29,6 @@ export const serverEnv = {
 
   // Clerk (server-only)
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || "",
-  CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET || "",
 
   // Stripe (server-only)
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "",

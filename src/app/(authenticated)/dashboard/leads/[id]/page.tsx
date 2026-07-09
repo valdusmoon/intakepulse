@@ -10,7 +10,7 @@ import { getCallByLeadId } from "@/lib/db/queries/calls";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { formatIntakeAnswers, deriveServiceLabel } from "@/lib/verticals/labels";
 import { priorityMeta, intentMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort } from "@/lib/leads/priority";
-import { Card, CardHeader, CardTitle, CardBody, Badge, LinkButton, Icon } from "@/components/dashboard/v2/primitives";
+import { Card, CardHeader, CardTitle, CardBody, Badge, Icon } from "@/components/dashboard/v2/primitives";
 import { LeadDetailClient } from "./_client";
 
 function fmtTime(date: Date | string) {
@@ -215,19 +215,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </CardHeader>
           <CardBody className="flex flex-col gap-4">
             {!hasCallEvidence ? (
-              <p className="text-sm text-cv-muted py-8 text-center">This lead didn&apos;t come from a phone call — no recording or transcript to show.</p>
+              <p className="text-sm text-cv-muted py-8 text-center">This lead didn&apos;t come from a phone call — no transcript to show.</p>
             ) : (
               <>
-                {call?.recordingUrl ? (
-                  <div className="bg-[#111827] text-white rounded-[11px] p-3.5">
-                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                    <audio controls src={call.recordingUrl} className="w-full" />
-                  </div>
-                ) : (
-                  <div className="bg-cv-surface-subtle border border-cv-border rounded-[11px] p-4 text-center text-xs text-cv-muted">
-                    No recording available for this call.
-                  </div>
-                )}
                 <div>
                   <p className="text-[10px] uppercase tracking-wide font-extrabold text-cv-muted mb-2">Summary</p>
                   <p className="text-[13px] leading-relaxed text-cv-ink">
