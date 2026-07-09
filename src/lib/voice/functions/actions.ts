@@ -72,8 +72,12 @@ export interface CaptureLeadResult {
  */
 export function deriveIntakeStatus(ctx: FlowContext): "not_started" | "started" | "completed" | "abandoned" {
   const { session, verticalConfig } = ctx;
-  if (session.isNewCustomer !== true) return "not_started";
 
+  // Keyed off answers rather than isNewCustomer: the existing-customer path never
+  // populates answers (so it naturally falls through to "not_started" below), but
+  // jumpToWrapUp (global "wants_human"/"frustrated"/"leave_message" intents) forces
+  // isNewCustomer to false even when real qualification answers were already
+  // collected — gating on that flag would wrongly discard a caller's real answers.
   const answers = session.conversationContext.answers;
   if (Object.keys(answers).length === 0) return "not_started";
 
