@@ -128,16 +128,19 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
     }
 
     const openaiClient = await initializeOpenAI(business.voiceName);
-    openaiHandler.setupEventHandlers(openaiClient, ws, ctx);
+    // Caller must speak within 30s of the greeting FINISHING (bot-spam prevention).
+    // Armed on the first response.done, not at connection-open — arming it immediately
+    // ate into the caller's real response window by however long the (business-configurable)
+    // greeting took to actually speak, which could be 20s+ on its own.
+    openaiHandler.setupEventHandlers(openaiClient, ws, ctx, () => {
+      session.silenceTimeout = setTimeout(() => {
+        logger.info("No caller speech within 30s of greeting — ending call", { correlationId: session.correlationId });
+        ws.close(1000, "No speech detected");
+      }, TIMEOUTS.INITIAL_SILENCE);
+    });
 
     (ws as any).openaiClient = openaiClient;
     (ws as any).ctx = ctx;
-
-    // Caller must speak within 30s of the greeting (bot-spam prevention)
-    session.silenceTimeout = setTimeout(() => {
-      logger.info("No caller speech within 30s — ending call", { correlationId: session.correlationId });
-      ws.close(1000, "No speech detected");
-    }, TIMEOUTS.INITIAL_SILENCE);
 
     // Hard safety cap — see constants.ts for why this sits under Vercel's 300s ceiling
     (ws as any).safetyTimer = setTimeout(() => {

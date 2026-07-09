@@ -18,12 +18,17 @@ import type { FlowContext } from "./state-machine/types";
 import * as engine from "./state-machine/engine";
 
 export class OpenAIHandlerService {
-  setupEventHandlers(openaiClient: RealtimeClient, twilioWs: WebSocket, ctx: FlowContext): void {
+  setupEventHandlers(
+    openaiClient: RealtimeClient,
+    twilioWs: WebSocket,
+    ctx: FlowContext,
+    onFirstResponseDone?: () => void,
+  ): void {
     this.handleAudioResponses(openaiClient, twilioWs, ctx);
     this.handleSilenceReset(openaiClient, twilioWs, ctx);
     this.handleTranscripts(openaiClient, ctx);
     this.handleFunctionCalls(openaiClient, ctx);
-    this.handleResponseDone(openaiClient, ctx);
+    this.handleResponseDone(openaiClient, ctx, onFirstResponseDone);
     this.handleErrors(openaiClient, ctx);
   }
 
@@ -113,8 +118,13 @@ export class OpenAIHandlerService {
     });
   }
 
-  private handleResponseDone(openaiClient: RealtimeClient, ctx: FlowContext): void {
+  private handleResponseDone(openaiClient: RealtimeClient, ctx: FlowContext, onFirstResponseDone?: () => void): void {
+    let firstResponseSeen = false;
     openaiClient.on("response.done", () => {
+      if (!firstResponseSeen) {
+        firstResponseSeen = true;
+        onFirstResponseDone?.();
+      }
       engine.notifyResponseDone(ctx, openaiClient);
     });
   }
