@@ -40,16 +40,18 @@ export function generateDialTwiml(opts: {
 
 /**
  * Hand the call to the AI overflow receptionist via a Media Stream.
- * callSid is passed as a <Parameter> (not query string) for proxy compatibility,
- * plus a signed token in the query string authorizing the WS upgrade itself.
+ * Twilio's Media Streams client doesn't support query string parameters on the
+ * <Stream> url (fails with error 31920, "WebSocket handshake error") — both
+ * callSid and the signed auth token are passed as <Parameter> elements instead,
+ * delivered in the "start" event once the WS connection is already open.
  */
 export function generateStreamTwiml(opts: { wssUrl: string; callSid: string; token: string }): string {
-  const streamUrl = `${opts.wssUrl}?token=${encodeURIComponent(opts.token)}`;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <Stream url="${escapeXml(streamUrl)}">
+    <Stream url="${escapeXml(opts.wssUrl)}">
       <Parameter name="callSid" value="${escapeXml(opts.callSid)}" />
+      <Parameter name="token" value="${escapeXml(opts.token)}" />
     </Stream>
   </Connect>
 </Response>`;

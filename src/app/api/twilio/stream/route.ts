@@ -23,26 +23,20 @@ const openaiHandler = new OpenAIHandlerService();
  * Twilio Media Stream WebSocket endpoint — the AI overflow receptionist's audio
  * bridge to OpenAI Realtime. Reached only via the <Connect><Stream> TwiML returned
  * by /api/twilio/voice or /api/twilio/voice/status.
+ *
+ * The auth token can't be verified pre-upgrade via a URL query param — Twilio's
+ * Media Streams client doesn't support query strings on the <Stream> url (error
+ * 31920). It's delivered as a <Parameter> instead, which only arrives in the
+ * "start" event after the WS connection is already open — so verification happens
+ * there instead, in handleStreamStart.
  */
-export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const token = url.searchParams.get("token");
-
-  if (!token) {
-    return new Response("Missing token", { status: 401 });
-  }
-
-  const verified = verifyStreamToken(token);
-  if (!verified) {
-    return new Response("Invalid or expired stream token", { status: 401 });
-  }
-
+export async function GET(_req: Request) {
   return experimental_upgradeWebSocket((ws) => {
-    handleConnection(ws, verified.callSid);
+    handleConnection(ws);
   });
 }
 
-function handleConnection(ws: WebSocket, expectedCallSid: string): void {
+function handleConnection(ws: WebSocket): void {
   let initialized = false;
 
   ws.on("message", async (message: WebSocketData) => {
@@ -50,7 +44,7 @@ function handleConnection(ws: WebSocket, expectedCallSid: string): void {
       const data = JSON.parse(message.toString());
 
       if (!initialized && data.event === "start") {
-        initialized = await handleStreamStart(data, ws, expectedCallSid);
+        initialized = await handleStreamStart(data, ws);
         return;
       }
 
@@ -82,12 +76,20 @@ function handleConnection(ws: WebSocket, expectedCallSid: string): void {
   });
 }
 
-async function handleStreamStart(data: any, ws: WebSocket, expectedCallSid: string): Promise<boolean> {
+async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
   const callSid: string | undefined = data.start?.customParameters?.callSid;
+  const token: string | undefined = data.start?.customParameters?.token;
 
-  if (!callSid || callSid !== expectedCallSid) {
-    logger.error("Stream start callSid mismatch", { callSid, expectedCallSid });
-    ws.close(1008, "callSid mismatch");
+  if (!callSid || !token) {
+    logger.error("Stream start missing callSid or token", { callSid, hasToken: !!token });
+    ws.close(1008, "Missing callSid or token");
+    return false;
+  }
+
+  const verified = verifyStreamToken(token);
+  if (!verified || verified.callSid !== callSid) {
+    logger.error("Stream start token invalid or callSid mismatch", { callSid });
+    ws.close(1008, "Invalid token or callSid mismatch");
     return false;
   }
 

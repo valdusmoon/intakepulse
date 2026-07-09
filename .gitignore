@@ -61,3 +61,4 @@ craftcapture/
 /*.pdf
 saas-starter-main/
 nextjs-subscription-payments-main/
+.env*
