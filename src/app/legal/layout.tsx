@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CallvertedLogo } from "@/components/CallvertedLogo";
 
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,9 +8,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-bold text-gray-900 text-[1.05rem]">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-orange-400 flex items-center justify-center text-white text-xs font-black shadow-sm">
-              P
-            </div>
+            <CallvertedLogo className="w-7 h-7 rounded-lg shadow-sm" gradientId="cvLogoLegalNav" />
             Callverted
           </Link>
           <Link href="/sign-in" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
@@ -26,7 +25,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       {/* Footer */}
       <footer className="border-t border-gray-200 py-6 px-6">
         <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400">
-          <span>© 2026 Callverted · Built for painting contractors</span>
+          <span>© 2026 Callverted · AI voice overflow for home-service businesses</span>
           <div className="flex gap-5">
             <Link href="/legal/privacy" className="hover:text-gray-700 transition-colors">Privacy</Link>
             <Link href="/legal/terms" className="hover:text-gray-700 transition-colors">Terms</Link>
