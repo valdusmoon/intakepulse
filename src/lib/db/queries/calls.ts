@@ -8,23 +8,9 @@ export async function createCall(data: NewCall) {
   return result[0];
 }
 
-export async function getCallByControlId(telnyxCallControlId: string) {
-  const call = await db.query.calls.findFirst({
-    where: eq(calls.telnyxCallControlId, telnyxCallControlId),
-  });
-  return call ?? null;
-}
-
 export async function getCallByLeadId(leadId: string) {
   const call = await db.query.calls.findFirst({
     where: eq(calls.leadId, leadId),
-  });
-  return call ?? null;
-}
-
-export async function getCallByLegId(telnyxCallLegId: string) {
-  const call = await db.query.calls.findFirst({
-    where: eq(calls.telnyxCallLegId, telnyxCallLegId),
   });
   return call ?? null;
 }

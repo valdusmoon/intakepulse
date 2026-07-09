@@ -40,11 +40,6 @@ export const serverEnv = {
   // Database
   DATABASE_URL: process.env.DATABASE_URL || "",
 
-  // Telnyx — dormant, retained for the deferred SMS/A2P module. See docs/telnyx-a2p-productionization-spec.md
-  TELNYX_API_KEY: process.env.TELNYX_API_KEY || "",
-  // Ed25519 public key from Telnyx portal → Messaging → Webhooks → Signing Key
-  TELNYX_PUBLIC_KEY: process.env.TELNYX_PUBLIC_KEY || "",
-
   // Twilio — voice overflow receptionist
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || "",
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || "",

@@ -15,17 +15,11 @@ export const calls = pgTable("calls", {
   // Linked once a missed call creates a lead record; null for answered calls
   leadId: uuid("lead_id").references(() => leads.id),
 
-  // Telnyx identifiers — dormant, retained for the deferred SMS/A2P module.
-  // telnyxCallControlId: used to perform actions on an active call
-  // telnyxCallLegId: present in call.hangup payload, used to match hangup events to call records
-  telnyxCallControlId: text("telnyx_call_control_id").unique(),
-  telnyxCallLegId: text("telnyx_call_leg_id").unique(),
-
   // Twilio CallSid — the active identifier for the voice overflow receptionist
   twilioCallSid: text("twilio_call_sid").unique(),
 
   callerPhone: text("caller_phone").notNull(),
-  calledNumber: text("called_number").notNull(), // the Twilio/Telnyx number that was called
+  calledNumber: text("called_number").notNull(), // the Twilio number that was called
 
   status: text("status").notNull().default("initiated"), // 'initiated' | 'ringing' | 'answered' | 'missed' | 'voicemail'
 

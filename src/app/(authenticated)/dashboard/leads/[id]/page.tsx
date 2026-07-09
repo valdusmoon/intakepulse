@@ -5,7 +5,6 @@ import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { getLeadById } from "@/lib/db/queries/leads";
 import { getAiAssessmentByLeadId } from "@/lib/db/queries/aiAssessments";
 import { getPendingFollowup } from "@/lib/db/queries/followups";
-import { getSmsEventsByLead } from "@/lib/db/queries/smsEvents";
 import { getCallByLeadId } from "@/lib/db/queries/calls";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { formatIntakeAnswers, deriveServiceLabel } from "@/lib/verticals/labels";
@@ -20,7 +19,6 @@ function fmtTime(date: Date | string) {
 // Build a flat, time-sorted event list from available data
 function buildTimeline(
   call: Awaited<ReturnType<typeof getCallByLeadId>>,
-  smsEvents: Awaited<ReturnType<typeof getSmsEventsByLead>>,
   lead: { source: string; intakeStatus: string; leadStatus: string; createdAt: Date; updatedAt: Date; contactedAt: Date | null; convertedAt: Date | null }
 ) {
   const events: { key: string; label: string; sub?: string; time: Date }[] = [];
@@ -32,15 +30,6 @@ function buildTimeline(
     }
   } else if (lead.source !== "voice_overflow") {
     events.push({ key: "lead_created", label: `Lead created via ${sourceLabel(lead.source)}`, time: new Date(lead.createdAt) });
-  }
-
-  for (const sms of smsEvents) {
-    if (sms.direction === "outbound") {
-      const delivered = sms.status === "delivered" ? " · delivered" : "";
-      events.push({ key: `sms_${sms.id}`, label: "Recovery SMS sent", sub: `${sms.status}${delivered}`, time: new Date(sms.createdAt) });
-    } else {
-      events.push({ key: `sms_in_${sms.id}`, label: "Prospect replied", sub: sms.body.slice(0, 60), time: new Date(sms.createdAt) });
-    }
   }
 
   if (lead.intakeStatus === "completed") {
@@ -72,17 +61,16 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const lead = await getLeadById(id);
   if (!lead || lead.businessId !== business.id) notFound();
 
-  const [assessment, pendingFollowup, smsEvents, call, verticalConfig] = await Promise.all([
+  const [assessment, pendingFollowup, call, verticalConfig] = await Promise.all([
     getAiAssessmentByLeadId(lead.id),
     getPendingFollowup(lead.id),
-    getSmsEventsByLead(lead.id),
     getCallByLeadId(lead.id),
     getVerticalConfig(business.vertical),
   ]);
 
   const priority = priorityMeta(lead.urgencyScore);
   const intent = intentMeta(lead.qualityScore);
-  const timeline = buildTimeline(call, smsEvents, lead);
+  const timeline = buildTimeline(call, lead);
   const formattedAnswers = formatIntakeAnswers(verticalConfig?.questions ?? [], lead.intakeAnswers);
   const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers);
   const displayName = lead.callerName ?? lead.callerPhone;

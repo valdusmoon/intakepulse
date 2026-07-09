@@ -6,7 +6,6 @@ import postgres from "postgres";
 import { calls } from "../src/lib/db/schema/calls";
 import { leads } from "../src/lib/db/schema/leads";
 import { followups } from "../src/lib/db/schema/followups";
-import { smsEvents } from "../src/lib/db/schema/smsEvents";
 import { desc } from "drizzle-orm";
 
 async function main() {
@@ -19,7 +18,6 @@ async function main() {
     intakeStatus: leads.intakeStatus, leadStatus: leads.leadStatus, createdAt: leads.createdAt,
   }).from(leads).orderBy(desc(leads.createdAt)).limit(3);
   const recentFollowups = await db.select().from(followups).orderBy(desc(followups.createdAt)).limit(3);
-  const recentSms = await db.select().from(smsEvents).orderBy(desc(smsEvents.createdAt)).limit(3);
 
   console.log("=== CALLS ===");
   console.log(JSON.stringify(recentCalls.map(c => ({
@@ -34,12 +32,6 @@ async function main() {
   console.log(JSON.stringify(recentFollowups.map(f => ({
     id: f.id, leadId: f.leadId, sequence: f.sequence,
     scheduledAt: f.scheduledAt, sentAt: f.sentAt, canceledAt: f.canceledAt,
-  })), null, 2));
-
-  console.log("\n=== SMS EVENTS ===");
-  console.log(JSON.stringify(recentSms.map(s => ({
-    direction: s.direction, fromPhone: s.fromPhone, toPhone: s.toPhone,
-    body: s.body?.slice(0, 80), status: s.status,
   })), null, 2));
 
   await client.end();

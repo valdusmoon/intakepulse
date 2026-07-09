@@ -139,12 +139,6 @@ export async function PATCH(req: NextRequest) {
     body.forwardingNumber = r.normalized;
   }
 
-  if (body.telnyxPhoneNumber) {
-    const r = validateAndNormalizePhone(body.telnyxPhoneNumber);
-    if (!r.isValid) return NextResponse.json({ error: r.error }, { status: 422 });
-    body.telnyxPhoneNumber = r.normalized;
-  }
-
   if (body.twilioPhoneNumber) {
     const r = validateAndNormalizePhone(body.twilioPhoneNumber);
     if (!r.isValid) return NextResponse.json({ error: r.error }, { status: 422 });
@@ -160,8 +154,7 @@ export async function PATCH(req: NextRequest) {
   const allowed = [
     "businessName", "ownerName", "ownerPhone", "ownerEmail",
     "serviceArea", "websiteUrl", "timezone",
-    "telnyxPhoneNumber", "forwardingNumber",
-    "missedCallSmsTemplate", "notificationPreferences",
+    "forwardingNumber", "notificationPreferences",
     "twilioPhoneNumber", "overflowMode", "recordingEnabled", "recordingDisclosure",
     "urgentTransferNumber", "greetingMessage", "aiInstructions", "voiceName", "callTimeoutSeconds",
   ] as const;

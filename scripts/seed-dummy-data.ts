@@ -27,7 +27,6 @@ import { leads, type NewLead } from "../src/lib/db/schema/leads";
 import { calls, type NewCall } from "../src/lib/db/schema/calls";
 import { aiAssessments } from "../src/lib/db/schema/aiAssessments";
 import { followups } from "../src/lib/db/schema/followups";
-import { smsEvents } from "../src/lib/db/schema/smsEvents";
 import { pricingRules } from "../src/lib/db/schema/pricingRules";
 
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
@@ -55,7 +54,6 @@ async function main() {
   for (const leadId of existingLeadIds) {
     await db.delete(aiAssessments).where(eq(aiAssessments.leadId, leadId));
     await db.delete(followups).where(eq(followups.leadId, leadId));
-    await db.delete(smsEvents).where(eq(smsEvents.leadId, leadId));
   }
   await db.delete(calls).where(eq(calls.businessId, business.id));
   await db.delete(leads).where(eq(leads.businessId, business.id));
@@ -70,7 +68,6 @@ async function main() {
     timezone: "America/Chicago",
     vertical: "restoration",
     twilioPhoneNumber: "+15125550100",
-    telnyxPhoneNumber: null,
     forwardingNumber: "+15125550101",
     overflowMode: "ring_then_ai",
     callTimeoutSeconds: 20,

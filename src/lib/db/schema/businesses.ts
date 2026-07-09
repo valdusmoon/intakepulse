@@ -42,14 +42,8 @@ export const businesses = pgTable("businesses", {
   // and public intake form can actually offer/recognize them, not just price them.
   customServiceOptions: jsonb("custom_service_options").$type<CustomServiceOption[]>().notNull().default([]),
 
-  // Telnyx — dormant. Retained for the deferred SMS/A2P module, not used by the
-  // voice overflow receptionist. See docs/telnyx-a2p-productionization-spec.md
-  telnyxPhoneNumber: text("telnyx_phone_number"),
   forwardingNumber: text("forwarding_number"),
   callTimeoutSeconds: integer("call_timeout_seconds").notNull().default(20),
-
-  // SMS template — dormant, see Telnyx note above
-  missedCallSmsTemplate: text("missed_call_sms_template"),
 
   // Twilio — the business's dedicated inbound voice number
   twilioPhoneNumber: text("twilio_phone_number"),

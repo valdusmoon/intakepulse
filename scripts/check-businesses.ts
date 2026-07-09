@@ -12,7 +12,6 @@ async function main() {
   const rows = await db.select({
     id: businesses.id,
     name: businesses.businessName,
-    telnyx: businesses.telnyxPhoneNumber,
     forwarding: businesses.forwardingNumber,
     email: businesses.ownerEmail,
   }).from(businesses).limit(3);

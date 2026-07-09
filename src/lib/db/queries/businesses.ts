@@ -16,13 +16,6 @@ export async function getBusinessById(id: string) {
   return business ?? null;
 }
 
-export async function getBusinessByTelnyxNumber(telnyxPhoneNumber: string) {
-  const business = await db.query.businesses.findFirst({
-    where: eq(businesses.telnyxPhoneNumber, telnyxPhoneNumber),
-  });
-  return business ?? null;
-}
-
 export async function getBusinessByTwilioNumber(twilioPhoneNumber: string) {
   const business = await db.query.businesses.findFirst({
     where: eq(businesses.twilioPhoneNumber, twilioPhoneNumber),
