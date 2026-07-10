@@ -198,7 +198,7 @@ export function TestCallClient({ businessName }: { businessName: string }) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-3.5 items-start">
-      <Card className="overflow-hidden">
+      <Card>
         {/* Call status bar */}
         <CardHeader>
           <div className="flex items-center gap-2.5 min-w-0">
@@ -250,7 +250,7 @@ export function TestCallClient({ businessName }: { businessName: string }) {
           ) : (
             <>
               {/* Transcript */}
-              <div ref={transcriptRef} className="flex flex-col gap-2.5 max-h-[460px] overflow-y-auto px-5 pt-4">
+              <div ref={transcriptRef} className="flex flex-col gap-2.5 min-h-[320px] max-h-[460px] overflow-y-auto px-5 pt-4">
                 {lines.map((line, i) => {
                   const isKeypad = line.role === "user" && line.message.startsWith(KEYPAD_TAG);
                   if (isKeypad) {
@@ -310,14 +310,21 @@ export function TestCallClient({ businessName }: { businessName: string }) {
                 ) : (
                   <>
                     {showDialer && (
-                      <Dialer
-                        dialed={dialed}
-                        loading={loading}
-                        onPress={pressKey}
-                        onBackspace={() => setDialed((p) => p.slice(0, -1))}
-                        onSend={sendDialed}
-                        onClose={() => setShowDialer(false)}
-                      />
+                      <>
+                        <button
+                          aria-label="Close dialpad"
+                          onClick={() => setShowDialer(false)}
+                          className="fixed inset-0 z-10 cursor-default"
+                        />
+                        <Dialer
+                          dialed={dialed}
+                          loading={loading}
+                          onPress={pressKey}
+                          onBackspace={() => setDialed((p) => p.slice(0, -1))}
+                          onSend={sendDialed}
+                          onClose={() => setShowDialer(false)}
+                        />
+                      </>
                     )}
                     <div className="flex items-center gap-2">
                       <button
@@ -389,7 +396,7 @@ function Dialer({
   onClose: () => void;
 }) {
   return (
-    <div className="absolute bottom-full left-5 mb-2 w-[248px] rounded-xl border border-cv-border bg-cv-surface shadow-cv-md p-3 z-10">
+    <div className="absolute bottom-full left-5 mb-2 w-[248px] rounded-xl border border-cv-border bg-cv-surface shadow-cv-md p-3 z-20">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-extrabold uppercase tracking-wide text-cv-muted">Dialpad</span>
         <button onClick={onClose} className="text-cv-muted hover:text-cv-ink grid place-items-center">
