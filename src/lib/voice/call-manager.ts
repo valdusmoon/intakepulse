@@ -195,18 +195,32 @@ Summary:`;
 export async function endCall(session: SessionState): Promise<void> {
   const durationSeconds = Math.floor((Date.now() - session.callStartTime.getTime()) / 1000);
   const outcome: CallOutcome = session.leadId ? "ai_captured" : "abandoned";
-  const summary = await generateCallSummary(session);
 
+  // Persist the critical fields first, with no external API call in the way —
+  // this runs right after the caller's connection has already closed, and an
+  // extra OpenAI round-trip for the summary was pushing this past whatever
+  // grace period the platform gives a closed WebSocket's cleanup work, so the
+  // call was never actually finalized (status stuck at "ringing", no transcript
+  // saved) even though captureLead's own DB writes landed fine moments earlier.
   try {
     await updateCall(session.callId, {
       status: "answered",
       outcome,
       endedAt: new Date(),
       durationSeconds,
-      summary,
       transcript: session.conversationContext.transcript,
     });
   } catch (error) {
     logger.error("Failed to finalize call", { correlationId: session.correlationId, error: String(error) });
+    return;
+  }
+
+  // Best-effort only — the call is already finalized above regardless of
+  // whether this completes.
+  try {
+    const summary = await generateCallSummary(session);
+    await updateCall(session.callId, { summary });
+  } catch (error) {
+    logger.error("Failed to save call summary", { correlationId: session.correlationId, error: String(error) });
   }
 }
