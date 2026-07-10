@@ -148,7 +148,10 @@ export function notifyResponseDone(ctx: FlowContext, client: RealtimeClient): vo
   const cb = ctx.session.onResponseDone;
   if (!cb) return;
   ctx.session.onResponseDone = undefined;
-  cb();
+  const result = cb();
+  if (result instanceof Promise) {
+    ctx.session.pendingContinuation = result;
+  }
 }
 
 // ─── Answer routing ────────────────────────────────────────────────────────────
@@ -317,9 +320,7 @@ function enterCallbackPreference(ctx: FlowContext, client: RealtimeClient): void
 function enterConfirmation(ctx: FlowContext, client: RealtimeClient): void {
   ctx.session.state = "confirmation";
   speak(ctx, client, confirmationLine(ctx));
-  ctx.session.onResponseDone = () => {
-    void finishCall(ctx, client);
-  };
+  ctx.session.onResponseDone = () => finishCall(ctx, client);
 }
 
 async function finishCall(ctx: FlowContext, client: RealtimeClient): Promise<void> {
@@ -345,9 +346,7 @@ function enterExistingCustomerPath(ctx: FlowContext, client: RealtimeClient, ack
 async function enterFallbackVoicemail(ctx: FlowContext, client: RealtimeClient): Promise<void> {
   ctx.session.state = "fallback_voicemail";
   speak(ctx, client, fallbackVoicemailLine());
-  ctx.session.onResponseDone = () => {
-    void finishCall(ctx, client);
-  };
+  ctx.session.onResponseDone = () => finishCall(ctx, client);
 }
 
 async function jumpToWrapUp(ctx: FlowContext, client: RealtimeClient, ackLine?: string): Promise<void> {
@@ -366,9 +365,7 @@ async function handleWantsHuman(ctx: FlowContext, client: RealtimeClient): Promi
     return;
   }
   speak(ctx, client, transferringLine());
-  ctx.session.onResponseDone = () => {
-    void transferCallAction(ctx); // fires only after the line finishes playing
-  };
+  ctx.session.onResponseDone = () => transferCallAction(ctx); // fires only after the line finishes playing
 }
 
 // ─── Global intent dispatch ─────────────────────────────────────────────────────

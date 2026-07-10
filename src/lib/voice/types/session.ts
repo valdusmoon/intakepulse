@@ -76,8 +76,13 @@ export interface SessionState {
   // cleared on entering/leaving zip_code
   dtmfBuffer: string;
   // Fires once when the in-flight OpenAI response finishes — used to sequence
-  // "speak X, then silently do Y, then speak Z" without overlapping response.create calls
-  onResponseDone?: () => void;
+  // "speak X, then silently do Y, then speak Z" without overlapping response.create calls.
+  // May return a promise (e.g. finishCall's captureLead+goodbye chain) — notifyResponseDone
+  // tracks it via pendingContinuation so callers needing full-chain completion (the
+  // test-call harness) can await past the async gap between this callback firing and
+  // whatever it kicks off actually finishing, rather than just checking responseActive.
+  onResponseDone?: () => unknown;
+  pendingContinuation?: Promise<unknown>;
   // True from the moment any client.createResponse() call fires until the
   // matching response.done — OpenAI Realtime rejects a second response.create
   // while one is still active. Text-only callers (e.g. the test-call harness)

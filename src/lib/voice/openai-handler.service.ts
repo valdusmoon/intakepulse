@@ -112,15 +112,14 @@ export class OpenAIHandlerService {
       // response's own response.done — reacting immediately here raced with
       // it and OpenAI rejected the new response ("conversation already has
       // an active response in progress").
-      ctx.session.onResponseDone = () => {
-        void engine.handleToolCall(ctx, openaiClient, event.name, args).catch((error) => {
+      ctx.session.onResponseDone = () =>
+        engine.handleToolCall(ctx, openaiClient, event.name, args).catch((error) => {
           logger.error("Engine tool-call handling failed", {
             correlationId,
             function: event.name,
             error: error instanceof Error ? error.message : String(error),
           });
         });
-      };
     });
   }
 

@@ -155,14 +155,18 @@ async function startNewSession(
 }
 
 /**
- * Polls until the conversation settles after a turn. speak() pushes into
- * the transcript synchronously the instant the engine decides to say
- * something, but chained turns (confirmation -> captureLead -> goodbye)
- * fire asynchronously with no single promise to await, so this waits on
- * session.responseActive/onResponseDone rather than the transcript array —
- * classification-only turns (extract_zip/classify_answer/detect_intent)
- * never push into the transcript the way speak() does, so transcript length
- * alone can't tell whether a response.create is still in flight.
+ * Waits until the conversation settles after a turn. Chained turns
+ * (confirmation -> captureLead -> goodbye) fire asynchronously via
+ * onResponseDone/pendingContinuation, not a single promise the caller of
+ * handleTranscript gets to await — and there's a real gap to account for:
+ * notifyResponseDone clears responseActive/onResponseDone the instant a
+ * response finishes, *before* firing that chain's next step (e.g. finishCall,
+ * which awaits captureLeadOnce — a slow DB+AI call — before speaking the
+ * goodbye line and setting a new onResponseDone). Polling responseActive
+ * alone can catch that exact window and report "settled" while the chain is
+ * still mid-flight; awaiting session.pendingContinuation (set by
+ * notifyResponseDone whenever the fired callback returns a promise) closes
+ * that gap before re-checking.
  */
 async function waitForSettled(
   ctx: FlowContext,
@@ -173,6 +177,12 @@ async function waitForSettled(
   await sleep(100); // give a just-started response a moment to flip responseActive true
 
   while (Date.now() - start < maxWaitMs) {
+    if (ctx.session.pendingContinuation) {
+      const pending = ctx.session.pendingContinuation;
+      ctx.session.pendingContinuation = undefined;
+      await pending.catch(() => {});
+      continue; // the continuation may have started a new response or another chain
+    }
     if (!ctx.session.responseActive && !ctx.session.onResponseDone) break;
     await sleep(150);
   }
