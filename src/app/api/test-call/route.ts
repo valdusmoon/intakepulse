@@ -22,11 +22,23 @@ export const maxDuration = 60;
  * Sessions live in this module's memory only — fine for an internal dev
  * tool, but note a Vercel Fluid Compute instance recycle mid-session will
  * lose it (the UI should just let the tester start a fresh test call).
+ *
+ * Each HTTP round-trip waits only a short, bounded time (waitForSettled's
+ * maxWaitMs) rather than the whole confirmation -> captureLead -> goodbye
+ * chain, which can run ~5-6s+ (a DB write plus two AI calls — scoring
+ * reasoning and the goodbye turn) — long enough to risk tripping some
+ * intermediate timeout in front of the function, independent of this
+ * route's own maxDuration. If a turn isn't settled within budget, the
+ * response comes back with pending: true and no sessionId-losing side
+ * effect; the client just polls again (no new message) until it isn't.
  */
 interface TestSession {
   ctx: FlowContext;
   client: RealtimeClient;
   clerkUserId: string;
+  // How many transcript entries have already been sent to the client —
+  // lets a follow-up poll (no new message) pick up only what's new.
+  syncedThrough: number;
 }
 
 const sessions = new Map<string, TestSession>();
@@ -38,6 +50,7 @@ const openaiHandler = new OpenAIHandlerService();
 const noopWs = { send: () => {}, close: () => {} } as any;
 
 const TEST_CALLER_PHONE = "+15550000000";
+const POLL_BUDGET_MS = 8000;
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
@@ -47,7 +60,7 @@ export async function POST(req: NextRequest) {
   if (!business) return NextResponse.json({ error: "No business found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
-  const { sessionId: incomingSessionId, message } = body as { sessionId?: string; message?: string };
+  const { sessionId: incomingSessionId, message, poll } = body as { sessionId?: string; message?: string; poll?: boolean };
 
   const entry = incomingSessionId ? sessions.get(incomingSessionId) : undefined;
   if (incomingSessionId && !entry) {
@@ -61,29 +74,14 @@ export async function POST(req: NextRequest) {
     return startNewSession(business.id, business.businessName, business.urgentTransferNumber, userId);
   }
 
-  if (!message || typeof message !== "string") {
-    return NextResponse.json({ error: "message is required" }, { status: 400 });
+  if (!poll) {
+    if (!message || typeof message !== "string") {
+      return NextResponse.json({ error: "message is required" }, { status: 400 });
+    }
+    await engine.handleTranscript(entry.ctx, entry.client, message);
   }
 
-  const { ctx, client } = entry;
-  const before = ctx.session.conversationContext.transcript.length;
-  await engine.handleTranscript(ctx, client, message);
-  const lines = await waitForSettled(ctx, before);
-
-  const ended = ctx.session.state === "end";
-  if (ended) {
-    client.close();
-    sessions.delete(incomingSessionId!);
-  }
-
-  return NextResponse.json({
-    sessionId: incomingSessionId,
-    lines,
-    state: ctx.session.state,
-    answers: ctx.session.conversationContext.answers,
-    leadId: ctx.session.leadId ?? null,
-    ended,
-  });
+  return respondWithProgress(incomingSessionId!, entry);
 }
 
 export async function DELETE(req: NextRequest) {
@@ -138,11 +136,23 @@ async function startNewSession(
   }
   openaiHandler.setupEventHandlers(client, noopWs, ctx);
 
-  sessions.set(sessionId, { ctx, client, clerkUserId });
+  const entry: TestSession = { ctx, client, clerkUserId, syncedThrough: 0 };
+  sessions.set(sessionId, entry);
 
-  const before = ctx.session.conversationContext.transcript.length;
   engine.startCall(ctx, client);
-  const lines = await waitForSettled(ctx, before);
+  return respondWithProgress(sessionId, entry);
+}
+
+async function respondWithProgress(sessionId: string, entry: TestSession): Promise<NextResponse> {
+  const { ctx, client } = entry;
+  const { lines, pending } = await waitForSettled(ctx, entry.syncedThrough);
+  entry.syncedThrough = ctx.session.conversationContext.transcript.length;
+
+  const ended = !pending && ctx.session.state === "end";
+  if (ended) {
+    client.close();
+    sessions.delete(sessionId);
+  }
 
   return NextResponse.json({
     sessionId,
@@ -150,14 +160,15 @@ async function startNewSession(
     state: ctx.session.state,
     answers: ctx.session.conversationContext.answers,
     leadId: ctx.session.leadId ?? null,
-    ended: false,
+    ended,
+    pending,
   });
 }
 
 /**
- * Waits until the conversation settles after a turn. Chained turns
- * (confirmation -> captureLead -> goodbye) fire asynchronously via
- * onResponseDone/pendingContinuation, not a single promise the caller of
+ * Waits, up to a short bounded budget, for the conversation to settle.
+ * Chained turns (confirmation -> captureLead -> goodbye) fire asynchronously
+ * via onResponseDone/pendingContinuation, not a single promise the caller of
  * handleTranscript gets to await — and there's a real gap to account for:
  * notifyResponseDone clears responseActive/onResponseDone the instant a
  * response finishes, *before* firing that chain's next step (e.g. finishCall,
@@ -166,32 +177,58 @@ async function startNewSession(
  * alone can catch that exact window and report "settled" while the chain is
  * still mid-flight; awaiting session.pendingContinuation (set by
  * notifyResponseDone whenever the fired callback returns a promise) closes
- * that gap before re-checking.
+ * that gap before re-checking. If the budget runs out first, returns
+ * whatever's accumulated so far with pending: true — the caller re-polls.
  */
 async function waitForSettled(
   ctx: FlowContext,
   before: number,
-  maxWaitMs = 25000
-): Promise<{ role: string; message: string }[]> {
+  maxWaitMs = POLL_BUDGET_MS
+): Promise<{ lines: { role: string; message: string }[]; pending: boolean }> {
   const start = Date.now();
   await sleep(100); // give a just-started response a moment to flip responseActive true
+  let pending = false;
 
-  while (Date.now() - start < maxWaitMs) {
+  while (true) {
+    const remaining = maxWaitMs - (Date.now() - start);
+    if (remaining <= 0) {
+      pending = true;
+      break;
+    }
+
     if (ctx.session.pendingContinuation) {
-      const pending = ctx.session.pendingContinuation;
-      ctx.session.pendingContinuation = undefined;
-      await pending.catch(() => {});
+      // Don't clear this until it actually resolves — if we time out waiting
+      // on it, the next poll needs to find it still here and keep waiting on
+      // the SAME promise (awaiting an in-flight promise from multiple places
+      // is safe), rather than falling through to a responseActive/onResponseDone
+      // check that's meaningless while this is still running in the background.
+      const current = ctx.session.pendingContinuation;
+      const outcome = await Promise.race([
+        current.then(() => "resolved" as const).catch(() => "resolved" as const),
+        sleep(remaining).then(() => "timeout" as const),
+      ]);
+      if (outcome === "timeout") {
+        pending = true;
+        break;
+      }
+      if (ctx.session.pendingContinuation === current) {
+        ctx.session.pendingContinuation = undefined;
+      }
       continue; // the continuation may have started a new response or another chain
     }
+
     if (!ctx.session.responseActive && !ctx.session.onResponseDone) break;
-    await sleep(150);
+    await sleep(Math.min(150, remaining));
   }
 
-  if (ctx.session.leadCapturePromise) {
+  if (!pending && ctx.session.leadCapturePromise) {
     await ctx.session.leadCapturePromise.catch(() => {});
   }
 
-  return ctx.session.conversationContext.transcript.slice(before).map((t) => ({ role: t.role, message: t.message }));
+  return {
+    lines: ctx.session.conversationContext.transcript.slice(before).map((t) => ({ role: t.role, message: t.message })),
+    pending,
+  };
 }
 
 function sleep(ms: number): Promise<void> {

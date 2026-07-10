@@ -16,7 +16,14 @@ interface TurnResponse {
   answers: Record<string, string>;
   leadId: string | null;
   ended: boolean;
+  pending: boolean;
   error?: string;
+}
+
+const MAX_POLLS = 10;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function TestCallClient({ businessName }: { businessName: string }) {
@@ -45,6 +52,44 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     return { data: data as TurnResponse, status: res.status };
   }
 
+  /**
+   * Some turns (confirmation -> captureLead -> goodbye) take longer than a
+   * single HTTP round-trip is safe to hold open, so the API returns
+   * pending: true with whatever's ready so far instead of blocking. This
+   * keeps polling (no new message, just {sessionId, poll: true}) until the
+   * server reports it's actually settled.
+   */
+  async function drainPending(sessionIdForPoll: string, pollsLeft = MAX_POLLS): Promise<void> {
+    if (pollsLeft <= 0) {
+      setLoading(false);
+      setError("Still processing after a while — the model may be slow right now. Try sending another message.");
+      return;
+    }
+    await sleep(400);
+    const { data, status } = await post({ sessionId: sessionIdForPoll, poll: true });
+    if (status === 410) {
+      setLoading(false);
+      setError("That test session expired (a server restart) — click start to try again.");
+      sessionIdRef.current = null;
+      setSessionId(null);
+      return;
+    }
+    if (!data) {
+      setLoading(false);
+      return;
+    }
+    setLines((prev) => [...prev, ...data.lines]);
+    setState(data.state);
+    setAnswers(data.answers);
+    setLeadId(data.leadId);
+    setEnded(data.ended);
+    if (data.pending) {
+      await drainPending(sessionIdForPoll, pollsLeft - 1);
+      return;
+    }
+    setLoading(false);
+  }
+
   async function startCall() {
     setLoading(true);
     setError(null);
@@ -53,8 +98,10 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setLeadId(null);
     setEnded(false);
     const { data } = await post({});
-    setLoading(false);
-    if (!data) return;
+    if (!data) {
+      setLoading(false);
+      return;
+    }
     sessionIdRef.current = data.sessionId;
     setSessionId(data.sessionId);
     setLines(data.lines);
@@ -62,6 +109,11 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setAnswers(data.answers);
     setLeadId(data.leadId);
     setEnded(data.ended);
+    if (data.pending) {
+      await drainPending(data.sessionId);
+      return;
+    }
+    setLoading(false);
   }
 
   async function send() {
@@ -81,13 +133,20 @@ export function TestCallClient({ businessName }: { businessName: string }) {
       await startCall();
       return;
     }
-    setLoading(false);
-    if (!data) return;
+    if (!data) {
+      setLoading(false);
+      return;
+    }
     setLines((prev) => [...prev, ...data.lines]);
     setState(data.state);
     setAnswers(data.answers);
     setLeadId(data.leadId);
     setEnded(data.ended);
+    if (data.pending) {
+      await drainPending(sessionIdRef.current, MAX_POLLS);
+      return;
+    }
+    setLoading(false);
   }
 
   async function endCall() {
