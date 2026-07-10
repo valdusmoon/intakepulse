@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
   }
   openaiHandler.setupEventHandlers(client, noopWs, ctx);
 
-  const before = ctx.session.conversationContext.transcript.length;
+  const beforeSnapshot = ctx.session.conversationContext.transcript.length;
   if (!incomingState) {
     engine.startCall(ctx, client);
   } else {
@@ -93,10 +93,14 @@ export async function POST(req: NextRequest) {
   }
 
   const ended = ctx.session.state === "end";
+  // handleTranscript's very first action is pushing the caller's own message
+  // into the transcript — skip it in what we return, since the client already
+  // has its own copy from what it just sent (it isn't waiting to be told).
+  const linesFrom = incomingState ? beforeSnapshot + 1 : beforeSnapshot;
 
   return NextResponse.json({
     sessionState: ended ? null : serializeSession(ctx.session),
-    lines: ctx.session.conversationContext.transcript.slice(before).map((t) => ({ role: t.role, message: t.message })),
+    lines: ctx.session.conversationContext.transcript.slice(linesFrom).map((t) => ({ role: t.role, message: t.message })),
     state: ctx.session.state,
     answers: ctx.session.conversationContext.answers,
     leadId: ctx.session.leadId ?? null,
