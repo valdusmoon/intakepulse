@@ -81,6 +81,14 @@ export function namePrompt(prefix?: string): string {
   return prefix ? `${prefix} ${ask}` : ask;
 }
 
+/** One open turn to capture why an existing customer called, or what a
+ *  message/frustrated caller wants passed along — stored as reasonForCall. */
+export function wrapUpReasonPrompt(mode: "existing" | "message"): string {
+  return mode === "message"
+    ? "Sure. Briefly, what would you like me to pass along?"
+    : "Got it. What should I tell the team you're calling about?";
+}
+
 export function callbackPreferencePrompt(): string {
   return "When would you like the team to call you back? Press 1 for as soon as possible, press 2 for today, press 3 for tomorrow, or say your answer.";
 }

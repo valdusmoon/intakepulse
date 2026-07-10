@@ -114,4 +114,42 @@ describe("adaptive engine flow", () => {
     expect(ctx.session.state).toBe("qualification");
     expect(ctx.session.currentQuestionKey).toBe("service_type");
   });
+
+  it("existing customer with no stated reason: name → reason → confirm", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "existing" });
+    expect(ctx.session.state).toBe("name");
+
+    await engine.handleTranscript(ctx, client, "Daniel");
+    expect(ctx.session.conversationContext.callerName).toBe("Daniel");
+    expect(ctx.session.state).toBe("wrap_up_reason");
+    expect(ctx.session.wrapUpReasonMode).toBe("existing");
+
+    await engine.handleTranscript(ctx, client, "following up on my flooded basement");
+    expect(ctx.session.conversationContext.reasonForCall).toBe("following up on my flooded basement");
+    expect(ctx.session.state).toBe("confirmation");
+  });
+
+  it("existing customer whose opener already gave a reason skips the reason ask", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "existing", service_type: "water" });
+    expect(ctx.session.state).toBe("name");
+    await engine.handleTranscript(ctx, client, "Sam");
+    // service_type already known → straight to confirmation, no reason turn.
+    expect(ctx.session.state).toBe("confirmation");
+  });
+
+  it("'just take a message' takes a name then one open message turn", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleTranscript(ctx, client, "just take a message");
+    expect(ctx.session.state).toBe("name");
+    expect(ctx.session.wrapUpReasonMode).toBe("message");
+
+    await engine.handleTranscript(ctx, client, "Pat");
+    expect(ctx.session.state).toBe("wrap_up_reason");
+
+    await engine.handleTranscript(ctx, client, "tell them my invoice looks wrong");
+    expect(ctx.session.conversationContext.reasonForCall).toBe("tell them my invoice looks wrong");
+    expect(ctx.session.state).toBe("confirmation");
+  });
 });

@@ -19,6 +19,7 @@ export type VoiceState =
   | "price_eligibility"
   | "price_guidance"
   | "name"
+  | "wrap_up_reason"
   | "callback_preference"
   | "confirmation"
   | "create_lead"
@@ -64,6 +65,10 @@ export interface SessionState {
   // asking — the engine now picks questions adaptively (ask only what's still
   // missing) rather than walking them in order, so it tracks the key directly.
   currentQuestionKey?: string;
+  // Which phrasing the wrap_up_reason state should use: "existing" ("what should
+  // I tell the team you're calling about?") vs "message" ("what would you like me
+  // to pass along?"). Both capture into conversationContext.reasonForCall.
+  wrapUpReasonMode?: "existing" | "message";
   // Retry counter per state key — reset on successful transition into a new state
   attempts: Partial<Record<VoiceState, number>>;
   isNewCustomer?: boolean;
@@ -115,6 +120,10 @@ export interface ConversationContext {
   callbackPreference?: string;
   priceEligible?: boolean;
   priceMessage?: string;
+  // Free-text reason captured from an existing customer ("what should I tell the
+  // team you're calling about?") or a message/frustrated caller ("what would you
+  // like me to pass along?") — persisted to the lead's notes field.
+  reasonForCall?: string;
 }
 
 export interface TranscriptEntry {

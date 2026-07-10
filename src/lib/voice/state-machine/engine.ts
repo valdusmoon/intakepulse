@@ -46,6 +46,7 @@ import {
   questionOptions,
   startOverAckLine,
   transferringLine,
+  wrapUpReasonPrompt,
   zipPrompt,
 } from "./call-flow";
 import { captureLeadOnce, checkServiceArea, getPriceRangeForCategory, transferCallAction } from "../functions/actions";
@@ -68,11 +69,16 @@ export function startCall(ctx: FlowContext, client: RealtimeClient): void {
 export async function handleTranscript(ctx: FlowContext, client: RealtimeClient, transcript: string): Promise<void> {
   ctx.session.conversationContext.transcript.push({ role: "user", message: transcript });
 
-  // Cheap, deterministic global-intent check first — no model call, runs every turn.
-  const intent = matchDeterministicIntent(transcript);
-  if (intent) {
-    await handleGlobalIntent(ctx, client, intent);
-    return;
+  // Cheap, deterministic global-intent check first — no model call. Skipped in
+  // wrap_up_reason: there the caller's whole utterance IS the free-form message,
+  // so a phrase like "following up on my job" or "tell them I want a person" is
+  // content to capture, not a command to route on.
+  if (ctx.session.state !== "wrap_up_reason") {
+    const intent = matchDeterministicIntent(transcript);
+    if (intent) {
+      await handleGlobalIntent(ctx, client, intent);
+      return;
+    }
   }
 
   await routeAnswer(ctx, client, transcript);
@@ -204,7 +210,8 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
     if (name) {
       ctx.session.conversationContext.callerName = name;
       if (ctx.session.isNewCustomer === false) {
-        enterConfirmation(ctx, client);
+        // Existing customer / message wrap-up — grab a reason if we don't have one.
+        proceedAfterNameWrapUp(ctx, client);
       } else if (!shouldAskCallbackPreference(ctx)) {
         // Already urgent enough (or the vertical has a strong urgency signal) —
         // don't make the caller answer a near-duplicate question.
@@ -213,6 +220,18 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
       } else {
         enterCallbackPreference(ctx, client);
       }
+    } else {
+      await handleStateFailure(ctx, client);
+    }
+    return;
+  }
+
+  if (state === "wrap_up_reason") {
+    // Free-form single turn — anything non-trivial is the reason/message.
+    const reason = transcript.trim();
+    if (reason) {
+      ctx.session.conversationContext.reasonForCall = reason;
+      enterConfirmation(ctx, client);
     } else {
       await handleStateFailure(ctx, client);
     }
@@ -302,10 +321,11 @@ async function advance(ctx: FlowContext, client: RealtimeClient): Promise<void> 
     return;
   }
 
-  // 2. Existing customer → skip qualification entirely; just get a name, confirm.
+  // 2. Existing customer → skip qualification; get a name, a reason if we don't
+  //    already have one, then confirm.
   if (session.isNewCustomer === false) {
     if (!cc.callerName) enterName(ctx, client, existingCustomerAck());
-    else enterConfirmation(ctx, client);
+    else proceedAfterNameWrapUp(ctx, client);
     return;
   }
 
@@ -443,13 +463,38 @@ async function enterFallbackVoicemail(ctx: FlowContext, client: RealtimeClient):
 }
 
 async function jumpToWrapUp(ctx: FlowContext, client: RealtimeClient, ackLine?: string): Promise<void> {
+  // Reached via leave_message / frustrated / no-transfer — take a message rather
+  // than run qualification. Get a name first, then one open "what to pass along".
   ctx.session.isNewCustomer = false;
-  if (ctx.session.conversationContext.callerName) {
+  ctx.session.wrapUpReasonMode = "message";
+  if (!ctx.session.conversationContext.callerName) {
+    enterName(ctx, client, ackLine);
+    return;
+  }
+  proceedAfterNameWrapUp(ctx, client);
+}
+
+/** After the name is captured on an existing/message wrap-up path: ask a single
+ *  open reason turn if we don't already know why they called, else confirm. */
+function proceedAfterNameWrapUp(ctx: FlowContext, client: RealtimeClient): void {
+  if (hasKnownReason(ctx)) {
     enterConfirmation(ctx, client);
   } else {
-    ctx.session.state = "name";
-    speak(ctx, client, namePrompt(ackLine));
+    enterWrapUpReason(ctx, client, ctx.session.wrapUpReasonMode ?? "existing");
   }
+}
+
+function enterWrapUpReason(ctx: FlowContext, client: RealtimeClient, mode: "existing" | "message"): void {
+  ctx.session.state = "wrap_up_reason";
+  ctx.session.wrapUpReasonMode = mode;
+  speak(ctx, client, wrapUpReasonPrompt(mode));
+}
+
+/** We already know why they called if a reason was captured, or the opening
+ *  extraction filled any qualification answer (which is the reason, structured). */
+function hasKnownReason(ctx: FlowContext): boolean {
+  const cc = ctx.session.conversationContext;
+  return Boolean(cc.reasonForCall) || Object.keys(cc.answers).length > 0;
 }
 
 async function handleWantsHuman(ctx: FlowContext, client: RealtimeClient): Promise<void> {
@@ -579,6 +624,8 @@ function retryPromptText(ctx: FlowContext): string {
     }
     case "name":
       return "Sorry, what's your name?";
+    case "wrap_up_reason":
+      return wrapUpReasonPrompt(ctx.session.wrapUpReasonMode ?? "existing");
     case "callback_preference":
       return callbackPreferencePrompt();
     default:

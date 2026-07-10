@@ -107,6 +107,7 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
     callStatus: "missed",
     intakeStatus: deriveIntakeStatus(ctx),
     intakeAnswers: answers,
+    notes: session.conversationContext.reasonForCall ?? null,
     smsConsent: false,
   });
 
