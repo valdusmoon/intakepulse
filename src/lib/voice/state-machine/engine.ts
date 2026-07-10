@@ -24,7 +24,7 @@ import { logger } from "@/lib/logger";
 import type { RealtimeClient } from "../realtime-client";
 import type { FlowContext } from "./types";
 import { matchDeterministicIntent, type GlobalIntent } from "./global-intent";
-import { cleanSpokenName, tryExtractZipDeterministic, tryMatchOptionLabel, type OptionLike } from "./deterministic";
+import { cleanSpokenName, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
 import { buildClassifyAnswerTool, DETECT_INTENT_TOOL, EXTRACT_ZIP_TOOL } from "./tools";
 import {
   CALLBACK_DTMF,
@@ -204,10 +204,28 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
     return;
   }
 
+  // Spoken equivalent of a keypad press ("say two" == pressing 2) — only where
+  // this state actually offered a numbered menu, so a number spoken in a
+  // free-text state can't be misread as a menu position.
+  if (currentDtmfMap(ctx)) {
+    const ordinal = tryMatchOrdinal(transcript, options);
+    if (ordinal) {
+      await applyStateAnswer(ctx, client, ordinal);
+      return;
+    }
+  }
+
   const allowedValues = options.map((o) => o.value);
+  // Spell out the menu for the classifier — number, label, and the value to
+  // return — rather than handing it bare enum codes with no idea what they mean
+  // or that the caller may have answered with a menu number.
+  const optionGuide = options.map((o, i) => `${i + 1} = "${o.label}" → return ${o.value}`).join("; ");
   ctx.session.responseActive = true;
   client.createResponse({
-    instructions: `The caller said: "${transcript}". Classify their answer.`,
+    instructions:
+      `The caller was asked a multiple-choice question with these options: ${optionGuide}. ` +
+      `They said: "${transcript}". Return the value for the option they chose — they may answer with ` +
+      `the option's number, its name, or a close synonym. If nothing clearly matches, return "unclear".`,
     output_modalities: ["text"],
     tools: [buildClassifyAnswerTool(allowedValues)],
     tool_choice: { type: "function", name: "classify_answer" },
