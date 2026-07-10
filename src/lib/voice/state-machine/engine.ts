@@ -79,9 +79,12 @@ export async function handleDtmf(
   ws: WebSocket,
   digit: string
 ): Promise<void> {
-  interruptCurrentResponse(ctx, client, ws);
-
+  // Only interrupt in-progress audio when this digit is actually going to be
+  // acted on — a stray/unmapped keypress in a state with no DTMF meaning (e.g.
+  // during the price-guidance or name prompt) used to cut off whatever the AI
+  // was saying at that instant, even though the digit itself was ignored.
   if (ctx.session.state === "zip_code") {
+    interruptCurrentResponse(ctx, client, ws);
     ctx.session.dtmfBuffer += digit;
     if (ctx.session.dtmfBuffer.length < 5) return;
     await applyZip(ctx, client, ctx.session.dtmfBuffer);
@@ -91,6 +94,7 @@ export async function handleDtmf(
   const dtmfMap = currentDtmfMap(ctx);
   const value = dtmfMap?.[digit];
   if (value) {
+    interruptCurrentResponse(ctx, client, ws);
     await applyStateAnswer(ctx, client, value);
   }
   // Unmapped digit for the current state — silently ignored, no reprompt needed
@@ -131,6 +135,15 @@ export async function handleToolCall(ctx: FlowContext, client: RealtimeClient, n
 /** Wired to the OpenAI response.done event — fires and clears any pending
  *  "speak, then silently do X" continuation. */
 export function notifyResponseDone(ctx: FlowContext, client: RealtimeClient): void {
+  // A response that finished normally has nothing left to truncate — without
+  // this, a later interrupt (e.g. a DTMF digit pressed seconds after a prompt
+  // already finished playing) computes a truncation point past the item's
+  // actual audio length, using a stale timestamp baseline from this now-
+  // completed turn (OpenAI rejects it: "Audio content of Xms is already
+  // shorter than Yms").
+  ctx.session.lastAssistantItem = undefined;
+  ctx.session.responseStartTimestamp = undefined;
+
   const cb = ctx.session.onResponseDone;
   if (!cb) return;
   ctx.session.onResponseDone = undefined;
