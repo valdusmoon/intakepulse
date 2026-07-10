@@ -94,10 +94,9 @@ export function confirmationLine(ctx: FlowContext): string {
   return parts.join(" ");
 }
 
-/** Spoken as the last turn before hangup, after confirmation or fallback-voicemail
- *  — kept short and generic since both of those already state what happens next. */
+/** Spoken as the last turn before hangup, after confirmation or fallback-voicemail. */
 export function goodbyeLine(): string {
-  return "Thanks for calling. Goodbye.";
+  return "Thanks for calling — we'll get back to you shortly.";
 }
 
 export function fallbackVoicemailLine(): string {
