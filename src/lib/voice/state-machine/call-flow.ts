@@ -46,9 +46,9 @@ export function greetingPrompt(ctx: FlowContext): string {
     business.recordingEnabled && business.recordingDisclosure ? ` ${business.recordingDisclosure}` : "";
 
   return (
-    `${greeting} I'm their automated intake assistant, and I can take a few details so they can follow up.${disclosure} ` +
-    `Is this for a new issue, or are you calling about work already in progress? ` +
-    `Press 1 for a new issue, press 2 if it's an existing job, or just tell me.`
+    `${greeting} I'm their automated intake assistant.${disclosure} ` +
+    `Is this a new issue, or work already in progress? ` +
+    `Press 1 for new, press 2 for existing, or just tell me.`
   );
 }
 
@@ -94,8 +94,10 @@ export function confirmationLine(ctx: FlowContext): string {
   return parts.join(" ");
 }
 
+/** Spoken as the last turn before hangup, after confirmation or fallback-voicemail
+ *  — kept short and generic since both of those already state what happens next. */
 export function goodbyeLine(): string {
-  return "Thanks for calling — the team will be in touch soon. Goodbye.";
+  return "Thanks for calling. Goodbye.";
 }
 
 export function fallbackVoicemailLine(): string {
@@ -108,4 +110,12 @@ export function existingCustomerAck(): string {
 
 export function noTransferAvailableLine(): string {
   return "I'll make sure the team calls you back as soon as possible.";
+}
+
+export function startOverAckLine(): string {
+  return "Okay, let's start over.";
+}
+
+export function transferringLine(): string {
+  return "Let me transfer you to the team right now.";
 }

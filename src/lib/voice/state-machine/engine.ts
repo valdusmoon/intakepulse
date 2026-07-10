@@ -35,12 +35,15 @@ import {
   confirmationLine,
   existingCustomerAck,
   fallbackVoicemailLine,
+  goodbyeLine,
   greetingPrompt,
   namePrompt,
   noTransferAvailableLine,
   qualificationPrompt,
   questionDtmfMap,
   questionOptions,
+  startOverAckLine,
+  transferringLine,
   zipPrompt,
 } from "./call-flow";
 import { captureLeadOnce, checkServiceArea, getPriceRangeForCategory, transferCallAction } from "../functions/actions";
@@ -159,6 +162,11 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
     if (name) {
       ctx.session.conversationContext.callerName = name;
       if (ctx.session.isNewCustomer === false) {
+        enterConfirmation(ctx, client);
+      } else if (!shouldAskCallbackPreference(ctx)) {
+        // Already urgent enough (or the vertical has a strong urgency signal) —
+        // don't make the caller answer a near-duplicate question.
+        ctx.session.conversationContext.callbackPreference = "as soon as possible";
         enterConfirmation(ctx, client);
       } else {
         enterCallbackPreference(ctx, client);
@@ -305,7 +313,10 @@ async function finishCall(ctx: FlowContext, client: RealtimeClient): Promise<voi
     logger.error("captureLead failed", { correlationId: ctx.session.correlationId, error: String(err) });
   }
   ctx.session.state = "end";
-  ctx.onComplete();
+  speak(ctx, client, goodbyeLine());
+  ctx.session.onResponseDone = () => {
+    ctx.onComplete();
+  };
 }
 
 function enterExistingCustomerPath(ctx: FlowContext, client: RealtimeClient, ackLine: string = existingCustomerAck()): void {
@@ -337,7 +348,7 @@ async function handleWantsHuman(ctx: FlowContext, client: RealtimeClient): Promi
     await jumpToWrapUp(ctx, client, noTransferAvailableLine());
     return;
   }
-  speak(ctx, client, "Let me transfer you to the team right now.");
+  speak(ctx, client, transferringLine());
   ctx.session.onResponseDone = () => {
     void transferCallAction(ctx); // fires only after the line finishes playing
   };
@@ -363,7 +374,10 @@ async function handleGlobalIntent(ctx: FlowContext, client: RealtimeClient, inte
       ctx.session.qualificationIndex = 0;
       ctx.session.conversationContext.answers = {};
       ctx.session.conversationContext.zipCode = undefined;
-      enterQualification(ctx, client);
+      speak(ctx, client, startOverAckLine());
+      ctx.session.onResponseDone = () => {
+        enterQualification(ctx, client);
+      };
       return;
     case "repeat":
       speak(ctx, client, retryPromptText(ctx));
@@ -399,6 +413,15 @@ async function handleStateFailure(ctx: FlowContext, client: RealtimeClient): Pro
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
+
+/** Skip the near-duplicate "when should we call you back" question once urgency
+ *  already answered it implicitly — only asked when the vertical has no urgency
+ *  question at all, or the caller said it's not urgent. */
+function shouldAskCallbackPreference(ctx: FlowContext): boolean {
+  const hasUrgencyQuestion = ctx.verticalConfig.questions.some((q) => q.key === "urgency");
+  if (!hasUrgencyQuestion) return true;
+  return ctx.session.conversationContext.answers.urgency === "flexible";
+}
 
 function currentQuestion(ctx: FlowContext): VerticalQuestion | undefined {
   const visible = getVisibleQuestions(ctx.verticalConfig.questions, ctx.session.conversationContext.answers);
