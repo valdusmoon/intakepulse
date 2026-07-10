@@ -50,10 +50,13 @@ export async function POST(req: NextRequest) {
   if (!business) return NextResponse.json({ error: "No business found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
-  const { sessionState: incomingState, message } = body as { sessionState?: SessionState; message?: string };
+  const { sessionState: incomingState, message, dtmf } = body as { sessionState?: SessionState; message?: string; dtmf?: string };
 
-  if (incomingState && !message) {
-    return NextResponse.json({ error: "message is required" }, { status: 400 });
+  if (incomingState && !message && !dtmf) {
+    return NextResponse.json({ error: "message or dtmf is required" }, { status: 400 });
+  }
+  if (dtmf && !/^[0-9*#]$/.test(dtmf)) {
+    return NextResponse.json({ error: "dtmf must be a single keypad digit" }, { status: 400 });
   }
 
   const businessCallData = await loadBusinessCallData(business.id, TEST_CALLER_PHONE);
@@ -82,6 +85,12 @@ export async function POST(req: NextRequest) {
   const beforeSnapshot = ctx.session.conversationContext.transcript.length;
   if (!incomingState) {
     engine.startCall(ctx, client);
+  } else if (dtmf) {
+    // Mirrors a real keypress exactly — handleDtmf resolves it via the
+    // state's DTMF map without ever going through the model, same as a real
+    // phone call. Unlike handleTranscript, it never pushes a "user said X"
+    // transcript entry (a keypress isn't speech), so no offset is needed below.
+    await engine.handleDtmf(ctx, client, noopWs, dtmf);
   } else {
     await engine.handleTranscript(ctx, client, message!);
   }
@@ -96,7 +105,7 @@ export async function POST(req: NextRequest) {
   // handleTranscript's very first action is pushing the caller's own message
   // into the transcript — skip it in what we return, since the client already
   // has its own copy from what it just sent (it isn't waiting to be told).
-  const linesFrom = incomingState ? beforeSnapshot + 1 : beforeSnapshot;
+  const linesFrom = incomingState && message ? beforeSnapshot + 1 : beforeSnapshot;
 
   return NextResponse.json({
     sessionState: ended ? null : serializeSession(ctx.session),
