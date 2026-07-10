@@ -213,7 +213,10 @@ Summary:`;
  */
 export async function endCall(session: SessionState): Promise<void> {
   const durationSeconds = Math.floor((Date.now() - session.callStartTime.getTime()) / 1000);
-  const outcome: CallOutcome = session.leadId ? "ai_captured" : "abandoned";
+  // A lead takes priority (it exists regardless of a later transfer attempt),
+  // then a successful warm transfer — a human is already handling the caller
+  // live, so this wasn't abandoned even though no lead was created for it.
+  const outcome: CallOutcome = session.leadId ? "ai_captured" : session.transferred ? "transferred" : "abandoned";
 
   // Persist the critical fields first, with no external API call in the way —
   // this runs right after the caller's connection has already closed, and an

@@ -61,6 +61,11 @@ export interface SessionState {
   // Retry counter per state key — reset on successful transition into a new state
   attempts: Partial<Record<VoiceState, number>>;
   isNewCustomer?: boolean;
+  // Set when transferCallAction successfully bridges the call to a human —
+  // endCall uses this so a successful transfer reports outcome "transferred"
+  // rather than "abandoned" once the WS closes (the transfer itself doesn't
+  // create a lead; a human is already handling the caller live).
+  transferred?: boolean;
   // Set the first time a real qualification answer is recorded. Distinct from
   // isNewCustomer, which global intents like jumpToWrapUp force to false even
   // when qualification had already genuinely started — deriveIntakeStatus
@@ -131,7 +136,7 @@ export interface BusinessCallData {
   customServiceOptions: CustomServiceOption[];
 }
 
-export type CallOutcome = "in_progress" | "business_answered" | "ai_captured" | "abandoned" | "error";
+export type CallOutcome = "in_progress" | "business_answered" | "ai_captured" | "transferred" | "abandoned" | "error";
 
 export interface EndCallData {
   endedAt: Date;

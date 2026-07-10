@@ -13,6 +13,7 @@ const OUTCOMES = [
   { value: "", label: "All outcomes" },
   { value: "business_answered", label: "Business answered" },
   { value: "ai_captured", label: "Captured by Callverted" },
+  { value: "transferred", label: "Transferred to team" },
   { value: "abandoned", label: "Caller abandoned" },
   { value: "error", label: "Error / transfer failed" },
 ];
@@ -21,6 +22,7 @@ const OUTCOME_META: Record<string, { label: string; icon: string; iconClass: str
   in_progress: { label: "In progress", icon: "sync", iconClass: "bg-cv-gray-soft text-[#667085]", sub: "Call underway" },
   business_answered: { label: "Business answered", icon: "phone_in_talk", iconClass: "bg-cv-green-soft text-cv-green", sub: "Connected directly" },
   ai_captured: { label: "Captured by Callverted", icon: "support_agent", iconClass: "bg-cv-primary-soft text-cv-primary", sub: "No answer — AI took over" },
+  transferred: { label: "Transferred to team", icon: "phone_forwarded", iconClass: "bg-cv-green-soft text-cv-green", sub: "Caller asked for a person — bridged live" },
   abandoned: { label: "Caller abandoned", icon: "phone_missed", iconClass: "bg-cv-gray-soft text-[#667085]", sub: "Hung up before completing" },
   error: { label: "Error", icon: "error", iconClass: "bg-cv-red-soft text-cv-red", sub: "Transfer failed" },
 };

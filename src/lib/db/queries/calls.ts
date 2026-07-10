@@ -68,18 +68,22 @@ export async function getCallMetrics(businessId: string) {
       overflowCaptured: sql<number>`count(*) filter (where ${calls.outcome} = 'ai_captured')`,
       overflowStarted: sql<number>`count(*) filter (where ${calls.overflowStartedAt} is not null)`,
       leadCreated: sql<number>`count(*) filter (where ${calls.leadId} is not null)`,
+      transferred: sql<number>`count(*) filter (where ${calls.outcome} = 'transferred')`,
     })
     .from(calls)
     .where(eq(calls.businessId, businessId));
 
   const n = (v: unknown) => Number(v ?? 0);
   const overflowStarted = n(row.overflowStarted);
-  const leadCreated = n(row.leadCreated);
+  // A successful warm transfer resolves the call just as well as a captured
+  // lead — a human is already handling the caller live — so it counts toward
+  // completion too, even though it never creates a lead row.
+  const resolved = n(row.leadCreated) + n(row.transferred);
 
   return {
     inboundTotal: n(row.inboundTotal),
     answeredByTeam: n(row.answeredByTeam),
     overflowCaptured: n(row.overflowCaptured),
-    callerCompletionRate: overflowStarted > 0 ? Math.round((leadCreated / overflowStarted) * 100) : null,
+    callerCompletionRate: overflowStarted > 0 ? Math.round((resolved / overflowStarted) * 100) : null,
   };
 }

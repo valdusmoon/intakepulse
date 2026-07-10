@@ -173,6 +173,7 @@ export async function transferCallAction(ctx: FlowContext): Promise<{ transferre
   try {
     await updateCallWithTwiml(session.callSid, generateTransferTwiml(session.urgentTransferNumber));
     session.conversationContext.actionsTaken.push(`transferred to ${session.urgentTransferNumber}`);
+    session.transferred = true;
     return { transferred: true };
   } catch (err) {
     logger.error("Failed to transfer call", { correlationId: session.correlationId, error: String(err) });
