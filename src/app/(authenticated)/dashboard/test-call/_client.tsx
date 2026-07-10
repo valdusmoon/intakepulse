@@ -27,6 +27,7 @@ export function TestCallClient({ businessName }: { businessName: string }) {
   const [leadId, setLeadId] = useState<string | null>(null);
   const [ended, setEnded] = useState(false);
   const [input, setInput] = useState("");
+  const [dialInput, setDialInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Opaque conversation state handed back by the server each turn and passed
@@ -64,6 +65,7 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setAnswers({});
     setLeadId(null);
     setEnded(false);
+    setDialInput("");
     sessionStateRef.current = null;
     const data = await post({});
     setLoading(false);
@@ -84,16 +86,18 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     applyResult(data, true);
   }
 
-  /** Mirrors an actual keypress — resolved via the state's DTMF map, never
+  /** Mirrors actual keypresses — resolved via the state's DTMF map(s), never
    *  the model, same as a real phone call (never a "the caller said X" line
    *  in engine.ts's own transcript, so shown here as a distinct pill instead
-   *  of a chat bubble). */
-  async function pressDigit(digit: string) {
-    if (loading) return;
-    setLines((prev) => [...prev, { role: "user", message: `keypad: ${digit}` }]);
+   *  of a chat bubble). Accepts a whole digit string (e.g. a ZIP dialed at
+   *  once) as well as a single button press — the server processes it one
+   *  keypress at a time either way. */
+  async function sendDtmf(digits: string) {
+    if (!digits || loading) return;
+    setLines((prev) => [...prev, { role: "user", message: `keypad: ${digits}` }]);
     setLoading(true);
     setError(null);
-    const data = await post({ sessionState: sessionStateRef.current, dtmf: digit });
+    const data = await post({ sessionState: sessionStateRef.current, dtmf: digits });
     setLoading(false);
     if (!data) return;
     applyResult(data, true);
@@ -185,19 +189,50 @@ export function TestCallClient({ businessName }: { businessName: string }) {
 
                   <div>
                     <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold mb-1.5">
-                      Or press a key, like a real caller would
+                      Or press keys, like a real caller would
                     </div>
-                    <div className="grid grid-cols-3 gap-1.5 max-w-[200px]">
-                      {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map((digit) => (
-                        <button
-                          key={digit}
-                          onClick={() => pressDigit(digit)}
-                          disabled={loading}
-                          className="h-10 rounded-[9px] border border-cv-border-strong bg-cv-surface text-sm font-bold text-cv-ink hover:bg-cv-surface-subtle disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {digit}
-                        </button>
-                      ))}
+                    <div className="flex gap-3 flex-wrap items-start">
+                      <div className="grid grid-cols-3 gap-1.5 w-[200px]">
+                        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map((digit) => (
+                          <button
+                            key={digit}
+                            onClick={() => sendDtmf(digit)}
+                            disabled={loading}
+                            className="h-10 rounded-[9px] border border-cv-border-strong bg-cv-surface text-sm font-bold text-cv-ink hover:bg-cv-surface-subtle disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {digit}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs text-cv-muted">Dial a whole number at once (e.g. a ZIP)</span>
+                        <div className="flex gap-2">
+                          <Field
+                            value={dialInput}
+                            onChange={(e) => setDialInput(e.target.value.replace(/[^0-9*#]/g, ""))}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                sendDtmf(dialInput);
+                                setDialInput("");
+                              }
+                            }}
+                            placeholder="e.g. 07030"
+                            disabled={loading}
+                            className="w-32"
+                          />
+                          <Button
+                            variant="default"
+                            onClick={() => {
+                              sendDtmf(dialInput);
+                              setDialInput("");
+                            }}
+                            disabled={loading || !dialInput}
+                          >
+                            Dial
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </>

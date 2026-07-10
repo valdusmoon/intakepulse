@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
   if (incomingState && !message && !dtmf) {
     return NextResponse.json({ error: "message or dtmf is required" }, { status: 400 });
   }
-  if (dtmf && !/^[0-9*#]$/.test(dtmf)) {
-    return NextResponse.json({ error: "dtmf must be a single keypad digit" }, { status: 400 });
+  if (dtmf && !/^[0-9*#]+$/.test(dtmf)) {
+    return NextResponse.json({ error: "dtmf must be keypad digits only" }, { status: 400 });
   }
 
   const businessCallData = await loadBusinessCallData(business.id, TEST_CALLER_PHONE);
@@ -86,11 +86,21 @@ export async function POST(req: NextRequest) {
   if (!incomingState) {
     engine.startCall(ctx, client);
   } else if (dtmf) {
-    // Mirrors a real keypress exactly — handleDtmf resolves it via the
+    // Mirrors real keypresses exactly — handleDtmf resolves each one via the
     // state's DTMF map without ever going through the model, same as a real
     // phone call. Unlike handleTranscript, it never pushes a "user said X"
     // transcript entry (a keypress isn't speech), so no offset is needed below.
-    await engine.handleDtmf(ctx, client, noopWs, dtmf);
+    // A multi-digit string (e.g. dialing a whole ZIP at once instead of one
+    // button per digit) is processed one keypress at a time, in order, fully
+    // settling between each — most digits (e.g. the first 4 of a 5-digit ZIP)
+    // just buffer with nothing to settle, but if any digit actually completes
+    // an answer and triggers a response, the next digit needs that response
+    // fully resolved first, or it'd race the same "conversation already has
+    // an active response" issue fixed earlier this session.
+    for (const digit of dtmf) {
+      await engine.handleDtmf(ctx, client, noopWs, digit);
+      await waitUntilFullySettled(ctx);
+    }
   } else {
     await engine.handleTranscript(ctx, client, message!);
   }
