@@ -43,6 +43,11 @@ export interface SessionState {
 
   // Set once the lead has been created — CREATE_LEAD is idempotent against this.
   leadId?: string;
+  // Set synchronously (before any await) the first time captureLeadOnce is called —
+  // guards against the normal-completion path and the early-disconnect drop handler
+  // both trying to create a lead if the caller hangs up while the first DB insert
+  // is still in flight (leadId isn't set until that insert resolves).
+  leadCapturePromise?: Promise<{ leadId: string }>;
 
   // ── State machine ──────────────────────────────────────────────────────────
   state: VoiceState;

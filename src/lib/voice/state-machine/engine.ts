@@ -43,7 +43,7 @@ import {
   questionOptions,
   zipPrompt,
 } from "./call-flow";
-import { captureLead, checkServiceArea, getPriceRangeForCategory, transferCallAction } from "../functions/actions";
+import { captureLeadOnce, checkServiceArea, getPriceRangeForCategory, transferCallAction } from "../functions/actions";
 import { INTERRUPTION } from "../config/constants";
 
 const RETRY_LIMIT = 1; // "maximum clarification attempts per state: 1"
@@ -300,9 +300,7 @@ function enterConfirmation(ctx: FlowContext, client: RealtimeClient): void {
 async function finishCall(ctx: FlowContext, client: RealtimeClient): Promise<void> {
   ctx.session.state = "create_lead";
   try {
-    if (!ctx.session.leadId) {
-      await captureLead(ctx);
-    }
+    await captureLeadOnce(ctx);
   } catch (err) {
     logger.error("captureLead failed", { correlationId: ctx.session.correlationId, error: String(err) });
   }

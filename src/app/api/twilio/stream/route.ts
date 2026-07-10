@@ -2,7 +2,7 @@ import { experimental_upgradeWebSocket, type WebSocket, type WebSocketData } fro
 import { verifyStreamToken } from "@/lib/twilio/stream-token";
 import { getCallByTwilioSid } from "@/lib/db/queries/calls";
 import { buildFlowContext, createSession, endCall, initializeOpenAI, loadBusinessCallData } from "@/lib/voice/call-manager";
-import { captureLead, deriveIntakeStatus } from "@/lib/voice/functions/actions";
+import { captureLeadOnce, deriveIntakeStatus } from "@/lib/voice/functions/actions";
 import { OpenAIHandlerService } from "@/lib/voice/openai-handler.service";
 import type { RealtimeClient } from "@/lib/voice/realtime-client";
 import type { FlowContext } from "@/lib/voice/state-machine/types";
@@ -179,7 +179,7 @@ async function cleanupConnection(ws: WebSocket): Promise<void> {
   // dead air) since deriveIntakeStatus returns "not_started" for those.
   if (ctx && !ctx.session.leadId && deriveIntakeStatus(ctx) !== "not_started") {
     try {
-      await captureLead(ctx);
+      await captureLeadOnce(ctx);
     } catch (error) {
       logger.error("Failed to capture partial lead on early disconnect", {
         correlationId: ctx.session.correlationId,

@@ -142,6 +142,22 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
 }
 
 /**
+ * Ensures captureLead runs at most once per call. session.leadCapturePromise is
+ * set synchronously, before any await, so a caller racing in while the first
+ * invocation's DB insert is still in flight (e.g. finishCall's normal completion
+ * overlapping with the early-disconnect drop handler because the caller hung up
+ * their phone right as the confirmation line finished) awaits the same promise
+ * instead of starting a second insert — checking session.leadId alone isn't
+ * enough since it only gets set once that insert resolves.
+ */
+export function captureLeadOnce(ctx: FlowContext): Promise<CaptureLeadResult> {
+  if (!ctx.session.leadCapturePromise) {
+    ctx.session.leadCapturePromise = captureLead(ctx);
+  }
+  return ctx.session.leadCapturePromise;
+}
+
+/**
  * Warm-transfers the live call to the business's urgent line. Triggered by the
  * engine on a detected wants_human/emergency-adjacent global intent — the model
  * never decides this on its own.
