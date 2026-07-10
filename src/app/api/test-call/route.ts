@@ -117,13 +117,26 @@ export async function POST(req: NextRequest) {
   // has its own copy from what it just sent (it isn't waiting to be told).
   const linesFrom = incomingState && message ? beforeSnapshot + 1 : beforeSnapshot;
 
+  const cc = ctx.session.conversationContext;
   return NextResponse.json({
     sessionState: ended ? null : serializeSession(ctx.session),
-    lines: ctx.session.conversationContext.transcript.slice(linesFrom).map((t) => ({ role: t.role, message: t.message })),
+    lines: cc.transcript.slice(linesFrom).map((t) => ({ role: t.role, message: t.message })),
     state: ctx.session.state,
-    answers: ctx.session.conversationContext.answers,
+    answers: cc.answers,
     leadId: ctx.session.leadId ?? null,
     ended,
+    // Call-metadata captured outside the scored Q&A — surfaced so the tester's
+    // inspector panel can reflect real call progress, not just scored answers.
+    meta: {
+      isNewCustomer: ctx.session.isNewCustomer ?? null,
+      callerName: cc.callerName ?? null,
+      zipCode: cc.zipCode ?? null,
+      serviceAreaEligible: cc.serviceAreaEligible ?? null,
+      callbackPreference: cc.callbackPreference ?? null,
+      priceEligible: cc.priceEligible ?? null,
+      priceMessage: cc.priceMessage ?? null,
+      transferred: ctx.session.transferred ?? null,
+    },
   });
 }
 
