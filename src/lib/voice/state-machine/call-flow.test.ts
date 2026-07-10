@@ -91,7 +91,7 @@ describe("confirmationLine", () => {
     });
     const line = confirmationLine(ctx);
     expect(line).toContain("Thanks, Pat.");
-    expect(line).toContain("I have this noted as Water in ZIP code 10001.");
+    expect(line).toContain("I have this noted as a water issue in ZIP code 10001.");
     expect(line).toContain("Blue Star Restoration has received the request");
   });
 
@@ -105,7 +105,7 @@ describe("confirmationLine", () => {
     });
     // This is the exact bug that was fixed: confirmationLine used to hardcode
     // `answers.damage_type` and say "damage issue" — neither of which applies to HVAC.
-    expect(confirmationLine(ctx)).toContain("I have this noted as AC not cooling / repair");
+    expect(confirmationLine(ctx)).toContain("I have this noted as an ac not cooling / repair issue");
     expect(confirmationLine(ctx)).not.toContain("damage");
   });
 

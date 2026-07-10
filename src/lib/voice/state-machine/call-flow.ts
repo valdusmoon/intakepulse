@@ -26,6 +26,12 @@ export const CALLBACK_OPTIONS: OptionLike[] = [
 ];
 export const CALLBACK_DTMF: Record<string, string> = { "1": "asap", "2": "today", "3": "tomorrow" };
 
+/** "a" / "an" by the first sound of the following phrase — good enough for the
+ *  short category/urgency labels this is used with (e.g. "an emergency water"). */
+function aOrAn(phrase: string): string {
+  return /^[aeiou]/i.test(phrase.trim()) ? `an ${phrase}` : `a ${phrase}`;
+}
+
 export function questionOptions(question: VerticalQuestion): OptionLike[] {
   return (question.options ?? []).map((o) => ({ label: o.label, value: o.value }));
 }
@@ -41,15 +47,19 @@ export function greetingPrompt(ctx: FlowContext): string {
   const { business } = ctx;
   const greeting =
     business.greetingMessage ||
-    `Thanks for calling ${business.businessName}. The team is currently helping another customer and couldn't get to the phone.`;
+    `Thanks for calling ${business.businessName}. I'm their automated intake assistant.`;
   const disclosure =
     business.recordingEnabled && business.recordingDisclosure ? ` ${business.recordingDisclosure}` : "";
 
-  return (
-    `${greeting} I'm their automated intake assistant.${disclosure} ` +
-    `Is this a new issue, or work already in progress? ` +
-    `Press 1 for new, press 2 for existing, or just tell me.`
-  );
+  // Open broad instead of leading with a new/existing menu — the caller's own
+  // description is run through extract_intake, which usually fills several
+  // fields at once so the engine can skip straight past what they've told us.
+  return `${greeting}${disclosure} Briefly, what's going on?`;
+}
+
+/** Asked only when the opening description didn't make new-vs-existing clear. */
+export function newOrExistingPrompt(): string {
+  return "Is this a new issue, or an existing job? Press 1 for new, press 2 for existing, or just tell me.";
 }
 
 export function qualificationPrompt(question: VerticalQuestion): string {
@@ -84,12 +94,20 @@ export function confirmationLine(ctx: FlowContext): string {
   // The first question in a vertical's config doubles as its primary
   // category (e.g. damage type, service type) — reference it generically
   // rather than a hardcoded key so this line works for every vertical.
+  const answers = session.conversationContext.answers;
   const primaryQuestion = verticalConfig.questions[0];
-  const primaryAnswer = primaryQuestion ? session.conversationContext.answers[primaryQuestion.key] : undefined;
-  const primaryLabel = primaryQuestion?.options?.find((o) => o.value === primaryAnswer)?.label;
+  const primaryLabel = primaryQuestion?.options?.find((o) => o.value === answers[primaryQuestion.key])?.label;
+
+  // Reflect urgency back too, when known, so the caller hears we understood how
+  // pressing it is — reassurance is the whole point of this line.
+  const urgencyQuestion = verticalConfig.questions.find((q) => q.key === "urgency");
+  const urgencyLabel = urgencyQuestion?.options?.find((o) => o.value === answers.urgency)?.label;
+
+  const issue = [urgencyLabel?.toLowerCase(), primaryLabel?.toLowerCase()].filter(Boolean).join(" ");
 
   const parts = [`Thanks, ${name}.`];
-  if (primaryLabel) parts.push(`I have this noted as ${primaryLabel}${zip ? ` in ZIP code ${zip}` : ""}.`);
+  if (issue) parts.push(`I have this noted as ${aOrAn(issue)} issue${zip ? ` in ZIP code ${zip}` : ""}.`);
+  else if (zip) parts.push(`I have this noted for ZIP code ${zip}.`);
   parts.push(`${business.businessName} has received the request and will call you back${callback ? ` ${callback}` : " as soon as possible"}.`);
   return parts.join(" ");
 }

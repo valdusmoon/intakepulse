@@ -1,9 +1,11 @@
 /**
- * Model-facing classification tool schemas. Only three tools exist across the
- * entire flow — the engine forces exactly one of them per turn via tool_choice,
- * so there's no need for a large per-concept tool registry. Most states never
- * reach the model at all (see deterministic.ts) — these are the fallback path.
+ * Model-facing classification tool schemas. The engine forces exactly one tool
+ * per turn via tool_choice, so there's no need for a large per-concept registry.
+ * Most states never reach the model at all (see deterministic.ts) — these are
+ * the fallback/extraction paths.
  */
+
+import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 
 export interface FunctionDefinition {
   name: string;
@@ -13,6 +15,48 @@ export interface FunctionDefinition {
     type: "object";
     properties: Record<string, unknown>;
     required?: string[];
+  };
+}
+
+/**
+ * Multi-field extractor for the caller's opening free-form answer — the crux of
+ * adaptive intake. Built per-vertical so its schema mirrors that vertical's real
+ * question keys (enum-constrained for option questions), plus the two bookend
+ * fields every call needs (customer_type, zip_code). ALL fields are optional:
+ * the model must only fill what the caller actually said and omit the rest, so
+ * one sentence can populate several fields at once without inviting guesses.
+ * Validated by extraction.ts before anything is merged.
+ */
+export function buildExtractIntakeTool(questions: VerticalQuestion[]): FunctionDefinition {
+  const properties: Record<string, unknown> = {
+    customer_type: {
+      type: "string",
+      enum: ["new", "existing", "unclear"],
+      description:
+        "Whether this is a brand-new request/issue or an existing job already in progress. Use \"unclear\" if the caller didn't indicate.",
+    },
+    zip_code: {
+      type: "string",
+      description: "The 5-digit US ZIP code where the work is needed, only if the caller stated it. Omit otherwise.",
+    },
+  };
+
+  for (const q of questions) {
+    const optionValues = (q.options ?? []).map((o) => o.value);
+    properties[q.key] =
+      optionValues.length > 0
+        ? { type: "string", enum: optionValues, description: q.label }
+        : { type: "string", description: q.label };
+  }
+
+  return {
+    name: "extract_intake",
+    type: "function",
+    description:
+      "Capture every field the caller has ALREADY mentioned in their own words, in a single pass. " +
+      "Include a field only if the caller clearly indicated it — omit anything they did not say. " +
+      "Do not guess or infer beyond what was actually stated.",
+    parameters: { type: "object", properties },
   };
 }
 

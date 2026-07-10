@@ -25,7 +25,8 @@ import type { RealtimeClient } from "../realtime-client";
 import type { FlowContext } from "./types";
 import { matchDeterministicIntent, type GlobalIntent } from "./global-intent";
 import { cleanSpokenName, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
-import { buildClassifyAnswerTool, DETECT_INTENT_TOOL, EXTRACT_ZIP_TOOL } from "./tools";
+import { buildClassifyAnswerTool, buildExtractIntakeTool, DETECT_INTENT_TOOL, EXTRACT_ZIP_TOOL } from "./tools";
+import { validateExtraction } from "./extraction";
 import {
   CALLBACK_DTMF,
   CALLBACK_OPTIONS,
@@ -38,6 +39,7 @@ import {
   goodbyeLine,
   greetingPrompt,
   namePrompt,
+  newOrExistingPrompt,
   noTransferAvailableLine,
   qualificationPrompt,
   questionDtmfMap,
@@ -54,7 +56,10 @@ const RETRY_LIMIT = 1; // "maximum clarification attempts per state: 1"
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export function startCall(ctx: FlowContext, client: RealtimeClient): void {
-  ctx.session.state = "new_or_existing";
+  // Open with a broad "what's going on?" — the caller's own words are run
+  // through extract_intake, which typically fills several fields at once, so the
+  // engine can skip straight past everything they've already told us (advance()).
+  ctx.session.state = "open_description";
   speak(ctx, client, greetingPrompt(ctx));
 }
 
@@ -101,6 +106,11 @@ export async function handleDtmf(
 }
 
 export async function handleToolCall(ctx: FlowContext, client: RealtimeClient, name: string, args: any): Promise<void> {
+  if (name === "extract_intake") {
+    await applyExtraction(ctx, client, args);
+    return;
+  }
+
   if (name === "classify_answer") {
     const value = args?.value;
     if (!value || value === "unclear") {
@@ -158,6 +168,20 @@ export function notifyResponseDone(ctx: FlowContext, client: RealtimeClient): vo
 
 async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript: string): Promise<void> {
   const { state } = ctx.session;
+
+  if (state === "open_description") {
+    // Free-form opener → one forced extraction pass over the vertical's fields.
+    ctx.session.responseActive = true;
+    client.createResponse({
+      instructions:
+        `The caller was asked "what's going on?" and said: "${transcript}". ` +
+        `Extract every field they clearly mentioned; omit anything they did not state.`,
+      output_modalities: ["text"],
+      tools: [buildExtractIntakeTool(ctx.verticalConfig.questions)],
+      tool_choice: { type: "function", name: "extract_intake" },
+    });
+    return;
+  }
 
   if (state === "zip_code") {
     const zip = tryExtractZipDeterministic(transcript);
@@ -236,13 +260,8 @@ async function applyStateAnswer(ctx: FlowContext, client: RealtimeClient, value:
   resetAttempts(ctx, ctx.session.state);
 
   if (ctx.session.state === "new_or_existing") {
-    if (value === "existing") {
-      enterExistingCustomerPath(ctx, client);
-    } else {
-      ctx.session.isNewCustomer = true;
-      ctx.session.qualificationIndex = 0;
-      enterQualification(ctx, client);
-    }
+    ctx.session.isNewCustomer = value !== "existing";
+    await advance(ctx, client);
     return;
   }
 
@@ -251,16 +270,8 @@ async function applyStateAnswer(ctx: FlowContext, client: RealtimeClient, value:
     if (!question) return;
     ctx.session.hasStartedQualification = true;
     ctx.session.conversationContext.answers[question.key] = value;
-    ctx.session.qualificationIndex += 1;
-
-    // Ask ZIP right after the caller's said what happened, before the rest of
-    // the qualification questions — feels less transactional than leading with it.
-    if (!ctx.session.conversationContext.zipCode) {
-      enterZipCode(ctx, client);
-      return;
-    }
-
-    await continueQualification(ctx, client);
+    ctx.session.currentQuestionKey = undefined;
+    await advance(ctx, client);
     return;
   }
 
@@ -271,17 +282,90 @@ async function applyStateAnswer(ctx: FlowContext, client: RealtimeClient, value:
   }
 }
 
+/**
+ * The adaptive router — after any answer (or the opening extraction) is merged,
+ * this picks the next thing to ask by looking at what's still MISSING, rather
+ * than walking a fixed script. Code owns the order; the model never chooses.
+ *
+ * Order for a new customer: know new-vs-existing → the primary "what happened"
+ * question → ZIP → any remaining qualification questions → price+name. Anything
+ * the opening description already filled is simply skipped.
+ */
+async function advance(ctx: FlowContext, client: RealtimeClient): Promise<void> {
+  const { session } = ctx;
+  const cc = session.conversationContext;
+
+  // 1. New vs existing unknown → ask it (only reached when the opener didn't say).
+  if (session.isNewCustomer === undefined) {
+    session.state = "new_or_existing";
+    speak(ctx, client, newOrExistingPrompt());
+    return;
+  }
+
+  // 2. Existing customer → skip qualification entirely; just get a name, confirm.
+  if (session.isNewCustomer === false) {
+    if (!cc.callerName) enterName(ctx, client, existingCustomerAck());
+    else enterConfirmation(ctx, client);
+    return;
+  }
+
+  // 3. New customer — ask only the still-missing pieces.
+  const questions = ctx.verticalConfig.questions;
+  const visible = getVisibleQuestions(questions, cc.answers);
+  const firstUnanswered = visible.find((q) => !(q.key in cc.answers));
+  const primaryKey = questions[0]?.key;
+
+  // 3a. The primary "what's going on" question comes before ZIP (less transactional).
+  if (firstUnanswered && firstUnanswered.key === primaryKey) {
+    enterQualificationFor(ctx, client, firstUnanswered);
+    return;
+  }
+
+  // 3b. ZIP, once we know the primary problem.
+  if (!cc.zipCode) {
+    enterZipCode(ctx, client);
+    return;
+  }
+
+  // 3c. Any remaining qualification questions.
+  if (firstUnanswered) {
+    enterQualificationFor(ctx, client, firstUnanswered);
+    return;
+  }
+
+  // 3d. Everything gathered → price guidance folded into the name ask.
+  await enterPriceEligibility(ctx, client);
+}
+
 // ─── State transitions ─────────────────────────────────────────────────────────
 
-function enterQualification(ctx: FlowContext, client: RealtimeClient): void {
-  const q = currentQuestion(ctx);
-  if (q) {
-    ctx.session.state = "qualification";
-    speak(ctx, client, qualificationPrompt(q));
-  } else {
-    // Vertical has no configured questions at all — skip straight to ZIP
-    enterZipCode(ctx, client);
+/** Merge the opening extraction into the call context, then hand off to advance()
+ *  which decides what (if anything) still needs asking. */
+async function applyExtraction(ctx: FlowContext, client: RealtimeClient, args: unknown): Promise<void> {
+  const cc = ctx.session.conversationContext;
+  const extracted = validateExtraction(ctx.verticalConfig.questions, args);
+
+  if (extracted.isNewCustomer !== undefined) ctx.session.isNewCustomer = extracted.isNewCustomer;
+
+  if (extracted.zipCode && !cc.zipCode) {
+    cc.zipCode = extracted.zipCode;
+    cc.serviceAreaEligible = checkServiceArea(ctx, extracted.zipCode).eligible;
   }
+
+  for (const [key, value] of Object.entries(extracted.answers)) {
+    if (!(key in cc.answers)) {
+      cc.answers[key] = value;
+      ctx.session.hasStartedQualification = true;
+    }
+  }
+
+  await advance(ctx, client);
+}
+
+function enterQualificationFor(ctx: FlowContext, client: RealtimeClient, question: VerticalQuestion): void {
+  ctx.session.state = "qualification";
+  ctx.session.currentQuestionKey = question.key;
+  speak(ctx, client, qualificationPrompt(question));
 }
 
 function enterZipCode(ctx: FlowContext, client: RealtimeClient): void {
@@ -295,20 +379,7 @@ async function applyZip(ctx: FlowContext, client: RealtimeClient, zip: string): 
   ctx.session.conversationContext.zipCode = zip;
   const result = checkServiceArea(ctx, zip);
   ctx.session.conversationContext.serviceAreaEligible = result.eligible;
-
-  // Resume qualification from wherever it left off — NOT reset to 0, since the
-  // first question was already answered before we asked for ZIP.
-  await continueQualification(ctx, client);
-}
-
-async function continueQualification(ctx: FlowContext, client: RealtimeClient): Promise<void> {
-  const next = currentQuestion(ctx);
-  if (next) {
-    ctx.session.state = "qualification";
-    speak(ctx, client, qualificationPrompt(next));
-    return;
-  }
-  await enterPriceEligibility(ctx, client);
+  await advance(ctx, client);
 }
 
 async function enterPriceEligibility(ctx: FlowContext, client: RealtimeClient): Promise<void> {
@@ -355,10 +426,14 @@ async function finishCall(ctx: FlowContext, client: RealtimeClient): Promise<voi
   };
 }
 
+function enterName(ctx: FlowContext, client: RealtimeClient, prefix?: string): void {
+  ctx.session.state = "name";
+  speak(ctx, client, namePrompt(prefix));
+}
+
 function enterExistingCustomerPath(ctx: FlowContext, client: RealtimeClient, ackLine: string = existingCustomerAck()): void {
   ctx.session.isNewCustomer = false;
-  ctx.session.state = "name";
-  speak(ctx, client, namePrompt(ackLine));
+  enterName(ctx, client, ackLine);
 }
 
 async function enterFallbackVoicemail(ctx: FlowContext, client: RealtimeClient): Promise<void> {
@@ -403,13 +478,12 @@ async function handleGlobalIntent(ctx: FlowContext, client: RealtimeClient, inte
       await jumpToWrapUp(ctx, client, "I understand — let's make this quick.");
       return;
     case "start_over":
-      ctx.session.qualificationIndex = 0;
       ctx.session.conversationContext.answers = {};
       ctx.session.conversationContext.zipCode = undefined;
+      ctx.session.conversationContext.serviceAreaEligible = undefined;
+      ctx.session.currentQuestionKey = undefined;
       speak(ctx, client, startOverAckLine());
-      ctx.session.onResponseDone = () => {
-        enterQualification(ctx, client);
-      };
+      ctx.session.onResponseDone = () => advance(ctx, client);
       return;
     case "repeat":
       speak(ctx, client, retryPromptText(ctx));
@@ -456,9 +530,11 @@ function shouldAskCallbackPreference(ctx: FlowContext): boolean {
   return ctx.session.conversationContext.answers.urgency === "flexible";
 }
 
+/** The question the "qualification" state is currently asking — tracked by key
+ *  now that questions are selected adaptively rather than by a linear index. */
 function currentQuestion(ctx: FlowContext): VerticalQuestion | undefined {
-  const visible = getVisibleQuestions(ctx.verticalConfig.questions, ctx.session.conversationContext.answers);
-  return visible[ctx.session.qualificationIndex];
+  const key = ctx.session.currentQuestionKey;
+  return key ? ctx.verticalConfig.questions.find((q) => q.key === key) : undefined;
 }
 
 function currentOptions(ctx: FlowContext): OptionLike[] | null {

@@ -12,6 +12,7 @@ import type { BusinessNotificationPreferences, CustomServiceOption } from "@/lib
  */
 export type VoiceState =
   | "greeting"
+  | "open_description"
   | "new_or_existing"
   | "zip_code"
   | "qualification"
@@ -56,8 +57,13 @@ export interface SessionState {
 
   // ── State machine ──────────────────────────────────────────────────────────
   state: VoiceState;
-  // Which visible vertical question (getVisibleQuestions index) we're currently asking
+  // Legacy linear cursor — retained for back-compat; the adaptive engine tracks
+  // the question being asked via currentQuestionKey instead.
   qualificationIndex: number;
+  // Which vertical question (by key) the "qualification" state is currently
+  // asking — the engine now picks questions adaptively (ask only what's still
+  // missing) rather than walking them in order, so it tracks the key directly.
+  currentQuestionKey?: string;
   // Retry counter per state key — reset on successful transition into a new state
   attempts: Partial<Record<VoiceState, number>>;
   isNewCustomer?: boolean;
