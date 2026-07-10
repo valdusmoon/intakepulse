@@ -10,24 +10,17 @@ interface Line {
 }
 
 interface TurnResponse {
-  sessionId: string;
+  sessionState: unknown | null;
   lines: Line[];
   state: string;
   answers: Record<string, string>;
   leadId: string | null;
   ended: boolean;
-  pending: boolean;
   error?: string;
 }
 
-const MAX_POLLS = 10;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export function TestCallClient({ businessName }: { businessName: string }) {
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [started, setStarted] = useState(false);
   const [lines, setLines] = useState<Line[]>([]);
   const [state, setState] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -36,9 +29,11 @@ export function TestCallClient({ businessName }: { businessName: string }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const sessionIdRef = useRef<string | null>(null);
+  // Opaque conversation state handed back by the server each turn and passed
+  // straight back on the next one — nothing is kept server-side between requests.
+  const sessionStateRef = useRef<unknown | null>(null);
 
-  async function post(body: Record<string, unknown>): Promise<{ data: TurnResponse | null; status: number }> {
+  async function post(body: Record<string, unknown>): Promise<TurnResponse | null> {
     const res = await fetch("/api/test-call", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -47,47 +42,19 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     const data = await res.json();
     if (!res.ok) {
       setError(data.error ?? "Something went wrong");
-      return { data: null, status: res.status };
+      return null;
     }
-    return { data: data as TurnResponse, status: res.status };
+    return data as TurnResponse;
   }
 
-  /**
-   * Some turns (confirmation -> captureLead -> goodbye) take longer than a
-   * single HTTP round-trip is safe to hold open, so the API returns
-   * pending: true with whatever's ready so far instead of blocking. This
-   * keeps polling (no new message, just {sessionId, poll: true}) until the
-   * server reports it's actually settled.
-   */
-  async function drainPending(sessionIdForPoll: string, pollsLeft = MAX_POLLS): Promise<void> {
-    if (pollsLeft <= 0) {
-      setLoading(false);
-      setError("Still processing after a while — the model may be slow right now. Try sending another message.");
-      return;
-    }
-    await sleep(400);
-    const { data, status } = await post({ sessionId: sessionIdForPoll, poll: true });
-    if (status === 410) {
-      setLoading(false);
-      setError("That test session expired (a server restart) — click start to try again.");
-      sessionIdRef.current = null;
-      setSessionId(null);
-      return;
-    }
-    if (!data) {
-      setLoading(false);
-      return;
-    }
-    setLines((prev) => [...prev, ...data.lines]);
+  function applyResult(data: TurnResponse, appendLines: boolean) {
+    sessionStateRef.current = data.sessionState;
+    setStarted(true);
+    setLines((prev) => (appendLines ? [...prev, ...data.lines] : data.lines));
     setState(data.state);
     setAnswers(data.answers);
     setLeadId(data.leadId);
     setEnded(data.ended);
-    if (data.pending) {
-      await drainPending(sessionIdForPoll, pollsLeft - 1);
-      return;
-    }
-    setLoading(false);
   }
 
   async function startCall() {
@@ -97,73 +64,35 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setAnswers({});
     setLeadId(null);
     setEnded(false);
-    const { data } = await post({});
-    if (!data) {
-      setLoading(false);
-      return;
-    }
-    sessionIdRef.current = data.sessionId;
-    setSessionId(data.sessionId);
-    setLines(data.lines);
-    setState(data.state);
-    setAnswers(data.answers);
-    setLeadId(data.leadId);
-    setEnded(data.ended);
-    if (data.pending) {
-      await drainPending(data.sessionId);
-      return;
-    }
+    sessionStateRef.current = null;
+    const data = await post({});
     setLoading(false);
+    if (!data) return;
+    applyResult(data, false);
   }
 
   async function send() {
     const message = input.trim();
-    if (!message || !sessionIdRef.current || loading) return;
+    if (!message || loading) return;
     setInput("");
     setLines((prev) => [...prev, { role: "user", message }]);
     setLoading(true);
     setError(null);
-    const { data, status } = await post({ sessionId: sessionIdRef.current, message });
-    if (status === 410) {
-      // The in-memory test session was lost (a serverless instance recycle —
-      // e.g. a fresh deploy). Start a clean call instead of leaving the tester
-      // stuck; restore what they typed so they can resend it once it's back.
-      setInput(message);
-      setError("That test session expired (a server restart) — starting a fresh call.");
-      await startCall();
-      return;
-    }
-    if (!data) {
-      setLoading(false);
-      return;
-    }
-    setLines((prev) => [...prev, ...data.lines]);
-    setState(data.state);
-    setAnswers(data.answers);
-    setLeadId(data.leadId);
-    setEnded(data.ended);
-    if (data.pending) {
-      await drainPending(sessionIdRef.current, MAX_POLLS);
-      return;
-    }
+    const data = await post({ sessionState: sessionStateRef.current, message });
     setLoading(false);
+    if (!data) return;
+    applyResult(data, true);
   }
 
-  async function endCall() {
-    if (sessionIdRef.current) {
-      await fetch("/api/test-call", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: sessionIdRef.current }),
-      }).catch(() => {});
-    }
-    sessionIdRef.current = null;
-    setSessionId(null);
+  function endCall() {
+    sessionStateRef.current = null;
+    setStarted(false);
     setLines([]);
     setState(null);
     setAnswers({});
     setLeadId(null);
     setEnded(false);
+    setError(null);
   }
 
   return (
@@ -174,7 +103,7 @@ export function TestCallClient({ businessName }: { businessName: string }) {
           {state && <Badge color={ended ? "green" : "blue"}>{ended ? "Call ended" : state}</Badge>}
         </CardHeader>
         <CardBody className="flex flex-col gap-3.5">
-          {!sessionId ? (
+          {!started ? (
             <div className="text-center py-10">
               <p className="text-sm text-cv-muted mb-3.5">
                 Simulates an inbound overflow call to {businessName}. Type what a caller would say — the same engine,
