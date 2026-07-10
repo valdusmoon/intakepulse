@@ -50,7 +50,7 @@ export const serverEnv = {
 
   // OpenAI Realtime (voice)
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
-  OPENAI_REALTIME_MODEL: process.env.OPENAI_REALTIME_MODEL || "gpt-realtime-2.1",
+  OPENAI_REALTIME_MODEL: process.env.OPENAI_REALTIME_MODEL || "gpt-realtime-2.1-mini",
 
   // Public wss:// URL of the Twilio Media Stream endpoint (this app's /api/twilio/stream route)
   VOICE_STREAM_WSS_URL: process.env.VOICE_STREAM_WSS_URL || "",
