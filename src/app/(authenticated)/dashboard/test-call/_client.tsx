@@ -31,7 +31,7 @@ export function TestCallClient({ businessName }: { businessName: string }) {
   const [error, setError] = useState<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
 
-  async function post(body: Record<string, unknown>): Promise<TurnResponse | null> {
+  async function post(body: Record<string, unknown>): Promise<{ data: TurnResponse | null; status: number }> {
     const res = await fetch("/api/test-call", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -40,9 +40,9 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     const data = await res.json();
     if (!res.ok) {
       setError(data.error ?? "Something went wrong");
-      return null;
+      return { data: null, status: res.status };
     }
-    return data as TurnResponse;
+    return { data: data as TurnResponse, status: res.status };
   }
 
   async function startCall() {
@@ -52,7 +52,7 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setAnswers({});
     setLeadId(null);
     setEnded(false);
-    const data = await post({});
+    const { data } = await post({});
     setLoading(false);
     if (!data) return;
     sessionIdRef.current = data.sessionId;
@@ -71,7 +71,16 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setLines((prev) => [...prev, { role: "user", message }]);
     setLoading(true);
     setError(null);
-    const data = await post({ sessionId: sessionIdRef.current, message });
+    const { data, status } = await post({ sessionId: sessionIdRef.current, message });
+    if (status === 410) {
+      // The in-memory test session was lost (a serverless instance recycle —
+      // e.g. a fresh deploy). Start a clean call instead of leaving the tester
+      // stuck; restore what they typed so they can resend it once it's back.
+      setInput(message);
+      setError("That test session expired (a server restart) — starting a fresh call.");
+      await startCall();
+      return;
+    }
     setLoading(false);
     if (!data) return;
     setLines((prev) => [...prev, ...data.lines]);
