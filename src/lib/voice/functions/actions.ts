@@ -73,14 +73,16 @@ export interface CaptureLeadResult {
 export function deriveIntakeStatus(ctx: FlowContext): "not_started" | "started" | "completed" | "abandoned" {
   const { session, verticalConfig } = ctx;
 
-  // Keyed off answers rather than isNewCustomer: the existing-customer path never
-  // populates answers (so it naturally falls through to "not_started" below), but
-  // jumpToWrapUp (global "wants_human"/"frustrated"/"leave_message" intents) forces
-  // isNewCustomer to false even when real qualification answers were already
-  // collected — gating on that flag would wrongly discard a caller's real answers.
-  const answers = session.conversationContext.answers;
-  if (Object.keys(answers).length === 0) return "not_started";
+  // Keyed off hasStartedQualification rather than isNewCustomer: a true
+  // existing-customer path never touches qualification, so this is correctly
+  // "not_started" regardless of any stray answer value. But jumpToWrapUp
+  // (global "wants_human"/"frustrated"/"leave_message" intents) forces
+  // isNewCustomer to false even when a NEW customer had already given real
+  // qualification answers before being redirected — gating on that flag alone
+  // would wrongly discard those answers as "not_started" too.
+  if (!session.hasStartedQualification) return "not_started";
 
+  const answers = session.conversationContext.answers;
   const visible = getVisibleQuestions(verticalConfig.questions, answers);
   const allAnswered = visible.every((q) => q.key in answers);
   return allAnswered ? "completed" : "abandoned";
@@ -101,7 +103,7 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
     businessId: business.id,
     callerPhone: session.callerPhone,
     callerName: session.conversationContext.callerName ?? null,
-    source: "voice_overflow",
+    source: session.isTestCall ? "voice_test" : "voice_overflow",
     callStatus: "missed",
     intakeStatus: deriveIntakeStatus(ctx),
     intakeAnswers: answers,
@@ -109,12 +111,14 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
   });
 
   session.leadId = lead.id;
-  await updateCall(session.callId, { leadId: lead.id, outcome: "ai_captured" });
+  if (!session.isTestCall) {
+    await updateCall(session.callId, { leadId: lead.id, outcome: "ai_captured" });
+  }
 
   const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions, verticalConfig.baseValueLow);
   const reasoning = await assessLead(lead.id, answers, scores, verticalConfig.aiPromptTemplate);
 
-  if (business.notificationPreferences?.qualifiedLead !== false) {
+  if (!session.isTestCall && business.notificationPreferences?.qualifiedLead !== false) {
     try {
       await sendLeadPacketEmail({
         ownerEmail: business.ownerEmail,

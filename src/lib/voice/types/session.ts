@@ -41,6 +41,11 @@ export interface SessionState {
   urgentTransferNumber: string | null;
   callStartTime: Date;
 
+  // True only for a session driven by the admin test-call harness (no real
+  // Twilio call/calls-row backing it) — gates captureLead's source tag and
+  // notification email so test runs don't page the business owner.
+  isTestCall?: boolean;
+
   // Set once the lead has been created — CREATE_LEAD is idempotent against this.
   leadId?: string;
   // Set synchronously (before any await) the first time captureLeadOnce is called —
@@ -56,12 +61,26 @@ export interface SessionState {
   // Retry counter per state key — reset on successful transition into a new state
   attempts: Partial<Record<VoiceState, number>>;
   isNewCustomer?: boolean;
+  // Set the first time a real qualification answer is recorded. Distinct from
+  // isNewCustomer, which global intents like jumpToWrapUp force to false even
+  // when qualification had already genuinely started — deriveIntakeStatus
+  // needs to tell "true existing-customer path, never touched qualification"
+  // apart from "new customer who gave real answers, then got redirected".
+  hasStartedQualification?: boolean;
   // Accumulates keypad digits for multi-digit entry (ZIP code only in V1) —
   // cleared on entering/leaving zip_code
   dtmfBuffer: string;
   // Fires once when the in-flight OpenAI response finishes — used to sequence
   // "speak X, then silently do Y, then speak Z" without overlapping response.create calls
   onResponseDone?: () => void;
+  // True from the moment any client.createResponse() call fires until the
+  // matching response.done — OpenAI Realtime rejects a second response.create
+  // while one is still active. Text-only callers (e.g. the test-call harness)
+  // send input much faster than natural speech pauses allow, so this is the
+  // reliable "is a response in flight" signal — the transcript array alone
+  // isn't enough, since classification-only turns (extract_zip/classify_answer/
+  // detect_intent) never push into it the way speak() does.
+  responseActive?: boolean;
 }
 
 export interface ConversationContext {

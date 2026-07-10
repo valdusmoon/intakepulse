@@ -81,7 +81,7 @@ export class OpenAIHandlerService {
   }
 
   private handleFunctionCalls(openaiClient: RealtimeClient, ctx: FlowContext): void {
-    openaiClient.on("response.function_call_arguments.done", async (event) => {
+    openaiClient.on("response.function_call_arguments.done", (event) => {
       const { correlationId } = ctx.session;
 
       if (!event.name) {
@@ -101,20 +101,26 @@ export class OpenAIHandlerService {
         return;
       }
 
-      // Ack immediately so the conversation has no dangling tool call, then let
-      // the engine decide what happens next — it may itself trigger the next
-      // response.create (a new classification, or the next state's prompt).
+      // Ack immediately so the conversation has no dangling tool call — this
+      // is a conversation.item.create, not a response.create, so it doesn't
+      // collide with the still-active response.
       openaiClient.sendFunctionResult(event.call_id, { received: true });
 
-      try {
-        await engine.handleToolCall(ctx, openaiClient, event.name, args);
-      } catch (error) {
-        logger.error("Engine tool-call handling failed", {
-          correlationId,
-          function: event.name,
-          error: error instanceof Error ? error.message : String(error),
+      // Defer the engine's reaction until THIS response is confirmed done.
+      // handleToolCall may itself call speak()/createResponse() for the next
+      // turn, but function_call_arguments.done fires before this same
+      // response's own response.done — reacting immediately here raced with
+      // it and OpenAI rejected the new response ("conversation already has
+      // an active response in progress").
+      ctx.session.onResponseDone = () => {
+        void engine.handleToolCall(ctx, openaiClient, event.name, args).catch((error) => {
+          logger.error("Engine tool-call handling failed", {
+            correlationId,
+            function: event.name,
+            error: error instanceof Error ? error.message : String(error),
+          });
         });
-      }
+      };
     });
   }
 

@@ -137,6 +137,22 @@ export class RealtimeClient {
     this.sendEvent("session.update", { session: sessionConfig });
   }
 
+  /**
+   * Text-only session — used by the admin test-call harness so it can drive
+   * the same state machine/engine without any audio, at no TTS/transcription
+   * cost. No `audio` block at all (validated directly against the live API —
+   * OpenAI accepts a session with only `output_modalities: ["text"]"`).
+   */
+  async configureTextSession(instructions?: string): Promise<void> {
+    this.sendEvent("session.update", {
+      session: {
+        type: "realtime",
+        instructions: instructions ?? this.config.instructions ?? "You are a helpful AI assistant.",
+        output_modalities: ["text"],
+      },
+    });
+  }
+
   /** Send base64-encoded μ-law audio to OpenAI */
   sendAudio(audioBase64: string): void {
     if (!this.isConnected) return;

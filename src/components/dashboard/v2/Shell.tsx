@@ -28,7 +28,10 @@ const NAV_SECTIONS = [
   },
   {
     label: "Configure",
-    links: [{ href: "/dashboard/settings", label: "Settings", icon: "tune", exact: false }],
+    links: [
+      { href: "/dashboard/settings", label: "Settings", icon: "tune", exact: false },
+      { href: "/dashboard/test-call", label: "Test call", icon: "forum", exact: false },
+    ],
   },
 ];
 

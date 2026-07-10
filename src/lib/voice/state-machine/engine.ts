@@ -143,6 +143,7 @@ export function notifyResponseDone(ctx: FlowContext, client: RealtimeClient): vo
   // shorter than Yms").
   ctx.session.lastAssistantItem = undefined;
   ctx.session.responseStartTimestamp = undefined;
+  ctx.session.responseActive = false;
 
   const cb = ctx.session.onResponseDone;
   if (!cb) return;
@@ -160,6 +161,7 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
     if (zip) {
       await applyZip(ctx, client, zip);
     } else {
+      ctx.session.responseActive = true;
       client.createResponse({
         instructions: `The caller said: "${transcript}". Extract their ZIP code.`,
         output_modalities: ["text"],
@@ -200,6 +202,7 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
   }
 
   const allowedValues = options.map((o) => o.value);
+  ctx.session.responseActive = true;
   client.createResponse({
     instructions: `The caller said: "${transcript}". Classify their answer.`,
     output_modalities: ["text"],
@@ -225,6 +228,7 @@ async function applyStateAnswer(ctx: FlowContext, client: RealtimeClient, value:
   if (ctx.session.state === "qualification") {
     const question = currentQuestion(ctx);
     if (!question) return;
+    ctx.session.hasStartedQualification = true;
     ctx.session.conversationContext.answers[question.key] = value;
     ctx.session.qualificationIndex += 1;
 
@@ -417,6 +421,7 @@ async function handleStateFailure(ctx: FlowContext, client: RealtimeClient): Pro
 
   // Retries exhausted — one last attempt via the global-intent fallback classifier
   // before giving up to voicemail.
+  ctx.session.responseActive = true;
   client.createResponse({
     instructions: "The caller's last answer didn't match what was asked. Classify what they actually want.",
     output_modalities: ["text"],
@@ -495,6 +500,7 @@ function resetAttempts(ctx: FlowContext, state: string): void {
 }
 
 function speak(ctx: FlowContext, client: RealtimeClient, text: string): void {
+  ctx.session.responseActive = true;
   client.createResponse({
     instructions: `Say exactly, naturally, in one short turn: "${text}"`,
     tool_choice: "none",

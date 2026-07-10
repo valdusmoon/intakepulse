@@ -155,6 +155,25 @@ export async function initializeOpenAI(voiceName: string = OPENAI_CONFIG.VOICE):
   return client;
 }
 
+/**
+ * Text-only variant for the admin test-call harness (src/app/api/test-call) —
+ * same model/instructions, no audio config at all, so it drives the exact
+ * same engine.ts state machine without any TTS/transcription cost.
+ */
+export async function initializeOpenAIForTest(): Promise<RealtimeClient> {
+  const client = new RealtimeClient({
+    apiKey: serverEnv.OPENAI_API_KEY,
+    model: serverEnv.OPENAI_REALTIME_MODEL,
+    instructions: BASE_INSTRUCTIONS,
+    temperature: OPENAI_CONFIG.TEMPERATURE,
+  });
+
+  await client.connect();
+  await client.configureTextSession(BASE_INSTRUCTIONS);
+
+  return client;
+}
+
 async function generateCallSummary(session: SessionState): Promise<string> {
   const transcriptText = session.conversationContext.transcript
     .map((t) => `${t.role === "user" ? "Caller" : "AI"}: ${t.message}`)

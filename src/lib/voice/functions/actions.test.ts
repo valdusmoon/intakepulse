@@ -91,6 +91,22 @@ describe("deriveIntakeStatus", () => {
     expect(deriveIntakeStatus(ctx)).toBe("not_started");
   });
 
+  it("is 'abandoned', not 'not_started', when jumpToWrapUp forces isNewCustomer false after real qualification answers were already given", () => {
+    // Regression: jumpToWrapUp (wants_human/frustrated/leave_message global
+    // intents) sets isNewCustomer = false even mid-qualification. Gating
+    // purely on isNewCustomer would wrongly discard a new customer's real,
+    // partial answers as if they were an existing-customer call.
+    const ctx = makeFlowContext({
+      verticalConfig: { ...makeFlowContext().verticalConfig, questions: QUESTIONS },
+      session: makeSession({
+        isNewCustomer: false,
+        hasStartedQualification: true,
+        conversationContext: { transcript: [], actionsTaken: [], answers: { service_type: "water" } },
+      }),
+    });
+    expect(deriveIntakeStatus(ctx)).toBe("abandoned");
+  });
+
   it("is 'not_started' for a new customer with zero answers captured", () => {
     const ctx = makeFlowContext({
       verticalConfig: { ...makeFlowContext().verticalConfig, questions: QUESTIONS },
@@ -102,7 +118,11 @@ describe("deriveIntakeStatus", () => {
   it("is 'completed' when every visible question has an answer", () => {
     const ctx = makeFlowContext({
       verticalConfig: { ...makeFlowContext().verticalConfig, questions: QUESTIONS },
-      session: makeSession({ isNewCustomer: true, conversationContext: { transcript: [], actionsTaken: [], answers: { service_type: "water", urgency: "emergency" } } }),
+      session: makeSession({
+        isNewCustomer: true,
+        hasStartedQualification: true,
+        conversationContext: { transcript: [], actionsTaken: [], answers: { service_type: "water", urgency: "emergency" } },
+      }),
     });
     expect(deriveIntakeStatus(ctx)).toBe("completed");
   });
@@ -110,7 +130,11 @@ describe("deriveIntakeStatus", () => {
   it("is 'abandoned' when a new-customer flow started but didn't answer every visible question", () => {
     const ctx = makeFlowContext({
       verticalConfig: { ...makeFlowContext().verticalConfig, questions: QUESTIONS },
-      session: makeSession({ isNewCustomer: true, conversationContext: { transcript: [], actionsTaken: [], answers: { service_type: "water" } } }),
+      session: makeSession({
+        isNewCustomer: true,
+        hasStartedQualification: true,
+        conversationContext: { transcript: [], actionsTaken: [], answers: { service_type: "water" } },
+      }),
     });
     expect(deriveIntakeStatus(ctx)).toBe("abandoned");
   });
@@ -130,7 +154,11 @@ describe("deriveIntakeStatus", () => {
     const ctx = makeFlowContext({
       verticalConfig: { ...makeFlowContext().verticalConfig, questions: conditionalQuestions },
       // service_type is "fire", so water_category was never asked — shouldn't block "completed".
-      session: makeSession({ isNewCustomer: true, conversationContext: { transcript: [], actionsTaken: [], answers: { service_type: "fire" } } }),
+      session: makeSession({
+        isNewCustomer: true,
+        hasStartedQualification: true,
+        conversationContext: { transcript: [], actionsTaken: [], answers: { service_type: "fire" } },
+      }),
     });
     expect(deriveIntakeStatus(ctx)).toBe("completed");
   });
