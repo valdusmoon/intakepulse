@@ -4,8 +4,19 @@ import { NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
 
 const isPublicRoute = createRouteMatcher([
-  '/features(.*)',
+  // Public marketing/SEO pages — must be listed or auth.protect() 404s them for
+  // anonymous visitors (the bare "/" homepage skips middleware via the matcher
+  // config below, but these nested routes do run it).
+  '/industries(.*)',
+  '/faq',
+  '/about',
+  '/blog(.*)',
+  '/compare(.*)',
   '/legal(.*)',
+  // Crawler files — the matcher below doesn't exclude .xml/.txt, so these run
+  // through middleware and would 404 for anonymous crawlers without this.
+  '/sitemap.xml',
+  '/robots.txt',
   '/api/stripe/webhook',
   '/api/leads/public(.*)',
   '/api/leads/public/company(.*)',
@@ -22,7 +33,6 @@ const isPublicRoute = createRouteMatcher([
   '/intake(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/tools(.*)',
 ])
 
 const isAuthRoute = createRouteMatcher([

@@ -9,6 +9,9 @@ import { CallReplay } from "@/components/marketing/CallReplay";
 // import { InteractiveDemo } from "@/components/marketing/InteractiveDemo";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { AuthAwareNavCta } from "@/components/marketing/AuthAwareNavCta";
+import { MarketingFooter } from "@/components/marketing/MarketingChrome";
+import { JsonLd, faqSchema } from "@/components/marketing/JsonLd";
+import { FAQS } from "@/lib/marketing/faqs";
 
 const HERO_PROOF = [
   { num: "2:47 AM", label: "Call answered after your team misses it" },
@@ -57,33 +60,6 @@ const COMPARISON = [
 ];
 
 
-const FAQS = [
-  {
-    q: "Is this just missed-call text-back?",
-    a: "No. Text-back waits for the caller to reply. Callverted answers the call live, asks the intake questions, and creates a scored lead packet.",
-  },
-  {
-    q: "Does it replace my phone number?",
-    a: "No. Your team gets the first chance to answer. Callverted only steps in when the call would otherwise be missed or routed to voicemail.",
-  },
-  {
-    q: "Can it handle intake for my specific trade?",
-    a: "Yes. The flow is built around the details that matter for your trade: job type, timing, materials, insurance, service area, and urgency.",
-  },
-  {
-    q: "Will the AI invent prices?",
-    a: "No. Caller-facing pricing or value guidance should come from rules you approve. If no approved rule exists, Callverted simply says your team will review the details.",
-  },
-  {
-    q: "What happens if the caller wants a person?",
-    a: "Callverted can capture the request, mark the lead accordingly, and optionally transfer to a configured urgent number if you enable that behavior.",
-  },
-  {
-    q: "How fast can we launch?",
-    a: "About 30 minutes for basic setup: business profile, forwarding number, service area, intake flow, and a few test calls.",
-  },
-];
-
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-landing-paper text-[#152033]">
@@ -118,7 +94,7 @@ export default function HomePage() {
             <div className="flex items-center gap-5">
               <Link href="#how" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">How it works</Link>
               <Link href="#demo" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">Demo</Link>
-              <Link href="#product" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">Product</Link>
+              <Link href="/industries" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">Industries</Link>
               <Link href="#pricing" className="text-sm text-white/60 hover:text-white transition-colors hidden sm:block">Pricing</Link>
               <AuthAwareNavCta />
             </div>
@@ -441,6 +417,7 @@ export default function HomePage() {
 
       {/* ── FAQ (light, accordion — native <details>, no JS needed) ───────── */}
       <section className="px-6 py-16 sm:py-20">
+        <JsonLd data={faqSchema(FAQS)} />
         <ScrollReveal className="max-w-2xl mx-auto">
           <div className="text-center mb-8">
             <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">FAQ</p>
@@ -502,23 +479,9 @@ export default function HomePage() {
           </ScrollReveal>
         </section>
 
-        <footer className="relative z-10 border-t border-white/10 px-6 py-8">
-          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/40">
-            <div className="flex items-center gap-2">
-              <CallvertedLogo className="h-6 w-6" gradientId="cvLogoFooter" />
-              <span className="font-semibold text-white/70">Callverted</span>
-            </div>
-            <div className="flex gap-5 flex-wrap justify-center">
-              <Link href="#how" className="hover:text-white/70">How it works</Link>
-              <Link href="#product" className="hover:text-white/70">Product</Link>
-              <Link href="/legal/terms" className="hover:text-white/70">Terms</Link>
-              <Link href="/legal/privacy" className="hover:text-white/70">Privacy</Link>
-              <a href="mailto:hello@callverted.com" className="hover:text-white/70">Contact</a>
-            </div>
-            <span>© {new Date().getFullYear()} Callverted</span>
-          </div>
-        </footer>
       </div>
+
+      <MarketingFooter />
 
     </div>
   );
