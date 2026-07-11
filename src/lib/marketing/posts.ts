@@ -28,10 +28,14 @@ export interface Post {
   body: Block[];
 }
 
-/** Shared visual language so every header reads as one editorial set, not
- *  four random AI images. Appended to each post's imagePrompt. */
+/** Shared visual language so every header reads as one bright, cohesive set,
+ *  not four random AI images. Appended to each post's imagePrompt. Anchored on
+ *  the brand blue but deliberately multi-color so it stays reasonably compatible
+ *  if the site theme is later reskinned. Style: glossy 3D-render marketing art
+ *  (Stripe / Linear vibe) on a luminous background — bright and high-pop, never
+ *  dim or desaturated. */
 export const IMAGE_STYLE =
-  "Photorealistic editorial photograph. Muted deep-navy and slate-blue palette with one warm accent light. Soft cinematic lighting, shallow depth of field, subtle film grain. No text, no words, no logos, no watermarks, no people's faces in focus. Wide banner composition with clear negative space.";
+  "Modern glossy 3D-render illustration, slightly isometric, clean and premium like Stripe or Linear marketing art. Bright, vibrant, high-contrast, luminous. Background is a smooth airy gradient from brand blue (#2454d8) through periwinkle to soft lavender-white — never dark, never muddy. Tactile rounded clay/plastic materials, objects floating with soft realistic shadows and a gentle glow. Color palette anchored on brand blue and #5b8cff, with punchy accent pops of warm amber, coral, teal, and green. Centered composition with clear negative space, wide banner crop. No text, no words, no letters, no numbers on any screen or surface, no logos, no watermarks, no realistic UI screenshots.";
 
 export const POSTS: Post[] = [
   {
@@ -45,8 +49,8 @@ export const POSTS: Post[] = [
     excerpt:
       "Missed calls aren't lost minutes. They're lost jobs, and the math is worse than most owners think. Here's how to size the number for your business.",
     image: "/blog/what-a-missed-call-costs.jpg",
-    imageAlt: "A smartphone lighting up with a missed call on a tradesperson's workbench in the evening.",
-    imagePrompt: "A smartphone face-up on a worn wooden workbench in a dim workshop at dusk, screen glowing with an incoming call, hand tools softly out of focus in the background, warm lamp light from one side.",
+    imageAlt: "A glossy 3D smartphone with a missed-call badge and gold coins drifting away from it.",
+    imagePrompt: "A glossy 3D smartphone floating at a slight tilt, a bright red missed-call badge glowing on its corner, shiny gold coins and small value chips drifting up and away from the phone, a soft downward arrow suggesting money slipping away.",
     body: [
       { type: "p", text: "Most home-service owners treat a missed call as a small annoyance, a voicemail to return later. The reality is that a missed call, especially an urgent one, is usually a job you've already lost by the time you see the notification." },
       { type: "h2", text: "The number is simple to estimate" },
@@ -74,8 +78,8 @@ export const POSTS: Post[] = [
     excerpt:
       "The first hard freeze turns your phone into a firehose at the worst possible hour. Here's why HVAC companies lose those calls and what to do about it.",
     image: "/blog/after-hours-hvac-calls.jpg",
-    imageAlt: "A warmly lit home at night in winter with frost forming on the window during a cold snap.",
-    imagePrompt: "The exterior of a suburban home at night in deep winter, frost creeping across a window, warm golden light glowing from inside against the cold blue darkness, a dusting of snow, quiet and still.",
+    imageAlt: "A glossy 3D house with a glowing warm window beside a snowflake, thermometer, and a ringing phone.",
+    imagePrompt: "A cute glossy 3D house floating on a small platform, one window glowing warm amber, a bright blue snowflake and a coral thermometer icon floating beside it, and a small phone with a glowing ring-notification, conveying an urgent no-heat call rendered in a cheerful, bright way.",
     body: [
       { type: "p", text: "Every HVAC owner knows the pattern: temperatures drop, and the phone doesn't stop: at 11 PM, on a Saturday, all at once. Furnaces fail under load, and a house full of people with no heat is the most urgent, least patient call you'll take all year." },
       { type: "h2", text: "The demand curve is against you" },
@@ -103,8 +107,8 @@ export const POSTS: Post[] = [
     excerpt:
       "Text-back is a real upgrade over voicemail, but for a flooding basement it still asks the customer to do the work. Here's where each one fits.",
     image: "/blog/text-back-vs-live-answering.jpg",
-    imageAlt: "A smartphone ringing on a kitchen counter with a blurred home interior behind it.",
-    imagePrompt: "A smartphone ringing face-up on a modern kitchen counter, screen bright with an active incoming call, the home interior blurred behind it, a tense evening mood with one warm light source.",
+    imageAlt: "A glossy 3D speech bubble with a text icon beside a phone showing a live-call waveform.",
+    imagePrompt: "Two glossy 3D objects floating side by side with a small glowing divider between them: on the left a coral chat speech-bubble with a simple SMS/text glyph, on the right a blue smartphone with a bright teal live-call sound-wave arc, comparing text-back versus live answering.",
     body: [
       { type: "p", text: "Missed-call text-back has earned its popularity. When a call goes unanswered, an automatic text goes out, and for slow-moving inquiries that's a genuine improvement over a silent voicemail box." },
       { type: "h2", text: "The catch: it depends on the caller" },
@@ -130,8 +134,8 @@ export const POSTS: Post[] = [
     excerpt:
       "The data on response speed is blunt: the first business to respond usually wins, and your odds fall off a cliff after the first few minutes.",
     image: "/blog/how-fast-to-respond-to-a-lead.jpg",
-    imageAlt: "A ringing smartphone beside an analog clock, conveying urgency and passing time.",
-    imagePrompt: "A ringing smartphone lying next to a simple analog clock on a dark desk, the phone screen glowing, a sense of ticking urgency, dramatic side lighting and deep shadows.",
+    imageAlt: "A glossy 3D smartphone racing past a stopwatch with motion streaks and a lightning bolt.",
+    imagePrompt: "A glossy 3D smartphone tilted forward in motion beside a bright stopwatch, with amber and teal motion streaks and a small glowing lightning bolt, conveying speed and a fast response.",
     body: [
       { type: "p", text: "There's a well-worn finding in lead-response research that every home-service owner should internalize: respond in the first five minutes and you're dramatically more likely to make contact than if you wait even half an hour. And the first company to respond wins the majority of the time." },
       { type: "h2", text: "Why speed beats almost everything else" },
