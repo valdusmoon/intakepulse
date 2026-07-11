@@ -48,6 +48,12 @@ export interface SessionState {
   // notification email so test runs don't page the business owner.
   isTestCall?: boolean;
 
+  // True for the public marketing demo (/api/demo). Like a test call but even
+  // more locked down: no lead is created or persisted at all, so nothing hits
+  // the DB and no business is ever notified. The demo route computes an
+  // ephemeral lead packet from conversationContext instead.
+  isDemo?: boolean;
+
   // Set once the lead has been created — CREATE_LEAD is idempotent against this.
   leadId?: string;
   // Set synchronously (before any await) the first time captureLeadOnce is called —

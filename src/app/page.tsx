@@ -3,6 +3,7 @@ import { CallvertedLogo } from "@/components/CallvertedLogo";
 import { HeroPhoneAnimation } from "@/components/marketing/HeroPhoneAnimation";
 import { ProductShowcase } from "@/components/marketing/ProductShowcase";
 import { MissedCallCalculator } from "@/components/marketing/MissedCallCalculator";
+import { InteractiveDemo } from "@/components/marketing/InteractiveDemo";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { AuthAwareNavCta } from "@/components/marketing/AuthAwareNavCta";
 
@@ -115,6 +116,7 @@ export default function HomePage() {
             </Link>
             <div className="flex items-center gap-5">
               <Link href="#how" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">How it works</Link>
+              <Link href="#demo" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">Demo</Link>
               <Link href="#product" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">Product</Link>
               <Link href="#pricing" className="text-sm text-white/60 hover:text-white transition-colors hidden sm:block">Pricing</Link>
               <AuthAwareNavCta />
@@ -256,8 +258,30 @@ export default function HomePage() {
         </ScrollReveal>
       </section>
 
+      {/* ── Interactive demo (dark) — let them feel the intake, then see the packet ── */}
+      <section id="demo" className="relative overflow-hidden px-6 py-16 sm:py-20 bg-landing-ink text-white">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-64 opacity-[0.2]"
+          style={{ background: "radial-gradient(ellipse 65% 100% at 50% 0%, rgba(91,140,255,.45), transparent 75%)" }}
+          aria-hidden
+        />
+        <ScrollReveal className="relative max-w-2xl mx-auto">
+          <div className="text-center mb-9">
+            <p className="text-xs font-bold text-landing-primary-glow uppercase tracking-widest mb-2">Try it yourself</p>
+            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold mb-3 leading-tight">
+              Give it a problem. See the lead packet it builds.
+            </h2>
+            <p className="text-white/55 leading-relaxed">
+              This is the same intake a real caller gets. Describe an issue in plain words and watch it capture the
+              details, ask only what is missing, and score the lead.
+            </p>
+          </div>
+          <InteractiveDemo />
+        </ScrollReveal>
+      </section>
+
       {/* ── Missed-call calculator (dark) ────────────────────────────────── */}
-      <section className="relative overflow-hidden px-6 py-16 sm:py-20 bg-landing-ink text-white">
+      <section className="relative overflow-hidden px-6 py-16 sm:py-20 bg-landing-ink text-white border-t border-white/5">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-64 opacity-[0.22]"
           style={{ background: "radial-gradient(ellipse 65% 100% at 50% 0%, rgba(91,140,255,.5), transparent 75%)" }}

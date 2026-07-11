@@ -459,10 +459,14 @@ function enterConfirmation(ctx: FlowContext, client: RealtimeClient): void {
 
 async function finishCall(ctx: FlowContext, client: RealtimeClient): Promise<void> {
   ctx.session.state = "create_lead";
-  try {
-    await captureLeadOnce(ctx);
-  } catch (err) {
-    logger.error("captureLead failed", { correlationId: ctx.session.correlationId, error: String(err) });
+  // The public marketing demo never persists a lead — the route builds an
+  // ephemeral packet from the collected answers instead.
+  if (!ctx.session.isDemo) {
+    try {
+      await captureLeadOnce(ctx);
+    } catch (err) {
+      logger.error("captureLead failed", { correlationId: ctx.session.correlationId, error: String(err) });
+    }
   }
   ctx.session.state = "end";
   speak(ctx, client, goodbyeLine());
