@@ -14,7 +14,13 @@ fully work in prod:
   `0021_lifecycle_email_tracking.sql` (email-capture table + lifecycle tracking
   columns). NOT yet applied to any DB.
 - **Env vars:** `CRON_SECRET` (guards `/api/cron/daily`), `ADMIN_CLERK_USER_IDS`
-  (comma-separated Clerk ids for the `/admin` console).
+  (comma-separated Clerk ids for the `/admin` console). `CRON_SECRET` is set in
+  local `.env.local`; still needs setting in the deploy environment.
+- **TODO (scheduling):** Vercel cron will NOT be used. The trial/activation/
+  win-back/monthly scans already run as Inngest crons, but the `/api/cron/daily`
+  followups drain is still Vercel-cron-shaped. Move it to an Inngest scheduled
+  function that calls the same drain (getDueFollowups → send → markFollowupSent),
+  then drop the `crons` entry in `vercel.json`.
 - Note: the Drizzle `meta/_journal.json` is stale (pre-existing) so migrations
   0007+ are hand-authored raw SQL by convention.
 
