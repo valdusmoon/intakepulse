@@ -20,6 +20,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/stripe/webhook',
   '/api/leads/public(.*)',
   '/api/leads/public/company(.*)',
+  '/api/capture',
   // '/api/demo(.*)', — RETIRED. The public marketing sandbox is disabled: with
   // this line commented out the route is no longer a public route, so
   // auth.protect() 404s it for anonymous callers, closing the unauthenticated

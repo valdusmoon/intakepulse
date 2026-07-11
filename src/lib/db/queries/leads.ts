@@ -110,6 +110,38 @@ export async function getLeadStatsForPeriod(businessId: string, since: Date) {
   };
 }
 
+// Same shape as getLeadStatsForPeriod but bounded on both ends [since, until).
+// Used by the monthly ROI recap to scope stats to a single calendar month.
+export async function getLeadStatsBetween(businessId: string, since: Date, until: Date) {
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)`,
+      missedCalls: sql<number>`count(*) filter (where ${leads.source} = 'voice_overflow')`,
+      intakeCompleted: sql<number>`count(*) filter (where ${leads.intakeStatus} = 'completed')`,
+      converted: sql<number>`count(*) filter (where ${leads.leadStatus} = 'converted')`,
+      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.leadStatus} in ('qualified', 'converted')), 0)`,
+    })
+    .from(leads)
+    .where(
+      and(
+        eq(leads.businessId, businessId),
+        sql`${leads.createdAt} >= ${since.toISOString()}`,
+        sql`${leads.createdAt} < ${until.toISOString()}`,
+        isNull(leads.deletedAt),
+      )
+    );
+
+  const total = Number(row.total);
+  const intakeCompleted = Number(row.intakeCompleted);
+  return {
+    total,
+    missedCalls: Number(row.missedCalls),
+    converted: Number(row.converted),
+    estimatedRevenue: Number(row.estimatedRevenue),
+    intakeCompletionRate: total > 0 ? Math.round((intakeCompleted / total) * 100) : null,
+  };
+}
+
 export async function getLeadStats(businessId: string) {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

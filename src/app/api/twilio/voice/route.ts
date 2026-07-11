@@ -6,12 +6,11 @@ import { createStreamToken } from "@/lib/twilio/stream-token";
 import { getBusinessByTwilioNumber } from "@/lib/db/queries/businesses";
 import { createCall } from "@/lib/db/queries/calls";
 import { normalizePhone } from "@/lib/utils/phone-validation";
+import { hasPaymentOnFile } from "@/lib/subscription";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const maxDuration = 20;
-
-const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing"];
 
 /**
  * POST /api/twilio/voice
@@ -62,8 +61,11 @@ export async function POST(req: Request) {
       ));
     }
 
-    if (!ACTIVE_SUBSCRIPTION_STATUSES.includes(business.subscriptionStatus ?? "")) {
-      logger.warn("Business subscription not active — rejecting call", {
+    // Payment-on-file gate: the live line only answers for an active sub or a
+    // trial that hasn't expired. This checks trialEndsAt (not just status), so
+    // a lapsed trial can no longer route real, cost-bearing calls.
+    if (!hasPaymentOnFile(business)) {
+      logger.warn("Business has no payment on file — rejecting call", {
         businessId: business.id,
         subscriptionStatus: business.subscriptionStatus,
       });

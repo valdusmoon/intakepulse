@@ -4,8 +4,7 @@ import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { getNewLeadsCount, getLeadsByBusiness } from "@/lib/db/queries/leads";
 import { type BannerState } from "@/components/dashboard/subscription-banner";
 import { DashboardShell } from "@/components/dashboard/v2/Shell";
-
-const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing"];
+import { hasPaymentOnFile } from "@/lib/subscription";
 
 function getBannerState(business: NonNullable<Awaited<ReturnType<typeof getBusinessByClerkId>>>): BannerState {
   const { subscriptionStatus, trialEndsAt, canceledAt } = business;
@@ -55,10 +54,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     getLeadsByBusiness(business.id, { leadStatus: "new", limit: 5 }),
   ]);
   const isVoiceLive = Boolean(
-    business.twilioPhoneNumber &&
-      !business.isPaused &&
-      business.subscriptionStatus &&
-      ACTIVE_SUBSCRIPTION_STATUSES.includes(business.subscriptionStatus)
+    business.twilioPhoneNumber && !business.isPaused && hasPaymentOnFile(business)
   );
 
   return (

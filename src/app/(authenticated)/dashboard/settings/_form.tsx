@@ -613,17 +613,33 @@ interface CompanyBilling {
   currentPeriodEnd: string | null;
   canceledAt: string | null;
   stripeSubscriptionId: string | null;
+  isPaused: boolean;
 }
+
+const CANCEL_REASONS = [
+  "Too expensive",
+  "Not enough calls to justify it",
+  "Missing a feature I need",
+  "Just testing for now",
+  "Something else",
+];
 
 function BillingPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [billing, setBilling] = useState<CompanyBilling | null>(null);
+  const [paused, setPaused] = useState(false);
+  const [pausing, setPausing] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
+  const [reason, setReason] = useState("");
+  const [saveMsg, setSaveMsg] = useState("");
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/company");
+        // /api/business returns the full business row (subscription fields +
+        // isPaused). Client fetch, so dates arrive as ISO strings.
+        const res = await fetch("/api/business");
         if (!res.ok) throw new Error("Failed to load billing data");
         const company = await res.json();
         setBilling({
@@ -632,7 +648,9 @@ function BillingPanel() {
           currentPeriodEnd: company.currentPeriodEnd,
           canceledAt: company.canceledAt,
           stripeSubscriptionId: company.stripeSubscriptionId,
+          isPaused: company.isPaused ?? false,
         });
+        setPaused(company.isPaused ?? false);
       } catch (err) {
         console.error("Error loading billing:", err);
       } finally {
@@ -641,6 +659,26 @@ function BillingPanel() {
     }
     load();
   }, []);
+
+  async function handleTogglePause(next: boolean) {
+    setPausing(true);
+    setSaveMsg("");
+    try {
+      const res = await fetch("/api/business", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPaused: next }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      setPaused(next);
+      setShowCancel(false);
+      setSaveMsg(next ? "Your line is paused. Resume anytime, no charge while paused." : "Your line is active again.");
+    } catch {
+      setSaveMsg("Something went wrong. Please try again.");
+    } finally {
+      setPausing(false);
+    }
+  }
 
   async function handleStartTrial() {
     setIsProcessing(true);
@@ -718,7 +756,7 @@ function BillingPanel() {
 
         {!hasSubscription ? (
           <Button variant="primary" size="lg" disabled={isProcessing} onClick={handleStartTrial}>
-            {isProcessing ? "Processing…" : `Start 14-Day Free Trial — $${PLAN_PRICE}/mo after`}
+            {isProcessing ? "Processing…" : `Start 14-Day Free Trial, $${PLAN_PRICE}/mo after`}
           </Button>
         ) : (
           <Button disabled={isProcessing} onClick={handleManageSubscription}>
@@ -726,7 +764,80 @@ function BillingPanel() {
             {isProcessing ? "Opening…" : "Manage subscription"}
           </Button>
         )}
+
+        {/* Pause: keep the account, stop answering. A churn-deflection lever that
+            also works during a trial (isPaused gates the live voice route). */}
+        {(isTrialing || isActive) && (
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-cv-border px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-cv-ink">{paused ? "Your line is paused" : "Pause your line"}</p>
+              <p className="text-xs text-cv-muted mt-0.5">
+                {paused
+                  ? "Calls are not being answered right now. Resume in one click."
+                  : "Temporarily stop answering calls without losing your number, settings, or history."}
+              </p>
+            </div>
+            <Button size="sm" disabled={pausing} onClick={() => handleTogglePause(!paused)}>
+              {pausing ? "…" : paused ? "Resume" : "Pause"}
+            </Button>
+          </div>
+        )}
+
+        {saveMsg && <p className="text-xs font-bold text-cv-green">{saveMsg}</p>}
+
+        {hasSubscription && (
+          <button
+            type="button"
+            onClick={() => setShowCancel(true)}
+            className="self-start text-xs text-cv-muted underline hover:text-cv-red transition-colors"
+          >
+            Cancel subscription
+          </button>
+        )}
       </CardBody>
+
+      {showCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-cv-md">
+            <h3 className="font-cv-heading text-lg font-bold text-cv-ink">Before you go</h3>
+            <p className="text-sm text-cv-muted mt-1">Mind sharing why? It only takes a second and it helps us improve.</p>
+
+            <div className="mt-4 flex flex-col gap-2">
+              {CANCEL_REASONS.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setReason(r)}
+                  className={`text-left text-sm rounded-lg border px-3.5 py-2.5 transition-colors ${
+                    reason === r ? "border-cv-primary bg-cv-surface-blue font-bold text-cv-ink" : "border-cv-border text-cv-muted hover:bg-cv-surface-subtle"
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-5 rounded-xl bg-cv-surface-blue border border-[#dce5ff] p-4">
+              <p className="text-sm font-bold text-cv-ink">Slow month? Pause instead.</p>
+              <p className="text-xs text-cv-muted mt-1">
+                Keep your number, settings, and lead history. We will not charge you while paused, and you can resume the moment work picks back up.
+              </p>
+              <Button variant="primary" className="mt-3 w-full" disabled={pausing} onClick={() => handleTogglePause(true)}>
+                {pausing ? "Pausing…" : "Pause my line instead"}
+              </Button>
+            </div>
+
+            <div className="mt-4 flex gap-3">
+              <Button className="flex-1" onClick={() => setShowCancel(false)}>
+                Never mind
+              </Button>
+              <Button variant="ghost" className="flex-1" disabled={isProcessing} onClick={handleManageSubscription}>
+                {isProcessing ? "Opening…" : "Continue to cancel"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

@@ -5,6 +5,9 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { businesses } from "@/lib/db/schema/businesses";
 import { getStripe, verifyWebhookSignature } from "@/lib/stripe";
+import { sendDunningEmail, sendReceiptEmail } from "@/lib/email/notifications";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -137,8 +140,49 @@ export async function POST(req: NextRequest) {
             updatedAt: new Date(),
           }).where(eq(businesses.id, company.id));
           console.log(`Payment failed for company ${company.id}, status set to past_due`);
+
+          // Dunning email — fire-and-forget. Only reaches a real recipient once
+          // Stripe is live (payment is mocked today, so this event never fires).
+          void sendDunningEmail({
+            ownerEmail: company.ownerEmail,
+            ownerName: company.ownerName,
+            businessName: company.businessName,
+            billingUrl: `${APP_URL}/dashboard/billing`,
+          }).catch(() => {});
         } else {
           console.error(`invoice.payment_failed: no company found for invoice ${invoice.id}`);
+        }
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const invoice = event.data.object as any;
+
+        const subscriptionId = invoice.subscription as string | null;
+        const customerId = invoice.customer as string;
+
+        let company = subscriptionId
+          ? await db.query.businesses.findFirst({ where: eq(businesses.stripeSubscriptionId, subscriptionId) })
+          : null;
+        if (!company) {
+          company = await db.query.businesses.findFirst({ where: eq(businesses.stripeCustomerId, customerId) });
+        }
+
+        if (company) {
+          // Receipt email — fire-and-forget. Only reaches a real recipient once
+          // Stripe is live (payment is mocked today, so this event never fires).
+          const periodEndUnix = invoice.lines?.data?.[0]?.period?.end as number | undefined;
+          void sendReceiptEmail({
+            ownerEmail: company.ownerEmail,
+            ownerName: company.ownerName,
+            businessName: company.businessName,
+            amountCents: Number(invoice.amount_paid ?? 0),
+            periodEnd: periodEndUnix ? new Date(periodEndUnix * 1000) : (company.currentPeriodEnd ?? null),
+            billingUrl: `${APP_URL}/dashboard/billing`,
+          }).catch(() => {});
+        } else {
+          console.error(`invoice.payment_succeeded: no company found for invoice ${invoice.id}`);
         }
         break;
       }

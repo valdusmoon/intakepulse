@@ -60,6 +60,26 @@ export async function hasActiveSubscription(
   return { hasAccess: false, reason: "Invalid subscription status. Please contact support.", status: subscriptionStatus };
 }
 
+/**
+ * The single gate for activating anything that costs money / represents real
+ * usage — above all, the live inbound phone line. "Payment on file" is the
+ * product's core commitment moment (see docs/monetization-and-conversion.md).
+ *
+ * Today (payment mocked) an active or in-trial subscription IS our proxy for a
+ * card on file, so this delegates to isBusinessSubscriptionActive. When real
+ * Stripe is wired, tighten this to ALSO require a real stripeSubscriptionId —
+ * that one change flips the whole app from mock to real without touching call
+ * sites. This is the seam.
+ */
+export function hasPaymentOnFile(business: {
+  subscriptionStatus: string | null;
+  trialEndsAt: Date | null;
+  canceledAt: Date | null;
+  // stripeSubscriptionId?: string | null; // <- require this once Stripe is live
+}): boolean {
+  return isBusinessSubscriptionActive(business);
+}
+
 export function isBusinessSubscriptionActive(business: {
   subscriptionStatus: string | null;
   trialEndsAt: Date | null;

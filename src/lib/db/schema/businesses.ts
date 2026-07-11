@@ -84,6 +84,21 @@ export const businesses = pgTable("businesses", {
   currentPeriodEnd: timestamp("current_period_end"),
   canceledAt: timestamp("canceled_at"),
 
+  // ─── Lifecycle email idempotency (Phase 3) ─────────────────────────────────
+  // Each column records the furthest stage of a given email series already sent
+  // to this business, so the daily/monthly crons never double-send. They are the
+  // single, lowest-risk idempotency mechanism for the whole lifecycle system:
+  // a per-row guard read+written in the same updateBusiness call, no extra table.
+  //
+  // trialReminderStage:   'trial_day10' | 'trial_day13' | 'trial_expiry' (rank-ordered)
+  // activationNudgeStage:  'activation_day1' | 'activation_day3' | 'activation_day7'
+  // winbackSentAt:         set once when the post-cancel win-back email is sent
+  // monthlyRecapSentFor:   'YYYY-MM' of the last monthly ROI recap emailed
+  trialReminderStage: text("trial_reminder_stage"),
+  activationNudgeStage: text("activation_nudge_stage"),
+  winbackSentAt: timestamp("winback_sent_at"),
+  monthlyRecapSentFor: text("monthly_recap_sent_for"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

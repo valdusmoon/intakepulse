@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 
 /** Ease the displayed value toward a target so the total rolls up as you drag,
  *  rather than snapping — motion tied to the interaction, not decoration.
@@ -58,6 +58,30 @@ export function MissedCallCalculator() {
   const [closeRate, setCloseRate] = useState(RATE_DEFAULT);
   const atRisk = calls * jobValue * (closeRate / 100);
   const animatedRisk = useCountUp(atRisk);
+
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  async function handleCapture(e: FormEvent) {
+    e.preventDefault();
+    if (status === "sending" || status === "sent") return;
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          source: "roi_calculator",
+          context: { missedCalls: calls, jobValue, closeRate, atRisk: Math.round(atRisk) },
+        }),
+      });
+      if (!res.ok) throw new Error("capture failed");
+      setStatus("sent");
+    } catch {
+      setStatus("error");
+    }
+  }
 
   return (
     <div>
@@ -124,6 +148,36 @@ export function MissedCallCalculator() {
           have booked. A rough estimate, not a promise.
         </p>
       </div>
+
+      {status === "sent" ? (
+        <p className="mt-4 text-center text-sm font-medium text-landing-primary-glow">
+          Sent. Check your inbox for the breakdown.
+        </p>
+      ) : (
+        <form onSubmit={handleCapture} className="mt-4">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              aria-label="Email address"
+              className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-landing-primary-glow focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={status === "sending"}
+              className="rounded-xl bg-landing-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-600 disabled:opacity-60"
+            >
+              {status === "sending" ? "Sending..." : "Email me this breakdown"}
+            </button>
+          </div>
+          {status === "error" && (
+            <p className="mt-2 text-xs text-red-400">Something went wrong. Please try again.</p>
+          )}
+        </form>
+      )}
     </div>
   );
 }

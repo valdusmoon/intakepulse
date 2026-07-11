@@ -1280,3 +1280,491 @@ export async function sendWeeklyReportEmail(params: WeeklyReportParams) {
 
 // Voice overflow leads reuse sendLeadPacketEmail above — same scoring pipeline
 // (scoreLeadFromAnswers + assessLead) as the web intake form, same email.
+
+// ─── Top-of-funnel: missed-call breakdown (ROI capture) ──────────────────────
+// Sent to an anonymous visitor who asked us to email their ROI-calculator
+// result. Echoes their own numbers back so the email carries real value, then
+// points them at the free trial. Also used for the softer lead-magnet capture,
+// where the ROI numbers may be absent.
+
+interface MissedCallBreakdownParams {
+  toEmail: string;
+  missedCalls?: number;
+  jobValue?: number;
+  closeRate?: number;
+  atRisk?: number;
+}
+
+export async function sendMissedCallBreakdownEmail({
+  toEmail,
+  missedCalls,
+  jobValue,
+  closeRate,
+  atRisk,
+}: MissedCallBreakdownParams) {
+  const signupUrl = `${APP_URL}/sign-up`;
+  const hasNumbers =
+    typeof missedCalls === "number" &&
+    typeof jobValue === "number" &&
+    typeof closeRate === "number" &&
+    typeof atRisk === "number";
+
+  const breakdownHtml = hasNumbers
+    ? `
+    <tr><td style="padding:0 24px 20px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;">
+        <tr><td style="padding:18px;">
+          <p style="margin:0 0 2px 0;font-size:11px;font-weight:700;color:#ea580c;text-transform:uppercase;letter-spacing:0.06em;">At risk every month</p>
+          <p style="margin:0;font-size:30px;font-weight:700;color:#c2410c;letter-spacing:-0.5px;">${fmt(atRisk!)}</p>
+          <p style="margin:8px 0 0 0;font-size:13px;color:#9a3412;line-height:1.6;">
+            ${missedCalls} missed ${missedCalls === 1 ? "call" : "calls"} a month at ${fmt(jobValue!)} per job, assuming ${closeRate}% would have booked. A rough estimate, not a promise.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>`
+    : "";
+
+  const html = emailWrapper(`
+    <tr><td style="height:4px;background:linear-gradient(90deg,#f97316,#fb923c);font-size:0;line-height:0;">&nbsp;</td></tr>
+
+    <tr><td style="padding:24px 24px 0 24px;">
+      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">Your missed-call breakdown</p>
+      <h1 style="margin:0 0 4px 0;font-size:22px;font-weight:700;color:#111827;">Here's what those missed calls add up to.</h1>
+      <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">Every unanswered call is a job that likely went to the next contractor the caller dialed.</p>
+    </td></tr>
+
+    <tr><td style="height:20px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+    ${breakdownHtml}
+
+    <tr><td style="padding:0 24px 20px;">
+      <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">
+        Callverted answers the calls your team can't, runs the intake, and sends you a scored, callback-ready lead while the caller is still on the hook. You keep the job instead of losing it.
+      </p>
+    </td></tr>
+
+    <tr><td style="padding:0 24px 28px;">
+      <a href="${signupUrl}" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;">
+        Start your 14-day trial →
+      </a>
+      <p style="margin:12px 0 0 0;font-size:12px;color:#9ca3af;">No charge for 14 days. Cancel anytime.</p>
+    </td></tr>
+
+    <tr><td style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+      <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">Powered by Callverted</p>
+    </td></tr>
+  `);
+
+  return emailClient.send({
+    to: toEmail,
+    subject: hasNumbers
+      ? `Your missed calls: ${fmt(atRisk!)} at risk every month`
+      : "Your missed-call breakdown from Callverted",
+    html,
+  });
+}
+
+// ─── Lifecycle: shared value snapshot block ──────────────────────────────────
+// A small "here's what Callverted captured for you" stat strip reused by the
+// trial-ending, win-back, and monthly recap emails so the value lead is
+// consistent across the lifecycle series.
+
+interface LifecycleStats {
+  total: number;
+  converted: number;
+  estimatedRevenue: number; // cents
+}
+
+function valueSnapshot(stats: LifecycleStats): string {
+  return `
+    <tr><td style="padding:4px 24px 0 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;">
+        <tr>
+          <td style="padding:14px 18px;width:50%;">
+            <p style="margin:0;font-size:11px;font-weight:700;color:#ea580c;text-transform:uppercase;letter-spacing:0.06em;">Leads captured</p>
+            <p style="margin:4px 0 0;font-size:26px;font-weight:700;color:#c2410c;">${stats.total}</p>
+          </td>
+          <td style="padding:14px 18px;width:50%;">
+            <p style="margin:0;font-size:11px;font-weight:700;color:#ea580c;text-transform:uppercase;letter-spacing:0.06em;">Pipeline value</p>
+            <p style="margin:4px 0 0;font-size:26px;font-weight:700;color:#c2410c;">${fmt(stats.estimatedRevenue / 100)}</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>`;
+}
+
+// ─── Trial-ending reminder (day 10 / day 13 / expiry) ────────────────────────
+// Idempotency owned by the caller via businesses.trialReminderStage.
+
+export type TrialReminderStage = "trial_day10" | "trial_day13" | "trial_expiry";
+
+interface TrialReminderParams {
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  stage: TrialReminderStage;
+  billingUrl: string;
+  stats: LifecycleStats;
+}
+
+export async function sendTrialReminderEmail({
+  ownerEmail,
+  ownerName,
+  businessName,
+  stage,
+  billingUrl,
+  stats,
+}: TrialReminderParams) {
+  const firstName = ownerName.split(" ")[0];
+
+  const copy = {
+    trial_day10: {
+      eyebrow: "Trial update",
+      heading: `${firstName}, here's what Callverted captured for you`,
+      lede: `You still have a few days left on your free trial. Keep your line live so no missed call slips through.`,
+      subject: `Your Callverted trial: here's what we captured`,
+    },
+    trial_day13: {
+      eyebrow: "Trial ending soon",
+      heading: `${firstName}, your trial ends tomorrow`,
+      lede: `Add your card to keep answering every missed call. You will not be charged until your trial ends, and you can cancel anytime.`,
+      subject: `Your Callverted trial ends tomorrow`,
+    },
+    trial_expiry: {
+      eyebrow: "Trial ends today",
+      heading: `${firstName}, your trial ends today`,
+      lede: `This is the last day of your free trial. Add your card now so your line stays live and you keep every lead below.`,
+      subject: `Last day: keep your Callverted line live`,
+    },
+  }[stage];
+
+  const html = emailWrapper(`
+    <tr><td style="height:4px;background:linear-gradient(90deg,#f97316,#fb923c);font-size:0;line-height:0;">&nbsp;</td></tr>
+
+    <tr><td style="padding:24px 24px 0 24px;">
+      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">${copy.eyebrow}</p>
+      <h1 style="margin:0 0 6px 0;font-size:22px;font-weight:700;color:#111827;">${copy.heading}</h1>
+      <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">${copy.lede}</p>
+    </td></tr>
+
+    <tr><td style="height:16px;font-size:0;line-height:0;">&nbsp;</td></tr>
+    ${valueSnapshot(stats)}
+
+    <tr><td style="padding:20px 24px 24px 24px;">
+      <a href="${billingUrl}" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;">
+        Keep my line live →
+      </a>
+    </td></tr>
+    ${emailFooter(businessName)}
+  `);
+
+  await emailClient.send({ to: ownerEmail, subject: copy.subject, html });
+}
+
+// ─── Activation nudge (day 1 / day 3 / day 7) ────────────────────────────────
+// Idempotency owned by the caller via businesses.activationNudgeStage.
+
+export type ActivationNudgeStage = "activation_day1" | "activation_day3" | "activation_day7";
+
+interface ActivationNudgeParams {
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  stage: ActivationNudgeStage;
+  dashboardUrl: string;
+}
+
+export async function sendActivationNudgeEmail({
+  ownerEmail,
+  ownerName,
+  businessName,
+  stage,
+  dashboardUrl,
+}: ActivationNudgeParams) {
+  const firstName = ownerName.split(" ")[0];
+  const testCallUrl = `${dashboardUrl}/test-call`;
+  const captureUrl = `${dashboardUrl}/capture`;
+
+  const copy = {
+    activation_day1: {
+      eyebrow: "Get started",
+      heading: `${firstName}, make your first test call`,
+      lede: `Hear Callverted answer a call exactly like it will for your customers. It takes about a minute and shows you the lead packet you'll get for every missed call.`,
+      ctaLabel: "Make a test call →",
+      ctaUrl: testCallUrl,
+    },
+    activation_day3: {
+      eyebrow: "One step to go live",
+      heading: `${firstName}, let's get your line live`,
+      lede: `Forward your business line, install the widget, or share your intake link. That is the one step between you and never missing a call again.`,
+      ctaLabel: "Go live →",
+      ctaUrl: captureUrl,
+    },
+    activation_day7: {
+      eyebrow: "Still here to help",
+      heading: `${firstName}, your line isn't live yet`,
+      lede: `Every missed call is a job that could have gone to a competitor. Finish setup in a couple of minutes and Callverted will start catching them for you.`,
+      ctaLabel: "Finish setup →",
+      ctaUrl: captureUrl,
+    },
+  }[stage];
+
+  const html = emailWrapper(`
+    <tr><td style="height:4px;background:linear-gradient(90deg,#f97316,#fb923c);font-size:0;line-height:0;">&nbsp;</td></tr>
+
+    <tr><td style="padding:24px 24px 0 24px;">
+      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">${copy.eyebrow}</p>
+      <h1 style="margin:0 0 6px 0;font-size:22px;font-weight:700;color:#111827;">${copy.heading}</h1>
+      <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">${copy.lede}</p>
+    </td></tr>
+
+    <tr><td style="padding:20px 24px 24px 24px;">
+      <a href="${copy.ctaUrl}" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;margin-right:12px;">
+        ${copy.ctaLabel}
+      </a>
+      <a href="${dashboardUrl}" style="display:inline-block;color:#6b7280;text-decoration:none;font-size:13px;font-weight:500;padding:13px 0;">
+        Go to dashboard
+      </a>
+    </td></tr>
+    ${emailFooter(businessName)}
+  `);
+
+  await emailClient.send({
+    to: ownerEmail,
+    subject: copy.heading,
+    html,
+  });
+}
+
+// ─── Win-back (post cancel / trial expiry) ───────────────────────────────────
+// Idempotency owned by the caller via businesses.winbackSentAt (fires once).
+
+interface WinbackParams {
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  reactivateUrl: string;
+  stats: LifecycleStats;
+}
+
+export async function sendWinbackEmail({
+  ownerEmail,
+  ownerName,
+  businessName,
+  reactivateUrl,
+  stats,
+}: WinbackParams) {
+  const firstName = ownerName.split(" ")[0];
+  const hadValue = stats.total > 0;
+
+  const html = emailWrapper(`
+    <tr><td style="height:4px;background:linear-gradient(90deg,#f97316,#fb923c);font-size:0;line-height:0;">&nbsp;</td></tr>
+
+    <tr><td style="padding:24px 24px 0 24px;">
+      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">We'd love you back</p>
+      <h1 style="margin:0 0 6px 0;font-size:22px;font-weight:700;color:#111827;">${firstName}, your line is off</h1>
+      <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">
+        ${hadValue
+          ? `While Callverted was on, here's what it caught for you. Turn your line back on and pick up right where you left off.`
+          : `Turn your line back on and Callverted will answer every call you miss, then send you the lead. Reactivating takes less than a minute.`}
+      </p>
+    </td></tr>
+
+    ${hadValue ? `<tr><td style="height:16px;font-size:0;line-height:0;">&nbsp;</td></tr>${valueSnapshot(stats)}` : ""}
+
+    <tr><td style="padding:20px 24px 24px 24px;">
+      <a href="${reactivateUrl}" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;">
+        Reactivate my line →
+      </a>
+    </td></tr>
+    ${emailFooter(businessName)}
+  `);
+
+  await emailClient.send({
+    to: ownerEmail,
+    subject: `${firstName}, reactivate Callverted anytime`,
+    html,
+  });
+}
+
+// ─── Monthly ROI recap ───────────────────────────────────────────────────────
+// Idempotency owned by the caller via businesses.monthlyRecapSentFor.
+
+interface MonthlyRoiRecapParams {
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  monthLabel: string; // e.g. "June 2026"
+  dashboardUrl: string;
+  stats: {
+    total: number;
+    missedCalls: number;
+    converted: number;
+    estimatedRevenue: number; // cents
+  };
+}
+
+export async function sendMonthlyRoiRecapEmail({
+  ownerEmail,
+  ownerName,
+  businessName,
+  monthLabel,
+  dashboardUrl,
+  stats,
+}: MonthlyRoiRecapParams) {
+  const firstName = ownerName.split(" ")[0];
+  const leadsUrl = `${dashboardUrl}/leads`;
+
+  const html = emailWrapper(`
+    <tr><td style="padding:20px 24px 16px;background:#f97316;">
+      <p style="margin:0;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.05em;">Monthly recap</p>
+      <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#ffffff;">${businessName}</p>
+      <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.85);">${monthLabel}</p>
+    </td></tr>
+
+    <tr><td style="padding:24px 24px 8px 24px;">
+      <p style="margin:0;font-size:15px;color:#374151;line-height:1.6;">
+        Hi ${firstName}, here's what Callverted recovered for you last month.
+      </p>
+    </td></tr>
+
+    <tr><td style="padding:8px 24px 4px;">
+      <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Recovered pipeline value</p>
+      <p style="margin:0;font-size:34px;font-weight:700;color:#f97316;">${fmt(stats.estimatedRevenue / 100)}</p>
+    </td></tr>
+
+    <tr><td style="padding:16px 24px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="width:33%;">
+            <p style="margin:0;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Leads</p>
+            <p style="margin:4px 0 0;font-size:24px;font-weight:700;color:#111827;">${stats.total}</p>
+          </td>
+          <td style="width:33%;">
+            <p style="margin:0;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Missed calls</p>
+            <p style="margin:4px 0 0;font-size:24px;font-weight:700;color:#111827;">${stats.missedCalls}</p>
+          </td>
+          <td style="width:33%;">
+            <p style="margin:0;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Converted</p>
+            <p style="margin:4px 0 0;font-size:24px;font-weight:700;color:#16a34a;">${stats.converted}</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+
+    <tr><td style="padding:20px 24px 24px;">
+      <a href="${leadsUrl}" style="display:inline-block;background:#f97316;color:#ffffff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">View all leads →</a>
+    </td></tr>
+    ${emailFooter(businessName)}
+  `);
+
+  await emailClient.send({
+    to: ownerEmail,
+    subject: `Your ${monthLabel} recap: ${fmt(stats.estimatedRevenue / 100)} recovered · ${businessName}`,
+    html,
+  });
+}
+
+// ─── Dunning (payment failed) ────────────────────────────────────────────────
+// Fires only when real Stripe is live (payment is mocked today, so
+// invoice.payment_failed never arrives). Template built now, wired in the
+// webhook as fire-and-forget.
+
+interface DunningParams {
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  billingUrl: string;
+}
+
+export async function sendDunningEmail({
+  ownerEmail,
+  ownerName,
+  businessName,
+  billingUrl,
+}: DunningParams) {
+  const firstName = ownerName.split(" ")[0];
+
+  const html = emailWrapper(`
+    <tr><td style="height:4px;background:#dc2626;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+    <tr><td style="padding:24px 24px 0 24px;">
+      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:0.08em;">Payment failed</p>
+      <h1 style="margin:0 0 6px 0;font-size:22px;font-weight:700;color:#111827;">${firstName}, we couldn't process your payment</h1>
+      <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">
+        Your last Callverted payment didn't go through. Update your card to keep your line live so you don't miss any calls. We'll try again automatically once your card is updated.
+      </p>
+    </td></tr>
+
+    <tr><td style="padding:20px 24px 24px 24px;">
+      <a href="${billingUrl}" style="display:inline-block;background:#dc2626;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;">
+        Update payment method →
+      </a>
+    </td></tr>
+    ${emailFooter(businessName)}
+  `);
+
+  await emailClient.send({
+    to: ownerEmail,
+    subject: `Action needed: update your Callverted payment method`,
+    html,
+  });
+}
+
+// ─── Receipt (payment succeeded) ─────────────────────────────────────────────
+// Fires only when real Stripe is live (payment is mocked today). Template built
+// now, wired in the webhook as fire-and-forget.
+
+interface ReceiptParams {
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  amountCents: number;
+  periodEnd: Date | null; // next billing date
+  billingUrl: string;
+}
+
+export async function sendReceiptEmail({
+  ownerEmail,
+  ownerName,
+  businessName,
+  amountCents,
+  periodEnd,
+  billingUrl,
+}: ReceiptParams) {
+  const firstName = ownerName.split(" ")[0];
+  const nextBilling = periodEnd
+    ? periodEnd.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    : null;
+
+  const html = emailWrapper(`
+    <tr><td style="padding:24px 24px 0 24px;">
+      <p style="margin:0 0 4px 0;font-size:12px;font-weight:600;color:#16a34a;text-transform:uppercase;letter-spacing:0.05em;">Payment received</p>
+      <h1 style="margin:0 0 4px 0;font-size:22px;font-weight:700;color:#111827;">Thanks, ${firstName}.</h1>
+      <p style="margin:0;font-size:14px;color:#6b7280;">Your Callverted payment went through.</p>
+    </td></tr>
+
+    <tr><td style="padding:20px 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:10px;">
+        <tr><td style="padding:16px 18px;">
+          <p style="margin:0 0 4px 0;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Amount</p>
+          <p style="margin:0;font-size:26px;font-weight:700;color:#111827;">${fmtDollars(amountCents)}</p>
+          ${nextBilling ? `<p style="margin:8px 0 0 0;font-size:12px;color:#9ca3af;">Next billing date: ${nextBilling}</p>` : ""}
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <tr><td style="padding:0 24px 24px 24px;">
+      <a href="${billingUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px;">
+        View billing →
+      </a>
+    </td></tr>
+    ${emailFooter(businessName)}
+  `);
+
+  await emailClient.send({
+    to: ownerEmail,
+    subject: `Your Callverted receipt: ${fmtDollars(amountCents)}`,
+    html,
+  });
+}

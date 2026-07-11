@@ -1,0 +1,248 @@
+# Monetization & Conversion Plan
+
+Reference doc for how Callverted acquires, activates, converts, and retains
+customers. Written 2026-07-11. This is the agreed model and the phased build
+that implements it. Update this doc as phases land.
+
+## Build status (2026-07-11)
+
+Phases 0–6 all implemented against the mock payment path; `npx tsc --noEmit`
+and `next build` both pass. Deferred by decision: 1.4 (mid-wizard autosave) and
+0.4 / the real-Stripe flip (section 5). Requires operator action before these
+fully work in prod:
+- **Apply migrations** `0020_add_email_captures.sql` and
+  `0021_lifecycle_email_tracking.sql` (email-capture table + lifecycle tracking
+  columns). NOT yet applied to any DB.
+- **Env vars:** `CRON_SECRET` (guards `/api/cron/daily`), `ADMIN_CLERK_USER_IDS`
+  (comma-separated Clerk ids for the `/admin` console).
+- Note: the Drizzle `meta/_journal.json` is stale (pre-existing) so migrations
+  0007+ are hand-authored raw SQL by convention.
+
+---
+
+## 1. The model
+
+**Card up front, gated on live calls, with a free trust phase before the ask.**
+
+Callverted's real cost (and real value) is answering live inbound calls. So the
+one hard gate in the whole product is:
+
+> **A payment method on file is required to activate the live phone line.**
+> Everything before that is free proof.
+
+The funnel has three zones:
+
+```
+FREE / NO ACCOUNT (build trust)       SIGNED UP, NO CARD          CARD ON FILE (trial or paid)
+────────────────────────────────      ──────────────────────      ────────────────────────────
+• Landing, ROI calc (email-gated)      • Dashboard (explore)        • LIVE voice line ✅
+• Scripted call replay                 • Make TEST calls ✅          • Real inbound calls captured
+• Interactive test-call demo           • See sample lead packet     • Lead packet emails
+• Sample lead packet                   • Activation checklist       • Widget / intake link live
+                                       • ❌ No real calls            • 14-day trial → $79/mo auto
+```
+
+Rationale: agencies and infra-style SMB tools give enough visible value to earn
+trust, then take the card before switching anything on. A signed-up user with no
+card can explore the dashboard and run **test calls** (their instant taste of
+value, no real call volume required) but cannot receive real calls until a
+payment method is on file.
+
+### Trial decision: 14-day card-required trial ("reverse trial")
+
+- Free, ungated demo surfaces build trust with **no account**.
+- Sign up → onboard → **enter a card** (the commitment moment).
+- Card on file **activates the live line**.
+- 14 days free, **auto-converts to $79/mo on day 15** unless canceled. Cancel
+  anytime in the trial window = never charged.
+
+Why card-required trial over no-card trial or pay-now:
+- Card-required trials convert far better to paid (industry ballpark 40–60% vs
+  ~10–15% for no-card). The card *is* the qualifier — it filters tire-kickers
+  without a sales demo, which is the self-serve goal.
+- Lower friction than "pay $79 now" while capturing the same commitment.
+- Auto-converts, so no manual chasing — critical for a solo founder.
+
+**One-flag reversibility:** the trial is just `trialPeriodDays: 14` on the
+Stripe subscription. Set it to `0` and the model becomes "pay now, cancel
+anytime, 14-day money-back" with no other code changes. Committing to the trial
+now costs nothing later.
+
+### Sales-assisted exception
+
+Self-serve is the default. For the occasional warm lead closed by phone, an
+admin can extend a trial, apply a coupon, or comp an account. No separate flow.
+
+---
+
+## 2. Current state (2026-07-11)
+
+- **Payment is MOCKED.** Onboarding's payment step calls
+  `POST /api/onboarding/mock-subscribe`, which returns a `trialEndsAt` 14 days
+  out and never touches Stripe or the DB. The real Stripe checkout
+  (`/api/stripe/checkout`) exists but is only reachable from Settings → Billing,
+  and the two paths are disconnected. A mock trial therefore never converts or
+  expires in status — it stays `trialing` forever.
+- **Subscription logic is duplicated and inconsistent.** The correct helpers in
+  `src/lib/subscription.ts` (`hasActiveSubscription`, `isBusinessSubscriptionActive`)
+  are **dead code**. The banner (`dashboard/layout.tsx:getBannerState`), the
+  dashboard `isVoiceLive` check, and the voice route each re-implement their own
+  version. The voice gate does **not** check `trialEndsAt` expiry.
+- **First-run dashboard is a wall of zeros** — no activation checklist, nothing
+  linking a new user to test-call or widget setup.
+- **Only 4 emails send** (internal signup ping, one welcome, lead packet, weekly
+  recap). A dozen lifecycle templates exist but are unwired; a `followups` table
+  + query layer is scaffolded but the create/send path is dead; `vercel.json`
+  declares a `/api/cron/daily` cron pointing at a route that doesn't exist.
+- **No top-of-funnel email capture** anywhere. The ROI calculator computes a
+  scary number and does nothing with it.
+- **No churn mechanics** beyond a trial-countdown banner. Cancellation hands off
+  straight to the Stripe portal; an `isPaused` flag exists but is never offered.
+
+### Security note (why the current mock is safe to leave up)
+
+With no ads/marketing, exposure is negligible: Clerk signup needs a real
+verified email (bots don't complete it), `/api/demo` 404s for anonymous users,
+test-call is behind Clerk auth, and real Twilio numbers aren't provisioned
+(mock). The one real cost is bounded OpenAI usage on authenticated test calls.
+The **structural** fix is the live-call gate (below) — build it now on the mock
+so real calls can never route without passing payment, regardless of marketing.
+
+---
+
+## 3. Decisions locked for this build
+
+- **Trial: IN.** 14-day, card-required, auto-convert. One flag flips it off later.
+- **Gate line:** payment-on-file required to **activate the live phone line**.
+  Signed-up-no-card users get full dashboard exploration + test calls, no real calls.
+- **Stripe stays MOCKED for now** (testing phase). Build the whole gating
+  architecture and the real-Stripe seam; leave the mock endpoint behind it.
+- **Onboarding mid-wizard autosave is DEFERRED** (not in this build). The
+  single-action finish and step reorder are in; progress persistence is later.
+
+---
+
+## 4. Phased implementation
+
+Ordered by build sequence. Each phase is independently shippable. Items marked
+**[mock-now]** are built against the mock and become real when Stripe flips;
+**[real-stripe]** items are deferred until then.
+
+### Phase 0 — Payment gate architecture (foundational)
+
+The spine. Makes payment state single-sourced and makes card-on-file actually
+gate live calls.
+
+0.1 **Consolidate subscription logic onto `src/lib/subscription.ts`.** Add a
+    `hasPaymentOnFile(business)` seam that today returns true for `active`/valid
+    `trialing` and later also requires a real `stripeSubscriptionId`. Replace the
+    inline re-implementations in `dashboard/layout.tsx` (`getBannerState`,
+    `isVoiceLive`) and the voice route with these helpers.
+0.2 **Fix the live-call gate.** `api/twilio/voice/route.ts` must use the shared
+    helper and reject when the trial is expired (`trialEndsAt` check), not just
+    on status membership.
+0.3 **Real-Stripe seam documented in code.** Keep `/api/onboarding/mock-subscribe`
+    but centralize the "activate trial" write so swapping to a real Checkout
+    session + webhook create-path is a localized change. **[mock-now]**
+0.4 *(Deferred)* Real Checkout session in onboarding + webhook `subscription.created`
+    write-path + dunning status transitions. **[real-stripe]**
+
+### Phase 1 — Onboarding restructure
+
+1.1 **Reorder the wizard:** business info → vertical → **payment (card)** →
+    number selection → done. Don't provision a (real, paid) number before a card
+    exists. On mock, the payment step still calls mock-subscribe.
+1.2 **Single-action finish** — remove the two-click "Start trial" then "Continue"
+    footgun; one action completes onboarding.
+1.3 **Trial copy:** "14 days free · no charge until [date] · cancel anytime."
+1.4 *(Deferred — not this build)* Persist mid-wizard progress so drop-offs resume.
+
+### Phase 2 — Activation (first-run experience)
+
+2.1 **Activation checklist** replacing the wall-of-zeros for new accounts:
+    1. Make your first test call → `/dashboard/test-call`
+    2. Go live — forward your number / install widget / share intake link → `/dashboard/capture`
+    3. Confirm your line is live
+2.2 Checklist state is derived from real signals (has test call, has number
+    live, first lead) and doubles as the trigger data for activation emails.
+
+### Phase 3 — Lifecycle emails (wire the dormant plumbing)
+
+Uses Resend + `emailClient.batchSend`, the Inngest cron pattern
+(`weekly-report.ts`), the `followups` table, and the existing templates in
+`src/lib/email/notifications.ts`.
+
+3.1 **Implement `/api/cron/daily`** (declared in `vercel.json`, route missing).
+    Drains `getDueFollowups → send → markFollowupSent`. Allowlisted already in
+    middleware.
+3.2 **Welcome → activation series** (day 1/3/7): nudge if still no card / no test
+    call / no live line.
+3.3 **Trial-ending emails** (day-10, day-13, expiry-day): daily Inngest cron reads
+    `trialEndsAt`; lead with "here's what Callverted captured for you." Works on
+    the mock (mock sets `trialEndsAt`). **[mock-now]**
+3.4 **Receipt** on payment + **dunning** on `invoice.payment_failed` (webhook
+    already fires; just no email). **[real-stripe]** for firing; template can be built now.
+3.5 **Win-back** post-cancel/expiry (`sendFollowupEmail` template exists).
+3.6 **Monthly ROI recap** ("you recovered $X in missed calls") — anti-churn value
+    reinforcement.
+
+### Phase 4 — Top-of-funnel capture
+
+4.1 **Email-capture table + endpoint** (`emailCaptures` schema + `/api/capture`).
+4.2 **Email-gate the ROI calculator result** — peak-intent moment, one input,
+    drops the lead into a drip. Highest-leverage top-of-funnel move.
+4.3 **Softer secondary CTA** site-wide ("Get the missed-call playbook" / "See a
+    sample lead packet") for not-ready visitors.
+4.4 **"No card to explore — card only when you go live"** messaging to lower
+    signup hesitation (now true).
+
+### Phase 5 — Churn prevention
+
+5.1 **Cancellation save-flow** before the Stripe-portal handoff: reason picker →
+    **"Pause instead?"** (uses the existing `isPaused` flag) or a retention offer.
+5.2 **Win-back email** (shared with 3.5).
+5.3 **Monthly ROI recap** (shared with 3.6) as the ongoing retention lever.
+
+### Phase 6 — Sales assist (light)
+
+6.1 **Admin: extend trial / apply coupon / comp account** for warm leads closed
+    by phone. Keeps self-serve the default and sales the exception.
+
+---
+
+## 5. Going live with real Stripe (the flip)
+
+When ready to take real money, in order:
+1. Onboarding payment step: call `POST /api/stripe/checkout` (already built) and
+   redirect to the returned Stripe URL instead of `mock-subscribe`.
+2. Webhook: add the `checkout.session.completed` / `customer.subscription.created`
+   write-path so the business gets `stripeCustomerId`, `stripeSubscriptionId`,
+   `subscriptionStatus`, `trialEndsAt` from Stripe as the source of truth.
+3. `hasPaymentOnFile` starts requiring a real `stripeSubscriptionId`.
+4. Turn on the receipt + dunning emails (3.4).
+5. Delete `/api/onboarding/mock-subscribe`.
+
+Nothing else in the funnel changes — every other phase is written against the
+shared subscription helpers, not the mock.
+
+---
+
+## 6. Key file map
+
+| Concern | Path |
+|---|---|
+| Subscription helpers (source of truth) | `src/lib/subscription.ts` |
+| Mock trial (temporary) | `src/app/api/onboarding/mock-subscribe/route.ts` |
+| Real Stripe (deferred) | `src/app/api/stripe/{checkout,portal,webhook}/route.ts` |
+| Business create (writes trial state) | `src/app/api/business/route.ts` |
+| Onboarding wizard | `src/app/(authenticated)/onboarding/_form.tsx` |
+| Trial banner + state | `src/components/dashboard/v2/SubscriptionBannerV2.tsx`, `dashboard/layout.tsx` |
+| Live-call gate | `src/app/api/twilio/voice/route.ts` |
+| First-run dashboard | `src/app/(authenticated)/dashboard/page.tsx` |
+| Activation surfaces | `dashboard/test-call/page.tsx`, `dashboard/capture/page.tsx` |
+| Email transport | `src/lib/resend.ts`, `src/lib/email/email-client.ts` |
+| Email templates | `src/lib/email/notifications.ts` |
+| Follow-up scheduling | `src/lib/db/schema/followups.ts`, `src/lib/db/queries/followups.ts` |
+| Inngest | `src/lib/inngest/client.ts`, `src/lib/inngest/functions/*` |
+| Daily cron (to build) | `src/app/api/cron/daily/route.ts` (declared in `vercel.json`) |
+| Landing / ROI calc | `src/app/page.tsx`, `src/components/marketing/MissedCallCalculator.tsx` |

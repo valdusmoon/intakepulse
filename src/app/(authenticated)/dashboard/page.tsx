@@ -13,8 +13,78 @@ import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel } from "@/lib/verticals/labels";
 import { priorityMeta, intentMeta, initials, timeAgoShort, fmtCents, fmtValueRange, sourceLabel, sourceSwatch } from "@/lib/leads/priority";
 import { Card, CardHeader, CardTitle, CardBody, Badge, StatusPill, MetricCard, Trend, Icon, LinkButton } from "@/components/dashboard/v2/primitives";
+import { hasPaymentOnFile } from "@/lib/subscription";
 
-const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing"];
+/** First-run activation checklist — replaces the wall-of-zeros for a brand-new
+ *  account. Each step's done-state is derived from real signals, so it needs no
+ *  stored state. It disappears once the account captures its first lead. */
+function ActivationChecklist({
+  lineLive,
+  hasTestCall,
+  widgetInstalled,
+}: {
+  lineLive: boolean;
+  hasTestCall: boolean;
+  widgetInstalled: boolean;
+}) {
+  const steps = [
+    {
+      done: hasTestCall,
+      href: "/dashboard/test-call",
+      title: "Make your first test call",
+      body: "Hear the AI answer and watch it qualify a lead in real time.",
+    },
+    {
+      done: lineLive,
+      href: "/dashboard/settings",
+      title: "Get your line live",
+      body: "Confirm your number and forwarding so real calls reach the AI.",
+    },
+    {
+      done: widgetInstalled,
+      href: "/dashboard/capture",
+      title: "Set up website capture",
+      body: "Add the widget or share your intake link to catch web leads too.",
+    },
+  ];
+  const doneCount = steps.filter((s) => s.done).length;
+
+  return (
+    <Card className="mb-4">
+      <CardHeader>
+        <div>
+          <CardTitle>Finish setting up</CardTitle>
+          <p className="text-[11px] text-cv-muted mt-1">A couple of steps and you are capturing every call</p>
+        </div>
+        <span className="font-cv-mono text-xs font-bold text-cv-muted">{doneCount}/3 done</span>
+      </CardHeader>
+      <CardBody className="flex flex-col gap-2">
+        {steps.map((s, i) => (
+          <Link
+            key={s.title}
+            href={s.href}
+            className={`flex items-center gap-3.5 rounded-xl border px-4 py-3 transition-colors ${
+              s.done ? "border-cv-border bg-cv-surface-subtle" : "border-cv-border hover:border-cv-primary hover:bg-cv-surface-blue"
+            }`}
+          >
+            <div
+              className={`w-8 h-8 rounded-full grid place-items-center shrink-0 text-xs font-extrabold ${
+                s.done ? "bg-cv-green text-white" : "bg-cv-primary-soft text-cv-primary"
+              }`}
+            >
+              {s.done ? <Icon name="check" className="!text-[17px]" /> : i + 1}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className={`text-sm font-bold ${s.done ? "text-cv-muted line-through" : "text-cv-ink"}`}>{s.title}</p>
+              {!s.done && <p className="text-xs text-cv-muted mt-0.5">{s.body}</p>}
+            </div>
+            {!s.done && <Icon name="arrow_forward" className="!text-[18px] text-cv-primary shrink-0" />}
+          </Link>
+        ))}
+      </CardBody>
+    </Card>
+  );
+}
 
 function fmtDuration(seconds: number) {
   if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -47,12 +117,14 @@ export default async function DashboardPage() {
   ]);
 
   const isVoiceLive = Boolean(
-    business.twilioPhoneNumber &&
-      !business.isPaused &&
-      business.subscriptionStatus &&
-      ACTIVE_SUBSCRIPTION_STATUSES.includes(business.subscriptionStatus)
+    business.twilioPhoneNumber && !business.isPaused && hasPaymentOnFile(business)
   );
   const widgetInstalled = sources.some((s) => s.source === "website_widget");
+
+  // First-run: no captured leads yet. Show the activation checklist instead of a
+  // wall of zeros. It falls away the moment the first real lead lands.
+  const showActivation = metrics.totalLeads === 0;
+  const hasTestCall = recentCalls.length > 0;
 
   const captured = metrics.totalLeads || 1; // guard div-by-zero
   const contactedPct = Math.round((metrics.contactedOrBeyond / captured) * 100);
@@ -148,6 +220,10 @@ export default async function DashboardPage() {
           </LinkButton>
         </div>
       </div>
+
+      {showActivation && (
+        <ActivationChecklist lineLive={isVoiceLive} hasTestCall={hasTestCall} widgetInstalled={widgetInstalled} />
+      )}
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-4">
         <MetricCard

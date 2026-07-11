@@ -157,6 +157,7 @@ export async function PATCH(req: NextRequest) {
     "forwardingNumber", "notificationPreferences",
     "twilioPhoneNumber", "overflowMode", "recordingEnabled", "recordingDisclosure",
     "urgentTransferNumber", "greetingMessage", "aiInstructions", "voiceName", "callTimeoutSeconds",
+    "isPaused", // pause/resume the live line (churn-deflection alternative to canceling)
   ] as const;
   const safeBody = Object.fromEntries(
     allowed.filter((k) => k in body).map((k) => [k, body[k]])

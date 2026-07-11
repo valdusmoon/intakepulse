@@ -236,14 +236,27 @@ function Step2({
   );
 }
 
-// ─── Step 3: Number (mock Twilio provisioning) ─────────────────────────────────
+// ─── Step 4: Number (mock Twilio provisioning) ─────────────────────────────────
+// Number comes AFTER payment on purpose: we don't provision a (real, paid) line
+// for someone who hasn't put payment on file. This step's Continue is the single
+// atomic finish for the whole wizard (see handleFinishOnboarding).
 
 function fmtDisplayNumber(e164: string) {
   const m = e164.match(/^\+1(\d{3})(\d{3})(\d{4})$/);
   return m ? `(${m[1]}) ${m[2]}-${m[3]}` : e164;
 }
 
-function Step3Number({ onNext, onBack }: { onNext: (phoneNumber: string) => void; onBack: () => void }) {
+function Step4Number({
+  onFinish,
+  onBack,
+  finishing,
+  finishError,
+}: {
+  onFinish: (phoneNumber: string) => void;
+  onBack: () => void;
+  finishing: boolean;
+  finishError: string;
+}) {
   const [areaCode, setAreaCode] = useState("");
   const [numbers, setNumbers] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -298,7 +311,7 @@ function Step3Number({ onNext, onBack }: { onNext: (phoneNumber: string) => void
   return (
     <div>
       <div className="mb-8">
-        <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 3 of 4</p>
+        <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 4 of 4</p>
         <h1 className="font-cv-heading text-2xl font-bold text-cv-ink">Get your number</h1>
         <p className="text-sm text-cv-muted mt-1">Search for a phone number near your service area.</p>
       </div>
@@ -349,6 +362,86 @@ function Step3Number({ onNext, onBack }: { onNext: (phoneNumber: string) => void
         </div>
       )}
 
+      {(error || finishError) && <p className="mt-4 text-sm text-cv-red">{error || finishError}</p>}
+
+      <div className="mt-8 flex gap-3">
+        <button
+          onClick={onBack}
+          className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-cv-border text-cv-ink text-sm font-bold hover:bg-cv-surface-subtle transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => selected && onFinish(selected)}
+          disabled={!selected || finishing}
+          className="flex-1 flex items-center justify-center gap-2 bg-cv-primary text-white font-bold py-3 rounded-xl hover:bg-cv-primary-dark disabled:opacity-60 transition-colors"
+        >
+          {finishing ? "Finishing…" : (<>Finish setup <ArrowRight className="w-4 h-4" /></>)}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 3: Payment (mock trial activation) ───────────────────────────────────
+// One action: start the trial and advance. No separate "started → continue"
+// click. The real atomic write happens later, on the number step's Finish.
+
+/** Human date N days out, for the "no charge until X" trial framing. */
+function daysOutDate(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+}
+
+function Step3Payment({
+  onStarted,
+  onBack,
+}: {
+  onStarted: (trialEndsAt: string) => void;
+  onBack: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleStart() {
+    setError("");
+    setLoading(true);
+    try {
+      // MOCK: stands in for a real Stripe Checkout session in trial mode.
+      // To go live, swap this call for POST /api/stripe/checkout and redirect to
+      // the returned URL. See docs/monetization-and-conversion.md section 5.
+      const res = await fetch("/api/onboarding/mock-subscribe", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to start trial.");
+      onStarted(data.trialEndsAt); // sets trial state AND advances to the number step
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-8">
+        <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 3 of 4</p>
+        <h1 className="font-cv-heading text-2xl font-bold text-cv-ink">Start your free trial</h1>
+        <p className="text-sm text-cv-muted mt-1">
+          14 days free. No charge until {daysOutDate(14)}, then $79/mo. Cancel anytime.
+        </p>
+      </div>
+
+      <MockNotice>Test mode — card collection isn&apos;t wired up yet. Clicking below just marks your account as trialing.</MockNotice>
+
+      <div className="rounded-xl border border-cv-border p-4">
+        <p className="text-sm font-bold text-cv-ink mb-2">What you get</p>
+        <ul className="flex flex-col gap-1.5 text-xs text-cv-muted">
+          <li>AI voice overflow, answers and qualifies calls your team can&apos;t get to</li>
+          <li>Lead dashboard, call log, summaries, and transcripts</li>
+          <li>Business-approved pricing rules, configured per service category</li>
+        </ul>
+      </div>
+
       {error && <p className="mt-4 text-sm text-cv-red">{error}</p>}
 
       <div className="mt-8 flex gap-3">
@@ -359,104 +452,12 @@ function Step3Number({ onNext, onBack }: { onNext: (phoneNumber: string) => void
           <ArrowLeft className="w-4 h-4" />
         </button>
         <button
-          onClick={() => selected && onNext(selected)}
-          disabled={!selected}
+          onClick={handleStart}
+          disabled={loading}
           className="flex-1 flex items-center justify-center gap-2 bg-cv-primary text-white font-bold py-3 rounded-xl hover:bg-cv-primary-dark disabled:opacity-60 transition-colors"
         >
-          Continue <ArrowRight className="w-4 h-4" />
+          {loading ? "Starting…" : "Start free trial (test mode)"}
         </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Step 4: Payment (mock trial activation) ───────────────────────────────────
-
-function Step4Payment({
-  onNext,
-  onBack,
-  onTrialStarted,
-  finishing,
-  finishError,
-}: {
-  onNext: () => void;
-  onBack: () => void;
-  onTrialStarted: (trialEndsAt: string) => void;
-  finishing: boolean;
-  finishError: string;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [started, setStarted] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleStart() {
-    setError("");
-    setLoading(true);
-    try {
-      const res = await fetch("/api/onboarding/mock-subscribe", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to start trial.");
-      setStarted(true);
-      onTrialStarted(data.trialEndsAt);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div>
-      <div className="mb-8">
-        <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 4 of 4</p>
-        <h1 className="font-cv-heading text-2xl font-bold text-cv-ink">Start your free trial</h1>
-        <p className="text-sm text-cv-muted mt-1">14 days free, then $79/mo. Cancel anytime.</p>
-      </div>
-
-      <MockNotice>Test mode — card collection isn&apos;t wired up yet. Clicking below just marks your account as trialing.</MockNotice>
-
-      <div className="rounded-xl border border-cv-border p-4">
-        <p className="text-sm font-bold text-cv-ink mb-2">What you get</p>
-        <ul className="flex flex-col gap-1.5 text-xs text-cv-muted">
-          <li>AI voice overflow — answers and qualifies calls your team can&apos;t get to</li>
-          <li>Lead dashboard, call log, summaries, and transcripts</li>
-          <li>Business-approved pricing rules, configured per service category</li>
-        </ul>
-      </div>
-
-      {started && (
-        <div className="mt-4 rounded-xl bg-cv-green-soft border border-[#c9ead8] p-4 flex items-center gap-3">
-          <Check className="w-5 h-5 text-cv-green shrink-0" />
-          <p className="text-sm font-bold text-cv-ink">Trial started (test mode)</p>
-        </div>
-      )}
-
-      {(error || finishError) && <p className="mt-4 text-sm text-cv-red">{error || finishError}</p>}
-
-      <div className="mt-8 flex gap-3">
-        <button
-          onClick={onBack}
-          className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-cv-border text-cv-ink text-sm font-bold hover:bg-cv-surface-subtle transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        {!started ? (
-          <button
-            onClick={handleStart}
-            disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2 bg-cv-primary text-white font-bold py-3 rounded-xl hover:bg-cv-primary-dark disabled:opacity-60 transition-colors"
-          >
-            {loading ? "Starting…" : "Start free trial (test mode)"}
-          </button>
-        ) : (
-          <button
-            onClick={onNext}
-            disabled={finishing}
-            className="flex-1 flex items-center justify-center gap-2 bg-cv-primary text-white font-bold py-3 rounded-xl hover:bg-cv-primary-dark disabled:opacity-60 transition-colors"
-          >
-            {finishing ? "Finishing…" : (<>Continue <ArrowRight className="w-4 h-4" /></>)}
-          </button>
-        )}
       </div>
     </div>
   );
@@ -512,7 +513,7 @@ export function OnboardingForm() {
   // local state until here, then submitted in one atomic call. That's on
   // purpose: a business existing at all is now itself proof onboarding
   // finished, so there's no separate "in progress" state to track or resume.
-  async function handleFinishOnboarding() {
+  async function handleFinishOnboarding(twilioPhoneNumber: string) {
     setFinishing(true);
     setFinishError("");
     try {
@@ -527,7 +528,7 @@ export function OnboardingForm() {
           forwardingNumber: form.ownerPhone || undefined,
           serviceArea: form.serviceArea || undefined,
           vertical: form.vertical,
-          twilioPhoneNumber: form.twilioPhoneNumber,
+          twilioPhoneNumber,
           subscriptionStatus: "trialing",
           trialEndsAt,
         }),
@@ -562,19 +563,21 @@ export function OnboardingForm() {
           {step === 1 && <Step1 form={form} update={update} onNext={() => setStep(2)} />}
           {step === 2 && <Step2 form={form} update={update} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
           {step === 3 && (
-            <Step3Number
-              onNext={(phoneNumber) => {
-                update("twilioPhoneNumber", phoneNumber);
+            <Step3Payment
+              onStarted={(t) => {
+                setTrialEndsAt(t);
                 setStep(4);
               }}
               onBack={() => setStep(2)}
             />
           )}
           {step === 4 && (
-            <Step4Payment
-              onNext={handleFinishOnboarding}
+            <Step4Number
+              onFinish={(phoneNumber) => {
+                update("twilioPhoneNumber", phoneNumber);
+                handleFinishOnboarding(phoneNumber);
+              }}
               onBack={() => setStep(3)}
-              onTrialStarted={setTrialEndsAt}
               finishing={finishing}
               finishError={finishError}
             />
