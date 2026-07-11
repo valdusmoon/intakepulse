@@ -96,6 +96,15 @@ describe("adaptive engine flow", () => {
     expect(ctx.session.state).toBe("name");
   });
 
+  it("infers new-customer when a problem was described but customer_type was omitted", async () => {
+    engine.startCall(ctx, client);
+    // Model filled the damage fields but (as mini often does) omitted customer_type.
+    await engine.handleToolCall(ctx, client, "extract_intake", { service_type: "water", urgency: "emergency" });
+    expect(ctx.session.isNewCustomer).toBe(true);
+    // Goes to ZIP, NOT a redundant "new or existing?" question.
+    expect(ctx.session.state).toBe("zip_code");
+  });
+
   it("an empty opener falls back to asking new-or-existing", async () => {
     engine.startCall(ctx, client);
     await engine.handleToolCall(ctx, client, "extract_intake", {});

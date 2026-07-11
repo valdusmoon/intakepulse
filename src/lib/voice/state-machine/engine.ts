@@ -74,7 +74,14 @@ export async function handleTranscript(ctx: FlowContext, client: RealtimeClient,
   // so a phrase like "following up on my job" or "tell them I want a person" is
   // content to capture, not a command to route on.
   if (ctx.session.state !== "wrap_up_reason") {
-    const intent = matchDeterministicIntent(transcript);
+    let intent = matchDeterministicIntent(transcript);
+    // On the opener, let extract_intake decide new-vs-existing — it also captures
+    // the reason ("following up on my water job" → customer_type existing AND
+    // service_type water), which the existing_customer shortcut would throw away,
+    // causing a redundant "what are you calling about?" later.
+    if (intent === "existing_customer" && ctx.session.state === "open_description") {
+      intent = null;
+    }
     if (intent) {
       await handleGlobalIntent(ctx, client, intent);
       return;
@@ -180,8 +187,14 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
     ctx.session.responseActive = true;
     client.createResponse({
       instructions:
-        `The caller was asked "what's going on?" and said: "${transcript}". ` +
-        `Extract every field they clearly mentioned; omit anything they did not state.`,
+        `The caller was asked "what's going on?" and said: "${transcript}".\n` +
+        `Fill ONLY the fields the caller EXPLICITLY stated in that message. Rules:\n` +
+        `- If they did not mention a field, OMIT that key entirely. Do NOT include it.\n` +
+        `- NEVER fill a field with a default, typical, likely, or guessed value. When unsure, omit.\n` +
+        `- customer_type: "new" if they're describing a fresh problem or request, "existing" only if ` +
+        `they reference an existing/ongoing job, appointment, or that they're already a customer. ` +
+        `Omit if truly unclear.\n` +
+        `Example: "it's a new issue" → {"customer_type":"new"} and nothing else, because no other detail was given.`,
       output_modalities: ["text"],
       tools: [buildExtractIntakeTool(ctx.verticalConfig.questions)],
       tool_choice: { type: "function", name: "extract_intake" },
@@ -379,6 +392,16 @@ async function applyExtraction(ctx: FlowContext, client: RealtimeClient, args: u
       cc.answers[key] = value;
       ctx.session.hasStartedQualification = true;
     }
+  }
+
+  // Infer new-vs-existing in code rather than leaning on the model: a caller who
+  // just described an actual service problem is a new request by default. The
+  // model reliably flags EXISTING (they reference an ongoing job) but often omits
+  // customer_type otherwise — without this we'd ask "new or existing?" right
+  // after someone said "my basement is flooding". Only a bare opener with nothing
+  // extracted falls through to actually asking.
+  if (ctx.session.isNewCustomer === undefined && Object.keys(cc.answers).length > 0) {
+    ctx.session.isNewCustomer = true;
   }
 
   await advance(ctx, client);
@@ -655,7 +678,10 @@ function interruptCurrentResponse(ctx: FlowContext, client: RealtimeClient, ws: 
   if (ctx.session.streamSid) {
     ws.send(JSON.stringify({ event: "clear", streamSid: ctx.session.streamSid }));
   }
-  client.cancelResponse();
+  // Only cancel when a response is actually in flight — cancelling a finished
+  // response is rejected by OpenAI ("no active response found"). This is common
+  // for a keypress arriving after a prompt already finished playing.
+  if (ctx.session.responseActive) client.cancelResponse();
 
   if (ctx.session.lastAssistantItem && ctx.session.responseStartTimestamp !== undefined) {
     const audioEndMs = ctx.session.latestMediaTimestamp - ctx.session.responseStartTimestamp;

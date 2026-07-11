@@ -106,12 +106,14 @@ export function confirmationLine(ctx: FlowContext): string {
   const primaryQuestion = verticalConfig.questions[0];
   const primaryLabel = primaryQuestion?.options?.find((o) => o.value === answers[primaryQuestion.key])?.label;
 
-  // Reflect urgency back too, when known, so the caller hears we understood how
-  // pressing it is — reassurance is the whole point of this line.
-  const urgencyQuestion = verticalConfig.questions.find((q) => q.key === "urgency");
-  const urgencyLabel = urgencyQuestion?.options?.find((o) => o.value === answers.urgency)?.label;
+  // Reflect urgency back too when it's notable, so the caller hears we understood
+  // how pressing it is. The urgency values are universal across verticals; map to
+  // a short adjective rather than echoing the verbose menu label ("Emergency —
+  // need help right now"). "flexible" adds nothing, so it's omitted.
+  const URGENCY_WORD: Record<string, string> = { emergency: "emergency", soon: "urgent" };
+  const urgencyWord = URGENCY_WORD[answers.urgency];
 
-  const issue = [urgencyLabel?.toLowerCase(), primaryLabel?.toLowerCase()].filter(Boolean).join(" ");
+  const issue = [urgencyWord, primaryLabel?.toLowerCase()].filter(Boolean).join(" ");
 
   const parts = [`Thanks, ${name}.`];
   if (issue) parts.push(`I have this noted as ${aOrAn(issue)} issue${zip ? ` in ZIP code ${zip}` : ""}.`);
