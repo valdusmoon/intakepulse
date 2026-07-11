@@ -84,7 +84,6 @@ export function CallReplay() {
   const [visible, setVisible] = useState(0); // how many script steps are shown
   const [phase, setPhase] = useState<"idle" | "playing" | "done">("idle");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const hasPlayed = useRef(false);
 
@@ -132,12 +131,6 @@ export function CallReplay() {
     };
   }, [play, clearTimers]);
 
-  // Keep the transcript pinned to the newest line while it plays.
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [visible]);
-
   const shown = SCRIPT.slice(0, visible);
   const captured: Capture = Object.assign({}, ...shown.map((s) => ("capture" in s && s.capture) || {}));
 
@@ -165,9 +158,11 @@ export function CallReplay() {
         </div>
       </div>
 
-      {/* Transcript + live intake, side by side (stacked on mobile) */}
-      <div className="grid gap-4 md:grid-cols-[1.25fr_1fr]">
-        <div ref={scrollRef} className="flex flex-col gap-2.5 min-h-[264px] max-h-[300px] overflow-y-auto pr-3">
+      {/* Transcript + live intake, side by side (stacked on mobile). The
+          transcript grows to fit as the call plays — no scroll box, so it reads
+          like a controlled screen rather than a scrolling chat log. */}
+      <div className="grid gap-4 md:grid-cols-[1.25fr_1fr] items-start">
+        <div className="flex flex-col gap-2.5 min-h-[264px]">
           {shown.map((step, i) => {
             if (step.kind === "keypad") {
               return (
