@@ -4,29 +4,36 @@ Reference doc for how Callverted acquires, activates, converts, and retains
 customers. Written 2026-07-11. This is the agreed model and the phased build
 that implements it. Update this doc as phases land.
 
-## Build status (2026-07-11)
+## Build status (updated 2026-07-11 eve)
 
 Phases 0–6 all implemented against the mock payment path; `npx tsc --noEmit`
 and `next build` both pass. Deferred by decision: 1.4 (mid-wizard autosave) and
-0.4 / the real-Stripe flip (section 5). Requires operator action before these
-fully work in prod:
-- **Apply migrations** `0020_add_email_captures.sql` and
-  `0021_lifecycle_email_tracking.sql` (email-capture table + lifecycle tracking
-  columns). NOT yet applied to any DB.
-- **Env vars:** `CRON_SECRET` (guards `/api/cron/daily`), `ADMIN_CLERK_USER_IDS`
-  (comma-separated Clerk ids for the `/admin` console), and
+0.4 / the real-Stripe flip (section 5). Since the initial build, the go-live
+modal was corrected to the real call flow (publish-the-number, not carrier
+forwarding) and the activation flag renamed `forwarding_confirmed` ->
+`number_published` (migration 0023). Deeper metrics rework shipped (90-day home
+snapshot + range-aware Reports).
+
+**DB migrations — all applied to BOTH local dev Postgres and Supabase prod:**
+`0020_add_email_captures.sql`, `0021_lifecycle_email_tracking.sql`,
+`0022_add_forwarding_confirmed.sql`, `0023_rename_forwarding_confirmed_to_number_published.sql`.
+
+**Env vars:**
+- `CRON_SECRET` (guards `/api/cron/daily`) — set in local `.env.local`.
+- Still UNSET in the deploy environment: `ADMIN_CLERK_USER_IDS` (comma-separated
+  Clerk ids for the `/admin` console; set locally to the test user only),
   `NEXT_PUBLIC_ASSISTED_ONBOARDING_URL` (Cal.com/Calendly link for the "Book a
-  setup call" CTA; the CTA is hidden until it is set), and `FOUNDER_NAME`
-  (personalizes the ROI-capture email signoff; falls back to "the Callverted
-  team"). `CRON_SECRET` is set in local `.env.local`; the rest still need setting
-  in the deploy environment.
-- **TODO (scheduling):** Vercel cron will NOT be used. The trial/activation/
-  win-back/monthly scans already run as Inngest crons, but the `/api/cron/daily`
-  followups drain is still Vercel-cron-shaped. Move it to an Inngest scheduled
-  function that calls the same drain (getDueFollowups → send → markFollowupSent),
-  then drop the `crons` entry in `vercel.json`.
-- Note: the Drizzle `meta/_journal.json` is stale (pre-existing) so migrations
-  0007+ are hand-authored raw SQL by convention.
+  setup call" CTA — the CTA is hidden until it is set), and `FOUNDER_NAME`
+  (personalizes the ROI-capture email signoff; falls back to "the Callverted team").
+
+**TODO (scheduling):** Vercel cron will NOT be used. The trial/activation/
+win-back/monthly scans already run as Inngest crons, but the `/api/cron/daily`
+followups drain is still Vercel-cron-shaped. Move it to an Inngest scheduled
+function that calls the same drain (getDueFollowups → send → markFollowupSent),
+then drop the `crons` entry in `vercel.json`.
+
+Note: the Drizzle `meta/_journal.json` is stale (pre-existing) so migrations
+0007+ are hand-authored raw SQL by convention.
 
 ---
 
@@ -299,30 +306,31 @@ web-analytics tool) are **out of scope for now**. Keep it to:
     payment-failure alert hooks the existing Stripe `invoice.payment_failed`
     handler (fires once real Stripe is live).
 
-### 7c. Forwarding onboarding (priority) + assisted onboarding
+### 7c. Go-live onboarding (priority) + assisted onboarding  [DONE 2026-07-11]
 
-Forwarding is the highest-leverage retention lever: once an owner reroutes their
-real/GBP number to Callverted, they are effectively committed (no forwarding =
-no business through us). So make it smooth enough to complete, without so much
-friction that they abandon.
+CORRECTED MODEL (see §8 item 5): "going live" is NOT forwarding the owner's line
+to us. The Callverted (Twilio) number IS the number the owner publishes as their
+public business number; Twilio rings the owner's real line first and the AI only
+answers on no-answer/busy. Publishing the number is the highest-leverage
+retention lever — once their Google Business Profile / socials / website / ads
+point at the Callverted number, they are effectively committed (their new
+customer calls all flow through us). Make it smooth without friction that makes
+them abandon.
 
-- **Guided, skippable forwarding step.** One clear action ("forward your existing
-  business number to your Callverted number"), copy-paste carrier steps or a
-  "text me the instructions" option, and an explicit "do this later" escape so it
-  never blocks finishing onboarding.
-- **GBP + socials are suggestions, not checkboxes.** We cannot verify external
-  updates, so present "point your Google Business Profile and social profiles at
-  your Callverted number" as guidance, not tracked steps.
-- **Activation checklist "Get your line live"** should reflect the real
-  forwarding action, not the auto-provisioned number (see the checklist note in
-  §2). Cleanest honest version = a user-confirmed step (small
-  `activation_state` on the business), since most of "going live" is external.
-- **"Book assisted onboarding"** — a low-key secondary option (Cal.com/Calendly
-  link) on the forwarding step and the activation checklist: "Rather have us set
-  this up with you? Book 15 min." Catches the users who would otherwise abandon
-  self-serve, without forcing a demo on everyone. Optionally flag on the business
-  which owners requested help. Keep it secondary so confident self-servers breeze
-  past it.
+- **Guided, skippable go-live step. [DONE]** The `ActivationChecklist.tsx` go-live
+  modal shows the call-flow diagram, the number + "copy number", and a checklist
+  of where to LIST it (GBP, Facebook, website, Yelp/YP/Angi). Explicit "I'll do
+  this later" escape so it never blocks finishing.
+- **GBP + socials are suggestions, not verified checkboxes. [DONE]** We can't
+  verify external listing updates, so they're presented as guidance; the single
+  owner-confirmed `number_published` flag is the honest "went live" signal.
+- **Activation checklist "Get your line live" [DONE]** reflects the real action
+  (publish the number) via the `number_published` boolean, not the auto-
+  provisioned number.
+- **"Book assisted onboarding" [DONE]** — low-key secondary Cal.com/Calendly link
+  in the go-live modal ("Rather have us set it up? Book 15 min"), gated on
+  `NEXT_PUBLIC_ASSISTED_ONBOARDING_URL` (hidden until set). Catches would-be
+  abandoners without forcing a demo on confident self-servers.
 
 ---
 
