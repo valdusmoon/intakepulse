@@ -51,7 +51,9 @@ async function main() {
     if (!b64) { console.error(`  no image data for ${post.slug}`); continue; }
 
     // Center-crop 1536x1024 -> 1200x630 (the standard OG ratio, doubles as the
-    // on-page banner), then encode as a reasonably compressed JPEG.
+    // on-page banner), then encode as a reasonably compressed JPEG. Re-encoding
+    // without .withMetadata() intentionally strips ALL source metadata — EXIF and
+    // OpenAI's C2PA provenance manifest included. Do NOT add .withMetadata() here.
     await sharp(Buffer.from(b64, "base64"))
       .resize(1200, 630, { fit: "cover", position: "attention" })
       .jpeg({ quality: 82, mozjpeg: true })
