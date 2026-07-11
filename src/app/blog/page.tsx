@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { MarketingShell } from "@/components/marketing/MarketingChrome";
 import { JsonLd, breadcrumbSchema } from "@/components/marketing/JsonLd";
 import { POSTS } from "@/lib/marketing/posts";
@@ -25,13 +26,29 @@ export default function BlogIndex() {
       </section>
 
       <section className="px-6 pb-20 max-w-3xl mx-auto">
-        <div className="divide-y divide-[#e3e7ed]">
+        <div className="grid gap-6">
           {posts.map((p) => (
-            <Link key={p.slug} href={`/blog/${p.slug}`} className="group block py-7">
-              <div className="text-[12px] font-cv-mono text-[#98a2b3] mb-2">{formatDate(p.date)} · {p.readMinutes} min read</div>
-              <h2 className="font-cv-heading text-xl font-bold text-[#152033] group-hover:text-landing-primary transition-colors">{p.title}</h2>
-              <p className="mt-2 text-[#667085] leading-relaxed">{p.excerpt}</p>
-              <span className="mt-2 inline-block text-sm font-semibold text-landing-primary">Read more →</span>
+            <Link
+              key={p.slug}
+              href={`/blog/${p.slug}`}
+              className="group grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-5 rounded-2xl border border-[#e3e7ed] bg-white p-4 hover:border-landing-primary/40 hover:shadow-sm transition-all"
+            >
+              <div className="overflow-hidden rounded-xl bg-[#0b1226] aspect-[1200/630] sm:aspect-auto">
+                <Image
+                  src={p.image}
+                  alt={p.imageAlt}
+                  width={400}
+                  height={210}
+                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                  sizes="(max-width: 640px) 100vw, 200px"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[12px] font-cv-mono text-[#98a2b3] mb-1.5">{formatDate(p.date)} · {p.readMinutes} min read</div>
+                <h2 className="font-cv-heading text-xl font-bold text-[#152033] group-hover:text-landing-primary transition-colors">{p.title}</h2>
+                <p className="mt-2 text-sm text-[#667085] leading-relaxed">{p.excerpt}</p>
+                <span className="mt-2 inline-block text-sm font-semibold text-landing-primary">Read more →</span>
+              </div>
             </Link>
           ))}
         </div>

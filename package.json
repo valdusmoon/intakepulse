@@ -63,8 +63,9 @@
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.5.1",
     "prettier": "^3.6.2",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4",
-    "tsx": "^4.20.3",
+    "tsx": "^4.23.0",
     "typescript": "^5",
     "vitest": "^4.1.10"
   }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { MarketingShell } from "@/components/marketing/MarketingChrome";
 import { JsonLd, breadcrumbSchema, SITE_URL } from "@/components/marketing/JsonLd";
@@ -18,7 +19,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: post.metaTitle,
     description: post.metaDescription,
     alternates: { canonical: `/blog/${post.slug}` },
-    openGraph: { title: post.metaTitle, description: post.metaDescription, type: "article", publishedTime: post.date },
+    openGraph: {
+      title: post.metaTitle,
+      description: post.metaDescription,
+      type: "article",
+      publishedTime: post.date,
+      images: [{ url: post.image, width: 1200, height: 630 }],
+    },
+    twitter: { card: "summary_large_image", images: [post.image] },
   };
 }
 
@@ -69,7 +77,18 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         </nav>
         <div className="text-[12px] font-cv-mono text-[#98a2b3] mb-3">{formatDate(post.date)} · {post.readMinutes} min read</div>
         <h1 className="font-cv-heading text-3xl sm:text-4xl font-bold leading-[1.15] text-[#152033] mb-2">{post.title}</h1>
-        <div className="mt-6 border-t border-[#e3e7ed] pt-2">
+        <div className="mt-6 overflow-hidden rounded-2xl border border-[#e3e7ed] bg-[#0b1226]">
+          <Image
+            src={post.image}
+            alt={post.imageAlt}
+            width={1200}
+            height={630}
+            priority
+            className="w-full h-auto"
+            sizes="(max-width: 672px) 100vw, 672px"
+          />
+        </div>
+        <div className="mt-8 border-t border-[#e3e7ed] pt-2">
           {post.body.map(renderBlock)}
         </div>
 

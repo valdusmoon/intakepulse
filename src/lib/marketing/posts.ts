@@ -18,8 +18,20 @@ export interface Post {
   date: string; // ISO
   readMinutes: number;
   excerpt: string;
+  /** Header/social image at /public/blog/<slug>.jpg (1200x630). Generated once
+   *  by scripts/gen-blog-images.ts; see imagePrompt for the generation prompt. */
+  image: string;
+  imageAlt: string;
+  /** Prompt used to generate `image`. Kept with the post so regenerating is
+   *  reproducible and new posts follow the same visual language. */
+  imagePrompt: string;
   body: Block[];
 }
+
+/** Shared visual language so every header reads as one editorial set, not
+ *  four random AI images. Appended to each post's imagePrompt. */
+export const IMAGE_STYLE =
+  "Photorealistic editorial photograph. Muted deep-navy and slate-blue palette with one warm accent light. Soft cinematic lighting, shallow depth of field, subtle film grain. No text, no words, no logos, no watermarks, no people's faces in focus. Wide banner composition with clear negative space.";
 
 export const POSTS: Post[] = [
   {
@@ -32,6 +44,9 @@ export const POSTS: Post[] = [
     readMinutes: 4,
     excerpt:
       "Missed calls aren't lost minutes. They're lost jobs, and the math is worse than most owners think. Here's how to size the number for your business.",
+    image: "/blog/what-a-missed-call-costs.jpg",
+    imageAlt: "A smartphone lighting up with a missed call on a tradesperson's workbench in the evening.",
+    imagePrompt: "A smartphone face-up on a worn wooden workbench in a dim workshop at dusk, screen glowing with an incoming call, hand tools softly out of focus in the background, warm lamp light from one side.",
     body: [
       { type: "p", text: "Most home-service owners treat a missed call as a small annoyance, a voicemail to return later. The reality is that a missed call, especially an urgent one, is usually a job you've already lost by the time you see the notification." },
       { type: "h2", text: "The number is simple to estimate" },
@@ -58,6 +73,9 @@ export const POSTS: Post[] = [
     readMinutes: 4,
     excerpt:
       "The first hard freeze turns your phone into a firehose at the worst possible hour. Here's why HVAC companies lose those calls and what to do about it.",
+    image: "/blog/after-hours-hvac-calls.jpg",
+    imageAlt: "A warmly lit home at night in winter with frost forming on the window during a cold snap.",
+    imagePrompt: "The exterior of a suburban home at night in deep winter, frost creeping across a window, warm golden light glowing from inside against the cold blue darkness, a dusting of snow, quiet and still.",
     body: [
       { type: "p", text: "Every HVAC owner knows the pattern: temperatures drop, and the phone doesn't stop: at 11 PM, on a Saturday, all at once. Furnaces fail under load, and a house full of people with no heat is the most urgent, least patient call you'll take all year." },
       { type: "h2", text: "The demand curve is against you" },
@@ -84,6 +102,9 @@ export const POSTS: Post[] = [
     readMinutes: 3,
     excerpt:
       "Text-back is a real upgrade over voicemail, but for a flooding basement it still asks the customer to do the work. Here's where each one fits.",
+    image: "/blog/text-back-vs-live-answering.jpg",
+    imageAlt: "A smartphone ringing on a kitchen counter with a blurred home interior behind it.",
+    imagePrompt: "A smartphone ringing face-up on a modern kitchen counter, screen bright with an active incoming call, the home interior blurred behind it, a tense evening mood with one warm light source.",
     body: [
       { type: "p", text: "Missed-call text-back has earned its popularity. When a call goes unanswered, an automatic text goes out, and for slow-moving inquiries that's a genuine improvement over a silent voicemail box." },
       { type: "h2", text: "The catch: it depends on the caller" },
@@ -108,6 +129,9 @@ export const POSTS: Post[] = [
     readMinutes: 3,
     excerpt:
       "The data on response speed is blunt: the first business to respond usually wins, and your odds fall off a cliff after the first few minutes.",
+    image: "/blog/how-fast-to-respond-to-a-lead.jpg",
+    imageAlt: "A ringing smartphone beside an analog clock, conveying urgency and passing time.",
+    imagePrompt: "A ringing smartphone lying next to a simple analog clock on a dark desk, the phone screen glowing, a sense of ticking urgency, dramatic side lighting and deep shadows.",
     body: [
       { type: "p", text: "There's a well-worn finding in lead-response research that every home-service owner should internalize: respond in the first five minutes and you're dramatically more likely to make contact than if you wait even half an hour. And the first company to respond wins the majority of the time." },
       { type: "h2", text: "Why speed beats almost everything else" },
