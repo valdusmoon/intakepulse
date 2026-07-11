@@ -342,6 +342,16 @@ Decisions + not-yet-built items, from the conversion-mechanisms review.
   forwarded caller hits a dead end). NOT switching to forward-to-their-line.
 
 **Queued builds (roughly in priority order):**
+0. **CAN-SPAM / email unsubscribe (BLOCKER for any marketing email).** Captures
+   live in `email_captures` (separate from `leads`). We send via
+   `resend.emails.send`, which does NOT add unsubscribe (only Resend Broadcasts
+   do). Before switching on the ROI drip / win-back / monthly recap, build:
+   (a) `unsubscribed_at` + a signed token on `email_captures`, a public
+   `/api/unsubscribe` route, and suppression of marketing sends to opt-outs;
+   (b) a valid physical postal address in marketing footers (OWNER must provide);
+   (c) `List-Unsubscribe` + `List-Unsubscribe-Post` one-click headers. Scope to
+   COMMERCIAL email only (ROI capture+drip, win-back, monthly recap) — transactional
+   email (lead packet, receipt, dunning, trial-ending, welcome) is exempt.
 1. **ROI capture drip (2-3 emails).** The single capture email is now proper
    (personal, brand-blue, email-safe "your math" visual, `FOUNDER_NAME` signoff).
    Next: a short nurture after it (day 0 breakdown -> day 2 "first responder wins"
