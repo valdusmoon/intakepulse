@@ -49,8 +49,8 @@ const SCRIPT: Step[] = [
   { kind: "assistant", text: "Is this covered by insurance, warranty, or financing, or out of pocket?" },
   { kind: "keypad", digits: "1", caption: "Insurance / warranty / financing", capture: { coverage: "Insurance" } },
   { kind: "assistant", text: "The team will review the details before discussing pricing. Can I get your name?" },
-  { kind: "caller", text: "Nile", capture: { name: "Nile" } },
-  { kind: "assistant", text: "Thanks, Nile. I have this noted as an emergency water issue in ZIP 07641. Rapid Restore has the request and will call you back as soon as possible." },
+  { kind: "caller", text: "Sarah", capture: { name: "Sarah" } },
+  { kind: "assistant", text: "Thanks, Sarah. I have this noted as an emergency water issue in ZIP 07641. Rapid Restore has the request and will call you back as soon as possible." },
 ];
 
 // What the caller actually got — the experience, not any analysis. Deliberately
