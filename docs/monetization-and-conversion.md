@@ -252,3 +252,70 @@ shared subscription helpers, not the mock.
 | Inngest | `src/lib/inngest/client.ts`, `src/lib/inngest/functions/*` |
 | Daily cron (to build) | `src/app/api/cron/daily/route.ts` (declared in `vercel.json`) |
 | Landing / ROI calc | `src/app/page.tsx`, `src/components/marketing/MissedCallCalculator.tsx` |
+
+---
+
+## 7. Round-2 decisions (2026-07-11 evening)
+
+Refinements agreed after reviewing the shipped build. These are the next work
+block (alongside the tomorrow Inngest migration).
+
+### 7a. Metrics rework (customer-facing lead funnel)
+
+The lead-conversion metrics are only as honest as the owner's status hygiene,
+and they have internal inconsistencies. Tightening pass:
+
+- **Unify "captured."** Dashboard "captured opportunity value" counts
+  `qualified`-or-beyond; the Reports funnel counts *every* lead (incl. `new`,
+  `lost`). Pick ONE definition of captured and use it in both surfaces.
+- **`contactedAt` is manual + lagged.** It is stamped only when the owner moves a
+  lead to `contacted`+ (`api/leads/[id]/route.ts:57-65`); there is no "call"
+  button and no call detection. So "average callback time" = time until they
+  *log* the status, which over-states reality and excludes never-logged leads.
+  Decision: relabel it "time to first update" (or de-emphasize it), and add a
+  one-line "based on when you update leads" caption to any status-derived metric.
+- **Time-box the home snapshot.** The dashboard "Conversion snapshot" is all-time
+  and never reflects a slow recent month; give it the same range control Reports has.
+- **Align funnel stages** (dashboard shows `booked`; Reports funnel omits it).
+- Lean on auto-captured signals (calls, intake completions) for anything that
+  needs to be trustworthy; treat human-status metrics as directional.
+
+### 7b. Our SaaS funnel — deliberately LIGHT
+
+Volume will be low, so full funnel analytics (visitor→trial→paid dashboards,
+web-analytics tool) are **out of scope for now**. Keep it to:
+- **Signup visibility** — new accounts created (the `/admin` list already shows
+  this; a simple count/recent-signups view is enough).
+- **Operator notifications (important):**
+  - **Signup alert** — already sends to `NOTIFY_EMAIL` on business create
+    (`api/business/route.ts`). Verify it fires reliably; this is the priority one.
+  - **Churn / risk alerts** — notify the operator when an account cancels, when a
+    trial expires *without converting*, and on payment failure. The trial-expiry
+    and cancel detection ride on the Inngest scans (tomorrow's batch); the
+    payment-failure alert hooks the existing Stripe `invoice.payment_failed`
+    handler (fires once real Stripe is live).
+
+### 7c. Forwarding onboarding (priority) + assisted onboarding
+
+Forwarding is the highest-leverage retention lever: once an owner reroutes their
+real/GBP number to Callverted, they are effectively committed (no forwarding =
+no business through us). So make it smooth enough to complete, without so much
+friction that they abandon.
+
+- **Guided, skippable forwarding step.** One clear action ("forward your existing
+  business number to your Callverted number"), copy-paste carrier steps or a
+  "text me the instructions" option, and an explicit "do this later" escape so it
+  never blocks finishing onboarding.
+- **GBP + socials are suggestions, not checkboxes.** We cannot verify external
+  updates, so present "point your Google Business Profile and social profiles at
+  your Callverted number" as guidance, not tracked steps.
+- **Activation checklist "Get your line live"** should reflect the real
+  forwarding action, not the auto-provisioned number (see the checklist note in
+  §2). Cleanest honest version = a user-confirmed step (small
+  `activation_state` on the business), since most of "going live" is external.
+- **"Book assisted onboarding"** — a low-key secondary option (Cal.com/Calendly
+  link) on the forwarding step and the activation checklist: "Rather have us set
+  this up with you? Book 15 min." Catches the users who would otherwise abandon
+  self-serve, without forcing a demo on everyone. Optionally flag on the business
+  which owners requested help. Keep it secondary so confident self-servers breeze
+  past it.
