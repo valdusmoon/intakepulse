@@ -263,7 +263,7 @@ export default function HomePage() {
           style={{ background: "radial-gradient(ellipse 65% 100% at 50% 0%, rgba(91,140,255,.45), transparent 75%)" }}
           aria-hidden
         />
-        <ScrollReveal className="relative max-w-2xl mx-auto">
+        <ScrollReveal className="relative max-w-3xl mx-auto">
           <div className="text-center mb-9">
             <p className="text-xs font-bold text-landing-primary-glow uppercase tracking-widest mb-2">See it work</p>
             <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold mb-3 leading-tight">

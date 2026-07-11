@@ -3,32 +3,53 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * An auto-playing, art-directed replay of a real overflow call — captions
- * animate in the way a voice call would unfold, then it flips to a two-audience
- * reveal that makes the core pitch unmistakable:
- *   - the CALLER just gets a fast, calm experience (and never sees any scoring)
- *   - the BUSINESS gets a scored lead packet the instant the caller hangs up
+ * An auto-playing, art-directed replay of a real overflow call. The point it
+ * has to land is the product's core mechanic: the caller speaks naturally, and
+ * Callverted EXTRACTS several facts from one sentence and only asks for what's
+ * still missing. So alongside the transcript a live "intake" panel fills in as
+ * the call plays — five fields snap in the instant the caller describes the
+ * problem, then ZIP / coverage / name arrive as they're asked. It ends on a
+ * two-audience reveal: the caller just got a fast, calm experience; the business
+ * gets a scored lead packet the caller never sees.
  *
- * This is a scripted showcase, not the live engine — the interactive sandbox
- * below it (InteractiveDemo) is where a visitor can actually drive it. Keeping
- * the hero demo self-playing means a cold visitor feels the product in seconds
- * with zero effort, and in the right modality (a voice call, not a chatbox).
+ * Scripted showcase, not the live engine — the interactive sandbox below it
+ * (InteractiveDemo) is where a visitor drives the real thing. Self-playing means
+ * a cold visitor feels it in seconds, zero effort, in the right modality.
  */
 
+type Capture = Record<string, string>;
 type Step =
   | { kind: "assistant"; text: string }
-  | { kind: "caller"; text: string }
-  | { kind: "keypad"; digits: string; caption: string };
+  | { kind: "caller"; text: string; capture?: Capture }
+  | { kind: "keypad"; digits: string; caption: string; capture?: Capture };
+
+// The intake fields, in the order they fill. `value` is what the caller never
+// re-states — proof the engine caught it the first time.
+const SLOTS = [
+  { key: "service", label: "Service" },
+  { key: "urgency", label: "Urgency" },
+  { key: "cause", label: "Cause" },
+  { key: "rooms", label: "Rooms" },
+  { key: "started", label: "Started" },
+  { key: "zip", label: "ZIP" },
+  { key: "coverage", label: "Coverage" },
+  { key: "name", label: "Name" },
+] as const;
 
 const SCRIPT: Step[] = [
   { kind: "assistant", text: "Thanks for calling Rapid Restore. I'm their automated intake assistant. Briefly, what's going on?" },
-  { kind: "caller", text: "My basement is flooding from a burst dishwasher line. It started this morning and it's already in three rooms." },
+  {
+    kind: "caller",
+    text: "My basement is flooding from a burst dishwasher line. It started this morning and it's already in three rooms.",
+    // The magic moment: one sentence → five fields at once.
+    capture: { service: "Water damage", urgency: "Emergency", cause: "Dishwasher line", rooms: "3 rooms", started: "This morning" },
+  },
   { kind: "assistant", text: "What's the ZIP code where the work is needed? You can say it or key it in." },
-  { kind: "keypad", digits: "07641", caption: "Keyed in the ZIP" },
+  { kind: "keypad", digits: "07641", caption: "Keyed in the ZIP", capture: { zip: "07641" } },
   { kind: "assistant", text: "Is this covered by insurance, warranty, or financing, or out of pocket?" },
-  { kind: "keypad", digits: "1", caption: "Insurance / warranty / financing" },
+  { kind: "keypad", digits: "1", caption: "Insurance / warranty / financing", capture: { coverage: "Insurance" } },
   { kind: "assistant", text: "The team will review the details before discussing pricing. Can I get your name?" },
-  { kind: "caller", text: "Nile" },
+  { kind: "caller", text: "Nile", capture: { name: "Nile" } },
   { kind: "assistant", text: "Thanks, Nile. I have this noted as an emergency water issue in ZIP 07641. Rapid Restore has the request and will call you back as soon as possible." },
 ];
 
@@ -42,20 +63,13 @@ const CALLER_EXPERIENCE = [
   "Promised a fast callback — and believed it",
 ];
 
-// What the business receives the moment the caller hangs up. Everything the
-// caller never sees: the tier, the score, the estimated job value, the SLA.
+// The scored output the caller never sees. The raw facts live in the capture
+// panel above; this is only what SCORING produced from them.
 const PACKET = {
   tier: "Hot",
   score: 66,
   estValue: "$4,500 – $9,000",
   action: "Call back within 10 minutes",
-  details: [
-    { label: "Service", value: "Water damage" },
-    { label: "Urgency", value: "Emergency" },
-    { label: "ZIP", value: "07641" },
-    { label: "Cause", value: "Burst dishwasher line" },
-    { label: "Rooms affected", value: "3 rooms" },
-  ],
 };
 
 // Reveal pacing — a base beat plus reading time, so long lines linger and short
@@ -125,6 +139,7 @@ export function CallReplay() {
   }, [visible]);
 
   const shown = SCRIPT.slice(0, visible);
+  const captured: Capture = Object.assign({}, ...shown.map((s) => ("capture" in s && s.capture) || {}));
 
   return (
     <div
@@ -138,63 +153,60 @@ export function CallReplay() {
         </span>
         <div className="min-w-0">
           <p className="font-cv-heading text-[15px] font-bold leading-tight">Rapid Restore · overflow line</p>
-          <p className="text-[11px] text-white/45">
-            {phase === "done" ? "Call ended · 0:41" : "Live call · answering now"}
-          </p>
+          <p className="text-[11px] text-white/45">{phase === "done" ? "Call ended · 0:41" : "Live call · answering now"}</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <Equalizer active={phase === "playing"} />
           {phase === "done" && (
-            <button
-              onClick={play}
-              className="text-[11px] font-semibold text-white/50 hover:text-white transition-colors"
-            >
+            <button onClick={play} className="text-[11px] font-semibold text-white/50 hover:text-white transition-colors">
               Replay
             </button>
           )}
         </div>
       </div>
 
-      {/* Transcript */}
-      <div ref={scrollRef} className="flex flex-col gap-2.5 min-h-[300px] max-h-[340px] overflow-y-auto pr-1">
-        {shown.map((step, i) => {
-          if (step.kind === "keypad") {
+      {/* Transcript + live intake, side by side (stacked on mobile) */}
+      <div className="grid gap-4 md:grid-cols-[1.25fr_1fr]">
+        <div ref={scrollRef} className="flex flex-col gap-2.5 min-h-[264px] max-h-[300px] overflow-y-auto pr-1">
+          {shown.map((step, i) => {
+            if (step.kind === "keypad") {
+              return (
+                <div key={i} className="flex flex-col items-center gap-1 cv-replay-in">
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/70">Pressed {step.digits}</span>
+                  <span className="text-[10.5px] text-white/35">{step.caption}</span>
+                </div>
+              );
+            }
+            const isAssistant = step.kind === "assistant";
             return (
-              <div key={i} className="flex flex-col items-center gap-1 cv-replay-in">
-                <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/70">
-                  Pressed {step.digits}
-                </span>
-                <span className="text-[10.5px] text-white/35">{step.caption}</span>
+              <div key={i} className={`flex cv-replay-in ${isAssistant ? "justify-start" : "justify-end"}`}>
+                <div
+                  className={`max-w-[86%] rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-relaxed ${
+                    isAssistant ? "bg-white/[0.07] text-white/85 rounded-bl-sm" : "bg-landing-primary text-white rounded-br-sm"
+                  }`}
+                >
+                  {isAssistant && (
+                    <span className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-landing-primary-glow/80 font-bold">
+                      <MiniWave /> Callverted
+                    </span>
+                  )}
+                  {step.text}
+                </div>
               </div>
             );
-          }
-          const isAssistant = step.kind === "assistant";
-          return (
-            <div key={i} className={`flex cv-replay-in ${isAssistant ? "justify-start" : "justify-end"}`}>
-              <div
-                className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-relaxed ${
-                  isAssistant ? "bg-white/[0.07] text-white/85 rounded-bl-sm" : "bg-landing-primary text-white rounded-br-sm"
-                }`}
-              >
-                {isAssistant && (
-                  <span className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-landing-primary-glow/80 font-bold">
-                    <MiniWave /> Callverted
-                  </span>
-                )}
-                {step.text}
+          })}
+          {phase === "playing" && visible < SCRIPT.length && (
+            <div className="flex justify-start">
+              <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-white/[0.07] px-3.5 py-3">
+                <span className="h-1.5 w-1.5 rounded-full bg-white/50 animate-bounce [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-white/50 animate-bounce [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-white/50 animate-bounce" />
               </div>
             </div>
-          );
-        })}
-        {phase === "playing" && visible < SCRIPT.length && (
-          <div className="flex justify-start">
-            <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-white/[0.07] px-3.5 py-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-white/50 animate-bounce [animation-delay:-0.3s]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-white/50 animate-bounce [animation-delay:-0.15s]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-white/50 animate-bounce" />
-            </div>
-          </div>
-        )}
+          )}
+        </div>
+
+        <CapturePanel captured={captured} />
       </div>
 
       {/* The reveal — the whole point of the replay */}
@@ -203,12 +215,51 @@ export function CallReplay() {
   );
 }
 
+/** Live intake: the fields Callverted has pulled so far vs. what it still needs.
+ *  Captured fields carry the value the caller never had to repeat. */
+function CapturePanel({ captured }: { captured: Capture }) {
+  const done = SLOTS.filter((s) => captured[s.key]);
+  const pending = SLOTS.filter((s) => !captured[s.key]);
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4 flex flex-col">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] uppercase tracking-widest text-white/50 font-bold">Live intake</span>
+        <span className="font-cv-mono text-[11px] text-landing-primary-glow font-bold">{done.length}/{SLOTS.length}</span>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        {done.map((s) => (
+          <div key={s.key} className="flex items-center gap-2 cv-replay-in">
+            <CheckGlyph />
+            <span className="text-[11px] text-white/45 w-[62px] shrink-0">{s.label}</span>
+            <span className="text-[12.5px] font-semibold text-white/90 truncate">{captured[s.key]}</span>
+          </div>
+        ))}
+        {pending.map((s) => (
+          <div key={s.key} className="flex items-center gap-2 opacity-45">
+            <span className="grid place-items-center w-[15px] h-[15px] shrink-0" aria-hidden>
+              <span className="w-2 h-2 rounded-full border border-white/40" />
+            </span>
+            <span className="text-[11px] text-white/40 w-[62px] shrink-0">{s.label}</span>
+            <span className="text-[12px] text-white/30">waiting…</span>
+          </div>
+        ))}
+      </div>
+
+      {pending.length === 0 && (
+        <p className="mt-3 pt-3 border-t border-white/10 text-[11px] text-white/45 leading-snug">
+          Only what was missing got asked. The rest came from one sentence.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function SplitReveal() {
   return (
     <div className="mt-4 cv-replay-in">
-      <p className="mb-3 text-center text-[11px] uppercase tracking-widest text-white/40 font-semibold">
-        One call, two very different sides
-      </p>
+      <p className="mb-3 text-center text-[11px] uppercase tracking-widest text-white/40 font-semibold">One call, two very different sides</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Caller side — experience only, zero numbers */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
@@ -223,7 +274,7 @@ function SplitReveal() {
           </ul>
         </div>
 
-        {/* Business side — the scored packet the caller never sees */}
+        {/* Business side — the SCORED output (raw facts are in the capture panel) */}
         <div className="rounded-2xl border border-landing-primary/25 bg-landing-primary/[0.06] p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <p className="text-[11px] uppercase tracking-widest text-landing-primary-glow font-bold">What you receive</p>
@@ -232,18 +283,15 @@ function SplitReveal() {
             </span>
           </div>
 
-          <dl className="space-y-1.5 mb-3">
-            {PACKET.details.map((d) => (
-              <div key={d.label} className="flex justify-between gap-3 text-[13px]">
-                <dt className="text-white/45">{d.label}</dt>
-                <dd className="font-semibold text-white/90 text-right">{d.value}</dd>
-              </div>
-            ))}
-          </dl>
-
-          <div className="border-t border-white/10 pt-3">
-            <p className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Est. job value</p>
-            <p className="font-cv-heading text-lg font-bold text-white">{PACKET.estValue}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Est. job value</p>
+              <p className="font-cv-heading text-lg font-bold text-white">{PACKET.estValue}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Lead score</p>
+              <p className="font-cv-heading text-lg font-bold text-white">{PACKET.score}/100</p>
+            </div>
           </div>
 
           <div className="mt-3 flex items-center gap-2 rounded-xl bg-white/[0.06] px-3 py-2.5">
@@ -280,11 +328,7 @@ function MiniWave() {
   return (
     <span className="inline-flex items-end gap-[2px]" aria-hidden>
       {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="w-[2px] rounded-full bg-landing-primary-glow/80 cv-replay-bar"
-          style={{ height: "8px", animationDelay: `${i * 0.15}s` }}
-        />
+        <span key={i} className="w-[2px] rounded-full bg-landing-primary-glow/80 cv-replay-bar" style={{ height: "8px", animationDelay: `${i * 0.15}s` }} />
       ))}
     </span>
   );
