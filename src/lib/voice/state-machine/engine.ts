@@ -204,21 +204,39 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
 
   if (state === "open_description") {
     // Free-form opener → one forced extraction pass over the vertical's fields.
-    ctx.session.responseActive = true;
-    client.createResponse({
-      instructions:
-        `The caller was asked "what's going on?" and said: "${transcript}".\n` +
-        `Fill ONLY the fields the caller EXPLICITLY stated in that message. Rules:\n` +
-        `- If they did not mention a field, OMIT that key entirely. Do NOT include it.\n` +
-        `- NEVER fill a field with a default, typical, likely, or guessed value. When unsure, omit.\n` +
-        `- customer_type: "new" if they're describing a fresh problem or request, "existing" only if ` +
-        `they reference an existing/ongoing job, appointment, or that they're already a customer. ` +
-        `Omit if truly unclear.\n` +
+    requestIntakeExtraction(
+      ctx,
+      client,
+      `The caller was asked "what's going on?" and said: "${transcript}".\n` +
         `Example: "it's a new issue" → {"customer_type":"new"} and nothing else, because no other detail was given.`,
-      output_modalities: ["text"],
-      tools: [buildExtractIntakeTool(ctx.verticalConfig.questions)],
-      tool_choice: { type: "function", name: "extract_intake" },
-    });
+    );
+    return;
+  }
+
+  if (state === "new_or_existing") {
+    // A plain "new"/"existing" (or a clear yes/no) resolves cheaply with no
+    // model call. But callers often answer this gate with actual detail ("it's
+    // new, my kitchen flooded") — run the same extraction pass the opener uses
+    // so volunteered service/urgency/etc isn't dropped, and let the inferred
+    // customer_type drive the gate. applyExtraction escalates to a reprompt if
+    // the answer resolves to neither a customer type nor any field.
+    // Only take the cheap deterministic path for a SHORT answer that's really
+    // just new/existing ("new", "it's an existing job"). A longer answer can
+    // contain the word "new" while also volunteering real detail ("it's new, my
+    // kitchen flooded"), so route those through extraction rather than letting
+    // the keyword match short-circuit and drop everything else.
+    const wordCount = transcript.trim().split(/\s+/).length;
+    const direct = wordCount <= 4 ? tryMatchOptionLabel(transcript, NEW_OR_EXISTING_OPTIONS) : null;
+    if (direct) {
+      await applyStateAnswer(ctx, client, direct);
+      return;
+    }
+    requestIntakeExtraction(
+      ctx,
+      client,
+      `The caller was asked whether this is a new issue or an existing job, and said: "${transcript}". ` +
+        `Capture any problem details they volunteered along with whether they're a new or existing customer.`,
+    );
     return;
   }
 
@@ -394,10 +412,36 @@ async function advance(ctx: FlowContext, client: RealtimeClient): Promise<void> 
 
 // ─── State transitions ─────────────────────────────────────────────────────────
 
+/** One forced extract_intake pass over the vertical's fields — fills only what
+ *  the caller explicitly stated. Shared by the opener and the new/existing gate
+ *  (a caller often volunteers problem details when answering "new or existing?"),
+ *  so both capture the same way instead of the gate losing everything but the
+ *  new/existing bit. `framing` is the state-specific lead-in; the extraction
+ *  rules are identical everywhere. */
+function requestIntakeExtraction(ctx: FlowContext, client: RealtimeClient, framing: string): void {
+  ctx.session.responseActive = true;
+  client.createResponse({
+    instructions:
+      `${framing}\n` +
+      `Fill ONLY the fields the caller EXPLICITLY stated in that message. Rules:\n` +
+      `- If they did not mention a field, OMIT that key entirely. Do NOT include it.\n` +
+      `- NEVER fill a field with a default, typical, likely, or guessed value. When unsure, omit.\n` +
+      `- customer_type: "new" if they're describing a fresh problem or request, "existing" only if ` +
+      `they reference an existing/ongoing job, appointment, or that they're already a customer. ` +
+      `Omit if truly unclear.`,
+    output_modalities: ["text"],
+    tools: [buildExtractIntakeTool(ctx.verticalConfig.questions)],
+    tool_choice: { type: "function", name: "extract_intake" },
+  });
+}
+
 /** Merge the opening extraction into the call context, then hand off to advance()
  *  which decides what (if anything) still needs asking. */
 async function applyExtraction(ctx: FlowContext, client: RealtimeClient, args: unknown): Promise<void> {
   const cc = ctx.session.conversationContext;
+  const fromState = ctx.session.state;
+  const answerCountBefore = Object.keys(cc.answers).length;
+  const hadZip = !!cc.zipCode;
   const extracted = validateExtraction(ctx.verticalConfig.questions, args);
 
   if (extracted.isNewCustomer !== undefined) ctx.session.isNewCustomer = extracted.isNewCustomer;
@@ -422,6 +466,21 @@ async function applyExtraction(ctx: FlowContext, client: RealtimeClient, args: u
   // extracted falls through to actually asking.
   if (ctx.session.isNewCustomer === undefined && Object.keys(cc.answers).length > 0) {
     ctx.session.isNewCustomer = true;
+  }
+
+  // Bounded escalation for the new/existing gate: when the caller was answering
+  // "new or existing?" and this pass resolved neither a customer type nor any
+  // field/ZIP, it's a failed attempt — reprompt (and eventually voicemail) via
+  // the retry handler rather than silently re-asking the gate forever. The
+  // opener (open_description) is exempt: an empty opener legitimately just falls
+  // through to asking the gate.
+  const gainedNothing =
+    ctx.session.isNewCustomer === undefined &&
+    Object.keys(cc.answers).length === answerCountBefore &&
+    (hadZip || !cc.zipCode);
+  if (fromState === "new_or_existing" && gainedNothing) {
+    await handleStateFailure(ctx, client);
+    return;
   }
 
   await advance(ctx, client);
