@@ -1392,7 +1392,7 @@ export async function sendMissedCallBreakdownEmail({
     </td></tr>
   `);
 
-  return emailClient.send({
+  return emailClient.sendMarketing({
     to: toEmail,
     subject: hasNumbers
       ? `Your missed calls: ${fmt(atRisk!)} at risk every month`
@@ -1617,7 +1617,7 @@ export async function sendWinbackEmail({
     ${emailFooter(businessName)}
   `);
 
-  await emailClient.send({
+  await emailClient.sendMarketing({
     to: ownerEmail,
     subject: `${firstName}, reactivate Callverted anytime`,
     html,
@@ -1695,7 +1695,7 @@ export async function sendMonthlyRoiRecapEmail({
     ${emailFooter(businessName)}
   `);
 
-  await emailClient.send({
+  await emailClient.sendMarketing({
     to: ownerEmail,
     subject: `Your ${monthLabel} recap: ${fmt(stats.estimatedRevenue / 100)} recovered · ${businessName}`,
     html,

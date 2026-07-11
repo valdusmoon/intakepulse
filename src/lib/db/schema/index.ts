@@ -8,4 +8,5 @@ export * from "./aiAssessments";
 export * from "./pricingRules";
 export * from "./providerWebhookEvents";
 export * from "./emailCaptures";
+export * from "./emailSuppressions";
 

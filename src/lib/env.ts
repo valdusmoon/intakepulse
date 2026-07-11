@@ -56,6 +56,21 @@ export const serverEnv = {
   VOICE_STREAM_WSS_URL: process.env.VOICE_STREAM_WSS_URL || "",
   // HMAC secret used to sign short-lived tokens authorizing the stream WebSocket upgrade
   VOICE_STREAM_TOKEN_SECRET: process.env.VOICE_STREAM_TOKEN_SECRET || "",
+
+  // CAN-SPAM — commercial email compliance.
+  // HMAC secret for signing (non-expiring) unsubscribe tokens. Falls back to
+  // CRON_SECRET so local dev works without extra setup; set a dedicated value in
+  // prod. Rotating this invalidates every previously-sent unsubscribe link.
+  UNSUBSCRIBE_TOKEN_SECRET: process.env.UNSUBSCRIBE_TOKEN_SECRET || process.env.CRON_SECRET || "",
+  // Valid physical postal address shown in marketing email footers (CAN-SPAM
+  // requirement). MUST be set to a real mailing address before sending any
+  // commercial email; the placeholder is intentionally obvious so an unset value
+  // is caught in review rather than mailed out.
+  COMPANY_POSTAL_ADDRESS: process.env.COMPANY_POSTAL_ADDRESS || "[COMPANY_POSTAL_ADDRESS not set]",
+  // Legal/sender name shown alongside the address in footers.
+  COMPANY_NAME: process.env.COMPANY_NAME || "Callverted",
+  // Inbox that receives mailto: unsubscribe requests (List-Unsubscribe header).
+  UNSUBSCRIBE_MAILBOX: process.env.UNSUBSCRIBE_MAILBOX || "unsubscribe@callverted.com",
 } as const;
 
 /**
