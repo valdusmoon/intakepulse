@@ -18,7 +18,6 @@ const STATS = [
   { stat: "100×", label: "more likely to make contact responding in 5 min vs. 30" },
   { stat: "78%", label: "of customers buy from the first business to respond" },
   { stat: "47 hrs", label: "average industry response time to a new lead" },
-  { stat: "24–48 hrs", label: "window before a delayed emergency turns into a bigger, costlier job" },
 ];
 
 const FLOW = [
@@ -38,9 +37,9 @@ const FLOW = [
     body: "The questions that actually decide the job: what's going on, how urgent it is, what type of service is needed, and whether it's in your service area.",
   },
   {
-    k: "Quoted",
-    title: "It shares an approved range",
-    body: "If you've approved a value range for that job type, the caller hears a realistic estimate. If you haven't, it simply says your team will review. It never invents a price.",
+    k: "Guided",
+    title: "It shares guidance you approved",
+    body: "If you've approved value guidance for that job type, the caller hears a realistic ballpark. If you haven't, it simply says your team will confirm pricing. It never invents a number or commits you to a formal quote.",
   },
   {
     k: "Reassured",
@@ -134,7 +133,7 @@ export default function HomePage() {
                   <span className="absolute inline-flex h-full w-full rounded-full bg-landing-primary-glow opacity-75 animate-ping" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-landing-primary-glow" />
                 </span>
-                AI voice overflow for home service businesses
+                AI voice overflow for urgent home-service calls
               </div>
               <h1 className="font-cv-heading text-4xl sm:text-6xl font-bold leading-[1.0] tracking-tight mb-6">
                 The emergency call you missed just became a qualified lead.
@@ -182,15 +181,13 @@ export default function HomePage() {
 
         <div className="relative z-10 border-t border-white/10 px-6 py-6">
           <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-sm font-medium text-white/40">
-            <span className="text-white/70">Plumbing</span>
+            <span className="text-white/70">Restoration</span>
             <span className="text-white/15">·</span>
-            <span className="text-white/70">Electrical</span>
+            <span className="text-white/70">Emergency plumbing</span>
             <span className="text-white/15">·</span>
             <span className="text-white/70">HVAC</span>
             <span className="text-white/15 hidden sm:block">·</span>
-            <span className="text-white/70">Restoration</span>
-            <span className="text-white/15 hidden sm:block">·</span>
-            <span className="text-white/70">General contracting</span>
+            <span className="text-white/70">Electrical</span>
           </div>
         </div>
       </div>
@@ -203,11 +200,11 @@ export default function HomePage() {
           aria-hidden
         />
         <ScrollReveal className="relative max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {STATS.map((s) => (
-              <div key={s.stat} className="bg-white rounded-2xl p-5 border border-[#e3e7ed]">
-                <p className="font-cv-mono text-2xl sm:text-3xl font-bold text-landing-primary mb-2">{s.stat}</p>
-                <p className="text-[13px] text-[#344054] leading-snug">{s.label}</p>
+              <div key={s.stat} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3.5 border border-[#e3e7ed]">
+                <p className="font-cv-mono text-2xl font-bold text-landing-primary shrink-0">{s.stat}</p>
+                <p className="text-[12.5px] text-[#344054] leading-snug">{s.label}</p>
               </div>
             ))}
           </div>
@@ -375,7 +372,7 @@ export default function HomePage() {
       <section id="pricing" className="px-6 py-16 sm:py-20 bg-[#f9fafb] border-y border-[#e3e7ed]">
         <ScrollReveal className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-10 items-center">
           <div>
-            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Pricing</p>
+            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Founding pricing</p>
             <h2 className="font-cv-heading text-3xl sm:text-[42px] font-bold text-[#152033] mb-3 leading-tight">
               Simple enough to say yes. Valuable enough to keep.
             </h2>
@@ -398,12 +395,13 @@ export default function HomePage() {
                 <p className="text-[#667085] text-[13px] mt-1">For home service businesses that miss calls after hours or during jobs.</p>
               </div>
               <span className="inline-flex items-center rounded-full border border-[#cfdbff] bg-[#eaf0ff] text-[#173a8f] px-2.5 py-1 text-[11px] font-bold whitespace-nowrap">
-                14-day trial
+                Founding rate
               </span>
             </div>
             <p className="font-cv-heading text-5xl font-black text-[#152033] tracking-tight">
               $79<span className="text-base font-semibold text-[#98a2b3] ml-1">/mo</span>
             </p>
+            <p className="text-[12.5px] text-[#667085] mt-1.5">Locked in for founding customers, while the product is focused.</p>
             <ul className="mt-6 space-y-2.5">
               {[
                 "AI voice overflow when your team misses a call",
