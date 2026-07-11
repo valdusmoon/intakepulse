@@ -125,12 +125,52 @@ export class OpenAIHandlerService {
 
   private handleResponseDone(openaiClient: RealtimeClient, ctx: FlowContext, onFirstResponseDone?: () => void): void {
     let firstResponseSeen = false;
-    openaiClient.on("response.done", () => {
+    openaiClient.on("response.done", (event) => {
       if (!firstResponseSeen) {
         firstResponseSeen = true;
         onFirstResponseDone?.();
       }
+      this.accumulateUsage(ctx, event);
       engine.notifyResponseDone(ctx, openaiClient);
+    });
+  }
+
+  /**
+   * Sum this response's token usage into the call's running total and log the
+   * updated total. Realtime bills audio and text tokens at very different rates,
+   * so they're kept separate; cached input tokens are a discounted subset of
+   * input and split out too. The last line logged for a call is its full total,
+   * so per-call cost = (each token bucket) x (its published per-1M rate).
+   */
+  private accumulateUsage(ctx: FlowContext, event: any): void {
+    const u = event?.response?.usage;
+    if (!u) return;
+
+    const inDetails = u.input_token_details ?? {};
+    const outDetails = u.output_token_details ?? {};
+    const totals = (ctx.session.usage ??= {
+      responses: 0,
+      inputTextTokens: 0,
+      inputAudioTokens: 0,
+      inputCachedTokens: 0,
+      outputTextTokens: 0,
+      outputAudioTokens: 0,
+      totalTokens: 0,
+    });
+
+    totals.responses += 1;
+    totals.inputTextTokens += inDetails.text_tokens ?? 0;
+    totals.inputAudioTokens += inDetails.audio_tokens ?? 0;
+    totals.inputCachedTokens += inDetails.cached_tokens ?? 0;
+    totals.outputTextTokens += outDetails.text_tokens ?? 0;
+    totals.outputAudioTokens += outDetails.audio_tokens ?? 0;
+    totals.totalTokens += u.total_tokens ?? 0;
+
+    logger.info("Realtime usage", {
+      correlationId: ctx.session.correlationId,
+      callSid: ctx.session.callSid,
+      responseTotalTokens: u.total_tokens ?? 0,
+      callTotals: totals,
     });
   }
 

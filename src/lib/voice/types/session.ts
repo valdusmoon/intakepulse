@@ -108,6 +108,23 @@ export interface SessionState {
   // isn't enough, since classification-only turns (extract_zip/classify_answer/
   // detect_intent) never push into it the way speak() does.
   responseActive?: boolean;
+
+  // Running OpenAI token usage for the whole call, summed from each response's
+  // response.done usage. Audio and text tokens are tracked separately because
+  // they price very differently on the Realtime API; cached input tokens are
+  // billed at a discount, so they're split out too. Logged at call end so a
+  // single call's cost can be computed from published per-1M rates.
+  usage?: CallUsage;
+}
+
+export interface CallUsage {
+  responses: number;
+  inputTextTokens: number;
+  inputAudioTokens: number;
+  inputCachedTokens: number;
+  outputTextTokens: number;
+  outputAudioTokens: number;
+  totalTokens: number;
 }
 
 export interface ConversationContext {
