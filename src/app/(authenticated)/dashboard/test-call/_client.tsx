@@ -17,6 +17,7 @@ interface TurnMeta {
   callbackPreference: string | null;
   priceEligible: boolean | null;
   priceMessage: string | null;
+  reasonForCall: string | null;
   transferred: boolean | null;
 }
 
@@ -48,12 +49,14 @@ const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
 // Friendlier labels than the raw VoiceState enum for the status pill / inspector.
 const STATE_LABELS: Record<string, string> = {
   greeting: "Greeting",
+  open_description: "Listening",
   new_or_existing: "New or existing?",
   zip_code: "Getting ZIP code",
   qualification: "Qualifying",
   price_eligibility: "Checking pricing",
   price_guidance: "Giving estimate",
   name: "Getting name",
+  wrap_up_reason: "Taking the reason",
   callback_preference: "Callback preference",
   confirmation: "Confirming",
   create_lead: "Saving lead",
@@ -456,6 +459,7 @@ function CallInspector({
     captured.push({ label: "ZIP", value: `${meta.zipCode}${area}` });
   }
   if (meta?.callerName) captured.push({ label: "Name", value: meta.callerName });
+  if (meta?.reasonForCall) captured.push({ label: "Reason", value: meta.reasonForCall });
   if (meta?.callbackPreference) captured.push({ label: "Callback", value: meta.callbackPreference });
   if (meta?.priceMessage) captured.push({ label: "Estimate", value: meta.priceMessage });
   if (meta?.transferred) captured.push({ label: "Transfer", value: "Bridged to human" });

@@ -135,6 +135,7 @@ export async function POST(req: NextRequest) {
       callbackPreference: cc.callbackPreference ?? null,
       priceEligible: cc.priceEligible ?? null,
       priceMessage: cc.priceMessage ?? null,
+      reasonForCall: cc.reasonForCall ?? null,
       transferred: ctx.session.transferred ?? null,
     },
   });
