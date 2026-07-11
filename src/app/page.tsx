@@ -56,7 +56,6 @@ const COMPARISON = [
   { label: "Callverted", sub: "Answers live, reassures the caller, runs the intake, and delivers a lead packet you can act on immediately.", strong: true },
 ];
 
-const WAVE_HEIGHTS = [32, 58, 42, 74, 48, 90, 60, 36, 78, 52, 28, 68, 84, 44, 58, 96, 62, 34, 72, 48, 88, 54, 38, 66];
 
 const FAQS = [
   {
@@ -330,12 +329,6 @@ export default function HomePage() {
           style={{ background: "radial-gradient(ellipse 65% 100% at 50% 0%, rgba(91,140,255,.5), transparent 75%)" }}
           aria-hidden
         />
-        {/* Ambient waveform — a live call signal, echoing the hero's rings without repeating them */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 flex items-end justify-center gap-[5px] opacity-[0.4]" aria-hidden>
-          {WAVE_HEIGHTS.map((h, i) => (
-            <span key={i} className="cv-wave-bar" style={{ height: `${h}%`, animationDelay: `${(i % 9) * 0.16}s` }} />
-          ))}
-        </div>
         <ScrollReveal className="relative max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-10 items-center">
           <div>
             <p className="text-xs font-bold text-landing-primary-glow uppercase tracking-widest mb-2">Missed-call math</p>

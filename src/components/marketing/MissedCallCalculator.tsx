@@ -1,6 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+/** Ease the displayed value toward a target so the total rolls up as you drag,
+ *  rather than snapping — motion tied to the interaction, not decoration.
+ *  Snaps instantly for reduced-motion visitors. */
+function useCountUp(target: number, durationMs = 450) {
+  const [display, setDisplay] = useState(target);
+  const displayRef = useRef(target);
+  const rafRef = useRef(0);
+
+  useEffect(() => {
+    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      displayRef.current = target;
+      setDisplay(target);
+      return;
+    }
+    const from = displayRef.current;
+    let start = 0;
+    const tick = (now: number) => {
+      if (!start) start = now;
+      const t = Math.min((now - start) / durationMs, 1);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      const val = from + (target - from) * eased;
+      displayRef.current = val;
+      setDisplay(val);
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, durationMs]);
+
+  return display;
+}
 
 const MIN = 1;
 const MAX = 20;
@@ -24,6 +57,7 @@ export function MissedCallCalculator() {
   const [jobValue, setJobValue] = useState(VALUE_DEFAULT);
   const [closeRate, setCloseRate] = useState(RATE_DEFAULT);
   const atRisk = calls * jobValue * (closeRate / 100);
+  const animatedRisk = useCountUp(atRisk);
 
   return (
     <div>
@@ -84,7 +118,7 @@ export function MissedCallCalculator() {
 
       <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center">
         <div className="text-[11px] uppercase tracking-widest text-white/40 mb-1.5">At risk every month</div>
-        <div className="font-cv-heading text-3xl sm:text-4xl font-bold text-white">{fmt(atRisk)}</div>
+        <div className="font-cv-heading text-3xl sm:text-4xl font-bold text-white tabular-nums">{fmt(animatedRisk)}</div>
         <p className="text-xs text-white/40 mt-2">
           {calls} missed {calls === 1 ? "call" : "calls"} a month at {fmt(jobValue)} per job, assuming {closeRate}% would
           have booked. A rough estimate, not a promise.
