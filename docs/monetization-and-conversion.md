@@ -370,14 +370,20 @@ Decisions + not-yet-built items, from the conversion-mechanisms review.
    **release on cancel with a grace period** (hold through the access-until window
    / a few days so win-back keeps the number, then release). A2P 10DLC only needed
    if we send SMS.
-5. **Richer go-live / forwarding modal. [DONE 2026-07-11]** `ActivationChecklist.tsx`
-   go-live modal now shows a 4-node routing diagram (caller -> you miss it ->
-   Callverted answers & qualifies -> you get a text), a carrier picker
-   (Verizon / AT&T / T-Mobile / Other) that builds the conditional-forwarding dial
-   code from the provisioned number, numbered steps, the deactivate code, and a
-   "copy these steps" clipboard button. ("Text me the steps" downgraded to on-screen
-   copy for now — SMS to owner is a later add.) The "list the number directly"
-   fallback is kept below the forwarding steps.
+5. **Richer go-live modal. [DONE 2026-07-11]** IMPORTANT call-flow correction: there
+   is NO carrier-code forwarding from the owner's line to us. The Callverted (Twilio)
+   number IS the number the owner publishes as their public business number; on an
+   inbound call Twilio rings the owner's real line (`forwardingNumber`, captured at
+   onboarding as ownerPhone) FIRST and the AI only answers on no-answer/busy (see
+   `src/app/api/twilio/voice/route.ts`, overflowMode `ring_then_ai`). So "go live"
+   = publish the number, not dial *71. `ActivationChecklist.tsx` go-live modal now
+   shows a 4-node flow diagram (caller dials your Callverted number -> it rings your
+   line first -> no answer, AI qualifies -> you get a ready lead), the number with a
+   "copy number" button, and a checklist of where to LIST it (Google Business
+   Profile, Facebook, website, Yelp/YP/Angi) plus a reassurance that their old
+   number still reaches them directly. Confirm button = "I've listed my number"
+   (persists `forwardingConfirmed`). NOTE: an earlier build of this modal shipped a
+   wrong carrier-forwarding picker (*71 codes); it was replaced same day.
 6. **Deeper metrics rework. [DONE 2026-07-11]** Home Conversion snapshot is now
    time-boxed to the last 90 days: `getHomeMetrics` returns `snapshotWindowDays` +
    `snapshotCaptured/Contacted/Booked/Converted` (createdAt within window) and the
