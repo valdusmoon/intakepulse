@@ -11,12 +11,16 @@ describe("VERTICALS structural integrity", () => {
 
   for (const v of VERTICALS) {
     describe(v.vertical, () => {
-      it("has exactly 4 questions (menu + 3 universal follow-ups)", () => {
-        expect(v.questions).toHaveLength(4);
+      it("starts with the menu + 3 universal follow-up questions", () => {
+        expect(v.questions.length).toBeGreaterThanOrEqual(4);
+        expect(v.questions.slice(1, 4)).toEqual(UNIVERSAL_FOLLOWUP_QUESTIONS);
       });
 
-      it("has the same 3 universal follow-up questions, in order, after the menu question", () => {
-        expect(v.questions.slice(1)).toEqual(UNIVERSAL_FOLLOWUP_QUESTIONS);
+      it("any question beyond the core 4 is a voiceExtractOnly enrichment field", () => {
+        for (const q of v.questions.slice(4)) {
+          expect(q.voiceExtractOnly, `"${q.key}" beyond the core 4 must be voiceExtractOnly`).toBe(true);
+          expect(q.required).toBe(false);
+        }
       });
 
       it("has a menu (first) question with at least one option", () => {

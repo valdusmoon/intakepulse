@@ -9,6 +9,11 @@ export interface VerticalQuestion {
   required: boolean;
   // Show this question only when a prior answer matches. e.g. { key: "damage_type", value: "water" }
   conditional?: { key: string; value: string };
+  // Enrichment fields captured from the caller's own words if mentioned (via
+  // extract_intake) and fed to scoring, but never spoken as a question on a
+  // voice call — asking them would just lengthen the call. The web intake form
+  // still renders them (as optional). e.g. cause, rooms_affected.
+  voiceExtractOnly?: boolean;
 }
 
 // Scoring rule stored in the scoringRules JSONB array.

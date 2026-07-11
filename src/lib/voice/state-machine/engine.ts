@@ -329,10 +329,12 @@ async function advance(ctx: FlowContext, client: RealtimeClient): Promise<void> 
     return;
   }
 
-  // 3. New customer — ask only the still-missing pieces.
+  // 3. New customer — ask only the still-missing pieces. voiceExtractOnly fields
+  //    (cause, rooms_affected, ...) are captured from the opener if mentioned and
+  //    fed to scoring, but never *asked* on the call — skip them here.
   const questions = ctx.verticalConfig.questions;
   const visible = getVisibleQuestions(questions, cc.answers);
-  const firstUnanswered = visible.find((q) => !(q.key in cc.answers));
+  const firstUnanswered = visible.find((q) => !q.voiceExtractOnly && !(q.key in cc.answers));
   const primaryKey = questions[0]?.key;
 
   // 3a. The primary "what's going on" question comes before ZIP (less transactional).

@@ -21,6 +21,9 @@ const RESTORATION: VerticalQuestion[] = [
   { key: "urgency", label: "How urgent is this?", type: "single_select", options: [{ value: "emergency", label: "Emergency" }, { value: "soon", label: "Soon" }, { value: "flexible", label: "Flexible" }], required: true },
   { key: "time_since_issue", label: "When did it start?", type: "single_select", options: [{ value: "today", label: "Today" }, { value: "this_week", label: "This week" }, { value: "longer", label: "Longer ago" }], required: true },
   { key: "has_coverage", label: "Is this covered by insurance?", type: "single_select", options: [{ value: "yes", label: "Yes" }, { value: "no", label: "No" }, { value: "unsure", label: "Not sure" }], required: true },
+  // Enrichment (voiceExtractOnly) — captured if mentioned, never asked aloud.
+  { key: "cause", label: "What caused the damage?", type: "text", options: [], required: false, voiceExtractOnly: true },
+  { key: "rooms_affected", label: "How many rooms are affected?", type: "single_select", options: [{ value: "one", label: "One room" }, { value: "two_three", label: "Two or three rooms" }, { value: "four_plus", label: "Four or more rooms" }], required: false, voiceExtractOnly: true },
 ];
 
 function mockClient() {
@@ -137,6 +140,32 @@ describe("adaptive engine flow", () => {
     await engine.handleTranscript(ctx, client, "Sam");
     // service_type already known → straight to confirmation, no reason turn.
     expect(ctx.session.state).toBe("confirmation");
+  });
+
+  it("captures enrichment fields (cause, rooms) from the opener but never asks them", async () => {
+    engine.startCall(ctx, client);
+    // The flagship demo line, extracted.
+    await engine.handleToolCall(ctx, client, "extract_intake", {
+      customer_type: "new",
+      service_type: "water",
+      urgency: "emergency",
+      cause: "burst dishwasher line",
+      rooms_affected: "two_three",
+    });
+    // cause + rooms are captured…
+    expect(ctx.session.conversationContext.answers.cause).toBe("burst dishwasher line");
+    expect(ctx.session.conversationContext.answers.rooms_affected).toBe("two_three");
+    // …and the engine moves on to the next *askable* gap (ZIP), never asking them.
+    expect(ctx.session.state).toBe("zip_code");
+
+    for (const d of "07030") await engine.handleDtmf(ctx, client, noopWs, d);
+    // Only the two remaining askable questions get asked — not cause/rooms.
+    expect(ctx.session.currentQuestionKey).toBe("time_since_issue");
+    await engine.handleTranscript(ctx, client, "today");
+    expect(ctx.session.currentQuestionKey).toBe("has_coverage");
+    await engine.handleDtmf(ctx, client, noopWs, "1");
+    // Reaches name even though cause/rooms were never asked.
+    expect(ctx.session.state).toBe("name");
   });
 
   it("'just take a message' takes a name then one open message turn", async () => {

@@ -128,6 +128,31 @@ const restorationMenuScoringRules: ScoringRule[] = [
   { answerKey: "service_type", answerValue: "mold", qualityBonus: 5, valueBonus: 80000 },
 ];
 
+// Enrichment fields — captured from the caller's own words if they mention them
+// (via extract_intake) and fed to scoring, but never asked aloud on a voice call
+// (voiceExtractOnly keeps calls short). The web intake form still renders them as
+// optional. Bigger jobs (more rooms) score higher; cause is free-text context.
+const restorationEnrichmentQuestions: VerticalQuestion[] = [
+  { key: "cause", label: "What caused the damage?", type: "text", required: false, voiceExtractOnly: true },
+  {
+    key: "rooms_affected",
+    label: "How many rooms are affected?",
+    type: "single_select",
+    options: [
+      { value: "one", label: "One room" },
+      { value: "two_three", label: "Two or three rooms" },
+      { value: "four_plus", label: "Four or more rooms" },
+    ],
+    required: false,
+    voiceExtractOnly: true,
+  },
+];
+
+const restorationEnrichmentScoringRules: ScoringRule[] = [
+  { answerKey: "rooms_affected", answerValue: "two_three", qualityBonus: 8, valueBonus: 100000 },
+  { answerKey: "rooms_affected", answerValue: "four_plus", qualityBonus: 15, urgencyBonus: 3, valueBonus: 250000 },
+];
+
 // ─── HVAC Vertical ──────────────────────────────────────────────────────────────
 
 const hvacMenuQuestion: VerticalQuestion = {
@@ -248,8 +273,8 @@ export const VERTICALS: VerticalDefinition[] = [
   {
     vertical: "restoration",
     displayName: "Water / Fire / Mold Restoration",
-    questions: buildQuestions(restorationMenuQuestion),
-    scoringRules: buildScoringRules(restorationMenuScoringRules),
+    questions: [...buildQuestions(restorationMenuQuestion), ...restorationEnrichmentQuestions],
+    scoringRules: [...buildScoringRules(restorationMenuScoringRules), ...restorationEnrichmentScoringRules],
     industryLabel: "restoration",
     baseValueLow: 150000,
   },

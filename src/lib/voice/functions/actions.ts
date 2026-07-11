@@ -84,7 +84,10 @@ export function deriveIntakeStatus(ctx: FlowContext): "not_started" | "started" 
 
   const answers = session.conversationContext.answers;
   const visible = getVisibleQuestions(verticalConfig.questions, answers);
-  const allAnswered = visible.every((q) => q.key in answers);
+  // voiceExtractOnly fields are never asked on a voice call, so a call is
+  // "completed" once every *askable* visible question is answered — not gated on
+  // enrichment fields the caller may simply never have mentioned.
+  const allAnswered = visible.filter((q) => !q.voiceExtractOnly).every((q) => q.key in answers);
   return allAnswered ? "completed" : "abandoned";
 }
 

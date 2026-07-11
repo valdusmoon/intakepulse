@@ -42,11 +42,15 @@ export function buildExtractIntakeTool(questions: VerticalQuestion[]): FunctionD
   };
 
   for (const q of questions) {
-    const optionValues = (q.options ?? []).map((o) => o.value);
-    properties[q.key] =
-      optionValues.length > 0
-        ? { type: "string", enum: optionValues, description: q.label }
-        : { type: "string", description: q.label };
+    const opts = q.options ?? [];
+    if (opts.length > 0) {
+      // Spell out what each enum value means so the model maps a phrase ("three
+      // rooms") onto the right bucket value ("two_three") instead of guessing.
+      const guide = opts.map((o) => `${o.value} = ${o.label}`).join("; ");
+      properties[q.key] = { type: "string", enum: opts.map((o) => o.value), description: `${q.label} Options: ${guide}` };
+    } else {
+      properties[q.key] = { type: "string", description: q.label };
+    }
   }
 
   return {
