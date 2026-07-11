@@ -114,8 +114,28 @@ export async function handleDtmf(
   if (value) {
     interruptCurrentResponse(ctx, client, ws);
     await applyStateAnswer(ctx, client, value);
+    return;
   }
-  // Unmapped digit for the current state — silently ignored, no reprompt needed
+
+  // A keypress in a state that's waiting on a SPOKEN answer (the name and
+  // wrap-up-reason prompts have no keypad option) isn't a valid input — but it
+  // still means the caller tried to answer and would otherwise get dead air.
+  // The prior menu questions often train a caller into keypad mode, so this is
+  // a real path: reprompt via the same failure handler an unrecognized spoken
+  // answer takes (which retries, then falls through to voicemail), instead of
+  // silently swallowing the press.
+  if (ctx.session.state === "name" || ctx.session.state === "wrap_up_reason") {
+    // Collapse a multi-digit burst (a caller keying, say, a whole ZIP by
+    // mistake sends one DTMF event per digit) into a single reprompt: once the
+    // reprompt is already playing, swallow the rest of the burst rather than
+    // stacking one failure per digit and blowing the retry limit into voicemail.
+    if (!ctx.session.responseActive) {
+      await handleStateFailure(ctx, client);
+    }
+    return;
+  }
+  // Unmapped digit for a menu state (e.g. pressing 9 on a 1/2/3 prompt) —
+  // silently ignored; the still-audible prompt already tells them the options.
 }
 
 export async function handleToolCall(ctx: FlowContext, client: RealtimeClient, name: string, args: any): Promise<void> {
@@ -653,7 +673,7 @@ function retryPromptText(ctx: FlowContext): string {
       return q ? qualificationPrompt(q) : "Could you say that again?";
     }
     case "name":
-      return "Sorry, what's your name?";
+      return "What's your name?";
     case "wrap_up_reason":
       return wrapUpReasonPrompt(ctx.session.wrapUpReasonMode ?? "existing");
     case "callback_preference":
