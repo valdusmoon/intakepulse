@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.25.4",
-    "@remotion/player": "^4.0.486",
     "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^7.5.0",
     "@supabase/supabase-js": "^2.50.3",
@@ -44,7 +43,6 @@
     "radix-ui": "^1.4.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "remotion": "^4.0.486",
     "resend": "^6.4.2",
     "stripe": "^18.3.0",
     "tailwind-merge": "^3.3.1",
