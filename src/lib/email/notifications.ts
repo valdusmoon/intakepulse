@@ -118,10 +118,10 @@ export async function sendWelcomeEmail({ ownerName, ownerEmail, businessName, da
   const billingUrl = `${dashboardUrl}/billing`;
 
   const html = emailWrapper(`
-    <tr><td style="height:4px;background:linear-gradient(90deg,#f97316,#fb923c);font-size:0;line-height:0;">&nbsp;</td></tr>
+    <tr><td style="height:4px;background:linear-gradient(90deg,#2454d8,#5b8cff);font-size:0;line-height:0;">&nbsp;</td></tr>
 
     <tr><td style="padding:24px 24px 0 24px;">
-      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">Welcome</p>
+      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#2454d8;text-transform:uppercase;letter-spacing:0.08em;">Welcome</p>
       <h1 style="margin:0 0 4px 0;font-size:24px;font-weight:700;color:#111827;">Hi ${firstName}, you're set up.</h1>
       <p style="margin:0;font-size:14px;color:#6b7280;">${businessName} is now on Callverted.</p>
     </td></tr>
@@ -133,7 +133,7 @@ export async function sendWelcomeEmail({ ownerName, ownerEmail, businessName, da
         </td></tr>
         ${[
           ["1. Get your number", `Email setup@callverted.com and we'll provision your dedicated Callverted number within 1 business day.`],
-          ["2. Paste it in Settings", `Go to Settings → Phone Setup and paste in your assigned number. Then forward your business line to it.`],
+          ["2. Publish your number", `List your Callverted number on Google, your website, and socials so new callers reach it. It rings your own line first and only steps in when you cannot pick up.`],
           ["3. Start your free trial", `Subscribe to activate missed-call recovery. No charge for 14 days.`],
         ].map(([title, desc]) => `
           <tr><td style="padding:0 0 14px 0;">
@@ -142,7 +142,7 @@ export async function sendWelcomeEmail({ ownerName, ownerEmail, businessName, da
           </td></tr>`).join("")}
 
         <tr><td style="padding:8px 0 0 0;">
-          <a href="${billingUrl}" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;margin-right:12px;">
+          <a href="${billingUrl}" style="display:inline-block;background:#2454d8;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;margin-right:12px;">
             Start free trial →
           </a>
           <a href="${dashboardUrl}" style="display:inline-block;color:#6b7280;text-decoration:none;font-size:13px;font-weight:500;padding:13px 0;">
@@ -154,14 +154,14 @@ export async function sendWelcomeEmail({ ownerName, ownerEmail, businessName, da
 
     <tr><td style="padding:20px 24px 24px 24px;border-top:1px solid #f3f4f6;">
       <p style="margin:0;font-size:13px;color:#9ca3af;">
-        Questions? Reply to this email or reach us at <a href="mailto:support@callverted.com" style="color:#f97316;text-decoration:none;">support@callverted.com</a>
+        Questions? Reply to this email or reach us at <a href="mailto:support@callverted.com" style="color:#2454d8;text-decoration:none;">support@callverted.com</a>
       </p>
     </td></tr>
   `);
 
   return emailClient.send({
     to: ownerEmail,
-    subject: `Welcome to Callverted — ${firstName}, here's how to go live`,
+    subject: `Welcome to Callverted, ${firstName}. Here's how to go live`,
     html,
   });
 }
@@ -1476,10 +1476,10 @@ export async function sendTrialReminderEmail({
   }[stage];
 
   const html = emailWrapper(`
-    <tr><td style="height:4px;background:linear-gradient(90deg,#f97316,#fb923c);font-size:0;line-height:0;">&nbsp;</td></tr>
+    <tr><td style="height:4px;background:linear-gradient(90deg,#2454d8,#5b8cff);font-size:0;line-height:0;">&nbsp;</td></tr>
 
     <tr><td style="padding:24px 24px 0 24px;">
-      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">${copy.eyebrow}</p>
+      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#2454d8;text-transform:uppercase;letter-spacing:0.08em;">${copy.eyebrow}</p>
       <h1 style="margin:0 0 6px 0;font-size:22px;font-weight:700;color:#111827;">${copy.heading}</h1>
       <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">${copy.lede}</p>
     </td></tr>
@@ -1488,7 +1488,7 @@ export async function sendTrialReminderEmail({
     ${valueSnapshot(stats)}
 
     <tr><td style="padding:20px 24px 24px 24px;">
-      <a href="${billingUrl}" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;">
+      <a href="${billingUrl}" style="display:inline-block;background:#2454d8;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;">
         Keep my line live →
       </a>
     </td></tr>
@@ -1533,7 +1533,7 @@ export async function sendActivationNudgeEmail({
     activation_day3: {
       eyebrow: "One step to go live",
       heading: `${firstName}, let's get your line live`,
-      lede: `Forward your business line, install the widget, or share your intake link. That is the one step between you and never missing a call again.`,
+      lede: `Publish your Callverted number on Google and your website, install the widget, or share your intake link. That is the one step between you and never missing a call again.`,
       ctaLabel: "Go live →",
       ctaUrl: captureUrl,
     },
@@ -1547,16 +1547,16 @@ export async function sendActivationNudgeEmail({
   }[stage];
 
   const html = emailWrapper(`
-    <tr><td style="height:4px;background:linear-gradient(90deg,#f97316,#fb923c);font-size:0;line-height:0;">&nbsp;</td></tr>
+    <tr><td style="height:4px;background:linear-gradient(90deg,#2454d8,#5b8cff);font-size:0;line-height:0;">&nbsp;</td></tr>
 
     <tr><td style="padding:24px 24px 0 24px;">
-      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">${copy.eyebrow}</p>
+      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#2454d8;text-transform:uppercase;letter-spacing:0.08em;">${copy.eyebrow}</p>
       <h1 style="margin:0 0 6px 0;font-size:22px;font-weight:700;color:#111827;">${copy.heading}</h1>
       <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">${copy.lede}</p>
     </td></tr>
 
     <tr><td style="padding:20px 24px 24px 24px;">
-      <a href="${copy.ctaUrl}" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;margin-right:12px;">
+      <a href="${copy.ctaUrl}" style="display:inline-block;background:#2454d8;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;margin-right:12px;">
         ${copy.ctaLabel}
       </a>
       <a href="${dashboardUrl}" style="display:inline-block;color:#6b7280;text-decoration:none;font-size:13px;font-weight:500;padding:13px 0;">
@@ -1595,10 +1595,10 @@ export async function sendWinbackEmail({
   const hadValue = stats.total > 0;
 
   const html = emailWrapper(`
-    <tr><td style="height:4px;background:linear-gradient(90deg,#f97316,#fb923c);font-size:0;line-height:0;">&nbsp;</td></tr>
+    <tr><td style="height:4px;background:linear-gradient(90deg,#2454d8,#5b8cff);font-size:0;line-height:0;">&nbsp;</td></tr>
 
     <tr><td style="padding:24px 24px 0 24px;">
-      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">We'd love you back</p>
+      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#2454d8;text-transform:uppercase;letter-spacing:0.08em;">We'd love you back</p>
       <h1 style="margin:0 0 6px 0;font-size:22px;font-weight:700;color:#111827;">${firstName}, your line is off</h1>
       <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">
         ${hadValue
@@ -1610,7 +1610,7 @@ export async function sendWinbackEmail({
     ${hadValue ? `<tr><td style="height:16px;font-size:0;line-height:0;">&nbsp;</td></tr>${valueSnapshot(stats)}` : ""}
 
     <tr><td style="padding:20px 24px 24px 24px;">
-      <a href="${reactivateUrl}" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;">
+      <a href="${reactivateUrl}" style="display:inline-block;background:#2454d8;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;">
         Reactivate my line →
       </a>
     </td></tr>
@@ -1653,7 +1653,7 @@ export async function sendMonthlyRoiRecapEmail({
   const leadsUrl = `${dashboardUrl}/leads`;
 
   const html = emailWrapper(`
-    <tr><td style="padding:20px 24px 16px;background:#f97316;">
+    <tr><td style="padding:20px 24px 16px;background:#2454d8;">
       <p style="margin:0;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.05em;">Monthly recap</p>
       <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#ffffff;">${businessName}</p>
       <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.85);">${monthLabel}</p>
@@ -1667,7 +1667,7 @@ export async function sendMonthlyRoiRecapEmail({
 
     <tr><td style="padding:8px 24px 4px;">
       <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Recovered pipeline value</p>
-      <p style="margin:0;font-size:34px;font-weight:700;color:#f97316;">${fmt(stats.estimatedRevenue / 100)}</p>
+      <p style="margin:0;font-size:34px;font-weight:700;color:#2454d8;">${fmt(stats.estimatedRevenue / 100)}</p>
     </td></tr>
 
     <tr><td style="padding:16px 24px 0;">
@@ -1690,7 +1690,7 @@ export async function sendMonthlyRoiRecapEmail({
     </td></tr>
 
     <tr><td style="padding:20px 24px 24px;">
-      <a href="${leadsUrl}" style="display:inline-block;background:#f97316;color:#ffffff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">View all leads →</a>
+      <a href="${leadsUrl}" style="display:inline-block;background:#2454d8;color:#ffffff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">View all leads →</a>
     </td></tr>
     ${emailFooter(businessName)}
   `);
