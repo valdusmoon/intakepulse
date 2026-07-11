@@ -14,6 +14,14 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /**
+ * RETIRED / GATED: this route is intentionally NOT in the middleware
+ * public-route list (see src/middleware.ts), so it 404s for anonymous callers.
+ * It was the public landing "drive it yourself" sandbox — an unauthenticated,
+ * cost-bearing LLM endpoint with only a best-effort in-memory rate limit. It's
+ * kept intact for easy revival; before reopening it, add a real bot gate
+ * (Vercel BotID / Cloudflare Turnstile) and a global daily spend cap backed by
+ * a shared store. See the commented sandbox block in src/app/page.tsx.
+ *
  * Public marketing demo. Runs the EXACT same intake engine as a real phone call
  * (open description, multi-field extraction, adaptive follow-ups, scoring) so a
  * visitor experiences the real product, but fully sandboxed:

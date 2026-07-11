@@ -9,7 +9,11 @@ const isPublicRoute = createRouteMatcher([
   '/api/stripe/webhook',
   '/api/leads/public(.*)',
   '/api/leads/public/company(.*)',
-  '/api/demo(.*)',
+  // '/api/demo(.*)', — RETIRED. The public marketing sandbox is disabled: with
+  // this line commented out the route is no longer a public route, so
+  // auth.protect() 404s it for anonymous callers, closing the unauthenticated
+  // LLM endpoint. Re-add this line (and the landing UI) to reopen it — but add
+  // a bot gate + global spend cap first.
   '/api/cron(.*)',
   '/api/inngest(.*)',
   '/api/ai(.*)',

@@ -4,7 +4,9 @@ import { HeroPhoneAnimation } from "@/components/marketing/HeroPhoneAnimation";
 import { ProductShowcase } from "@/components/marketing/ProductShowcase";
 import { MissedCallCalculator } from "@/components/marketing/MissedCallCalculator";
 import { CallReplay } from "@/components/marketing/CallReplay";
-import { InteractiveDemo } from "@/components/marketing/InteractiveDemo";
+// Retired: public "drive it yourself" sandbox — see the commented <details> in
+// the demo section below. Kept for easy revival.
+// import { InteractiveDemo } from "@/components/marketing/InteractiveDemo";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { AuthAwareNavCta } from "@/components/marketing/AuthAwareNavCta";
 
@@ -276,9 +278,18 @@ export default function HomePage() {
           </div>
           <CallReplay />
 
-          {/* Demoted, opt-in: the real engine for high-intent visitors who want
-              to drive it themselves. Native <details> so it stays collapsed and
-              adds no weight until a visitor asks for it. */}
+          {/* RETIRED — public "drive it yourself" sandbox. It called the real
+              engine over /api/demo, an unauthenticated, cost-bearing LLM
+              endpoint with only a best-effort in-memory rate limit (no real bot
+              gate or global spend cap). The scripted CallReplay above now shows
+              the live-extraction moment for free with zero abuse surface, and
+              the real interactive test lives in-app at /dashboard/test-call
+              (behind auth). Kept here (and the InteractiveDemo component +
+              /api/demo route) for easy revival. To restore: uncomment below,
+              re-import InteractiveDemo, and re-add '/api/demo(.*)' to the
+              middleware public-route list (see src/middleware.ts) — the route
+              is currently gated (404s for anonymous) precisely to keep it
+              closed. Harden with a bot gate + global cap before reopening.
           <details className="group mt-4">
             <summary className="flex cursor-pointer list-none items-center justify-center gap-1.5 text-[13px] font-semibold text-white/55 hover:text-white transition-colors">
               <span>Rather drive it yourself? Try the live sandbox</span>
@@ -288,6 +299,7 @@ export default function HomePage() {
               <InteractiveDemo />
             </div>
           </details>
+          */}
         </ScrollReveal>
       </section>
 
