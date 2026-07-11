@@ -34,8 +34,8 @@ function SectionHeading({
 }) {
   return (
     <div id={id} className="flex items-start gap-3 mb-5 scroll-mt-6">
-      <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-orange-100">
-        <Icon className="h-4 w-4 text-orange-500" />
+      <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-cv-primary-soft">
+        <Icon className="h-4 w-4 text-cv-primary" />
       </div>
       <div>
         <h2 className="text-lg font-bold text-slate-900">{title}</h2>
@@ -58,7 +58,7 @@ function BulletList({ items }: { items: string[] }) {
     <ul className="space-y-1.5">
       {items.map((item) => (
         <li key={item} className="flex items-start gap-2 text-sm text-slate-700">
-          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-orange-400" />
+          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-cv-primary" />
           <span>{item}</span>
         </li>
       ))}
@@ -68,8 +68,8 @@ function BulletList({ items }: { items: string[] }) {
 
 function Tip({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-      <span className="font-semibold">Tip: </span>
+    <div className="rounded-lg border border-[#dce5ff] bg-cv-surface-blue px-4 py-3 text-sm text-cv-ink">
+      <span className="font-semibold text-cv-primary-dark">Tip: </span>
       {children}
     </div>
   );
@@ -109,7 +109,7 @@ export default function HelpPage() {
           </nav>
           <div className="mt-6 border-t border-slate-200 pt-4">
             <p className="text-xs text-slate-400 mb-1">Still stuck?</p>
-            <a href="mailto:support@callverted.com" className="text-xs font-medium text-orange-500 hover:underline">
+            <a href="mailto:support@callverted.com" className="text-xs font-medium text-cv-primary hover:underline">
               Email support →
             </a>
           </div>
@@ -396,12 +396,12 @@ export default function HelpPage() {
           {/* Footer */}
           <div className="border-t border-slate-200 pt-8">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 flex items-start gap-3">
-              <Star className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
+              <Star className="h-4 w-4 text-cv-primary flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-slate-900">Still have a question?</p>
                 <p className="text-sm text-slate-500 mt-0.5">
                   Email us at{" "}
-                  <a href="mailto:support@callverted.com" className="text-orange-500 hover:underline">
+                  <a href="mailto:support@callverted.com" className="text-cv-primary hover:underline">
                     support@callverted.com
                   </a>{" "}
                   and we&apos;ll get back to you quickly.
