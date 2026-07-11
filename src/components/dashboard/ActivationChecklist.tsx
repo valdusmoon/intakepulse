@@ -27,17 +27,17 @@ const LISTING_CHANNELS: { icon: string; label: string }[] = [
  * their public business number so calls come into it. Callverted then rings the
  * owner's real line first and the AI only answers if no one picks up. That listing
  * update is external, so we can't detect it; the owner self-confirms it (persists
- * forwardingConfirmed), and we offer a "book a setup call" escape.
+ * numberPublished), and we offer a "book a setup call" escape.
  */
 export function ActivationChecklist({
   hasTestCall,
-  forwardingConfirmed,
+  numberPublished,
   widgetInstalled,
   callvertedNumber,
   assistedUrl,
 }: {
   hasTestCall: boolean;
-  forwardingConfirmed: boolean;
+  numberPublished: boolean;
   widgetInstalled: boolean;
   callvertedNumber: string | null;
   assistedUrl: string | null;
@@ -60,18 +60,18 @@ export function ActivationChecklist({
 
   const steps = [
     { key: "test", done: hasTestCall },
-    { key: "live", done: forwardingConfirmed },
+    { key: "live", done: numberPublished },
     { key: "widget", done: widgetInstalled },
   ];
   const doneCount = steps.filter((s) => s.done).length;
 
-  async function confirmForwarding() {
+  async function confirmPublished() {
     setSaving(true);
     try {
       const res = await fetch("/api/business", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ forwardingConfirmed: true }),
+        body: JSON.stringify({ numberPublished: true }),
       });
       if (!res.ok) throw new Error("failed");
       setShowGoLive(false);
@@ -120,17 +120,17 @@ export function ActivationChecklist({
           </Link>
 
           {/* 2. Get your line live (opens the publish-your-number guide) */}
-          <button type="button" onClick={() => setShowGoLive(true)} className={`${rowBase} ${rowState(forwardingConfirmed)}`}>
-            {bullet(forwardingConfirmed, 2)}
+          <button type="button" onClick={() => setShowGoLive(true)} className={`${rowBase} ${rowState(numberPublished)}`}>
+            {bullet(numberPublished, 2)}
             <div className="min-w-0 flex-1">
-              <p className={`text-sm font-bold ${forwardingConfirmed ? "text-cv-muted line-through" : "text-cv-ink"}`}>
+              <p className={`text-sm font-bold ${numberPublished ? "text-cv-muted line-through" : "text-cv-ink"}`}>
                 Get your line live
               </p>
-              {!forwardingConfirmed && (
+              {!numberPublished && (
                 <p className="text-xs text-cv-muted mt-0.5">Publish your Callverted number so new callers route through it.</p>
               )}
             </div>
-            {!forwardingConfirmed && <Icon name="arrow_forward" className="!text-[18px] text-cv-primary shrink-0" />}
+            {!numberPublished && <Icon name="arrow_forward" className="!text-[18px] text-cv-primary shrink-0" />}
           </button>
 
           {/* 3. Website capture */}
@@ -240,7 +240,7 @@ export function ActivationChecklist({
               </button>
               <button
                 type="button"
-                onClick={confirmForwarding}
+                onClick={confirmPublished}
                 disabled={saving}
                 className="flex-1 rounded-xl bg-cv-primary px-4 py-3 text-sm font-bold text-white hover:bg-cv-primary-dark disabled:opacity-60 transition-colors"
               >

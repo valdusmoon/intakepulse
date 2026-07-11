@@ -382,8 +382,9 @@ Decisions + not-yet-built items, from the conversion-mechanisms review.
    "copy number" button, and a checklist of where to LIST it (Google Business
    Profile, Facebook, website, Yelp/YP/Angi) plus a reassurance that their old
    number still reaches them directly. Confirm button = "I've listed my number"
-   (persists `forwardingConfirmed`). NOTE: an earlier build of this modal shipped a
-   wrong carrier-forwarding picker (*71 codes); it was replaced same day.
+   (persists `numberPublished`; the column was renamed from `forwarding_confirmed`
+   in migration 0023 to match the real action). NOTE: an earlier build of this modal
+   shipped a wrong carrier-forwarding picker (*71 codes); it was replaced same day.
 6. **Deeper metrics rework. [DONE 2026-07-11]** Home Conversion snapshot is now
    time-boxed to the last 90 days: `getHomeMetrics` returns `snapshotWindowDays` +
    `snapshotCaptured/Contacted/Booked/Converted` (createdAt within window) and the

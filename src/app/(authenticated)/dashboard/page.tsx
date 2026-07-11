@@ -156,7 +156,7 @@ export default async function DashboardPage() {
       {showActivation && (
         <ActivationChecklist
           hasTestCall={hasTestCall}
-          forwardingConfirmed={business.forwardingConfirmed}
+          numberPublished={business.numberPublished}
           widgetInstalled={widgetInstalled}
           callvertedNumber={business.twilioPhoneNumber}
           assistedUrl={process.env.NEXT_PUBLIC_ASSISTED_ONBOARDING_URL ?? null}
