@@ -163,3 +163,44 @@ body {
     transform: scaleY(0.55);
   }
 }
+
+/* Call-replay showcase — each transcript line and the reveal fade+rise in as
+   they appear; the little bars are voice/speaking indicators. */
+.cv-replay-in {
+  animation: cv-replay-in 0.4s ease-out both;
+}
+
+@keyframes cv-replay-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cv-replay-bar {
+  transform-origin: bottom;
+  animation: cv-replay-bar 0.9s ease-in-out infinite;
+}
+
+@keyframes cv-replay-bar {
+  0%, 100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-replay-in {
+    animation: none;
+  }
+  .cv-replay-bar {
+    animation: none;
+    transform: scaleY(0.8);
+  }
+}

@@ -3,6 +3,7 @@ import { CallvertedLogo } from "@/components/CallvertedLogo";
 import { HeroPhoneAnimation } from "@/components/marketing/HeroPhoneAnimation";
 import { ProductShowcase } from "@/components/marketing/ProductShowcase";
 import { MissedCallCalculator } from "@/components/marketing/MissedCallCalculator";
+import { CallReplay } from "@/components/marketing/CallReplay";
 import { InteractiveDemo } from "@/components/marketing/InteractiveDemo";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { AuthAwareNavCta } from "@/components/marketing/AuthAwareNavCta";
@@ -267,16 +268,29 @@ export default function HomePage() {
         />
         <ScrollReveal className="relative max-w-2xl mx-auto">
           <div className="text-center mb-9">
-            <p className="text-xs font-bold text-landing-primary-glow uppercase tracking-widest mb-2">Try it yourself</p>
+            <p className="text-xs font-bold text-landing-primary-glow uppercase tracking-widest mb-2">See it work</p>
             <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold mb-3 leading-tight">
-              Give it a problem. See the lead packet it builds.
+              Watch one call become a scored lead.
             </h2>
             <p className="text-white/55 leading-relaxed">
-              This is the same intake a real caller gets. Describe an issue in plain words and watch it capture the
-              details, ask only what is missing, and score the lead.
+              A calm, forty-second call for your caller. A scored lead packet for you the second they hang up. Same
+              engine that answers your overflow, playing out below.
             </p>
           </div>
-          <InteractiveDemo />
+          <CallReplay />
+
+          {/* Demoted, opt-in: the real engine for high-intent visitors who want
+              to drive it themselves. Native <details> so it stays collapsed and
+              adds no weight until a visitor asks for it. */}
+          <details className="group mt-4">
+            <summary className="flex cursor-pointer list-none items-center justify-center gap-1.5 text-[13px] font-semibold text-white/55 hover:text-white transition-colors">
+              <span>Rather drive it yourself? Try the live sandbox</span>
+              <span className="transition-transform group-open:rotate-90" aria-hidden>›</span>
+            </summary>
+            <div className="mt-4">
+              <InteractiveDemo />
+            </div>
+          </details>
         </ScrollReveal>
       </section>
 
