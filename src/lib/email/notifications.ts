@@ -1318,49 +1318,77 @@ export async function sendMissedCallBreakdownEmail({
     typeof closeRate === "number" &&
     typeof atRisk === "number";
 
-  const breakdownHtml = hasNumbers
+  // Signs with a real name when FOUNDER_NAME is set, so the note reads as a
+  // person, not a brand. Drop in a headshot later (base64 img in the signoff row).
+  const signoff = process.env.FOUNDER_NAME
+    ? `Talk soon,<br><strong style="color:#111827;">${process.env.FOUNDER_NAME}</strong>, founder of Callverted`
+    : `Talk soon,<br><strong style="color:#111827;">the Callverted team</strong>`;
+
+  // Email-safe "your math" visual: three inputs, then the result. Plain tables +
+  // inline styles so it renders everywhere (no SVG — Gmail strips it).
+  const cell = (value: string, label: string) =>
+    `<td width="32%" align="center" style="padding:12px 6px;background:#f2f6ff;border:1px solid #dbe4ff;border-radius:10px;">
+       <div style="font-size:20px;font-weight:800;color:#111827;">${value}</div>
+       <div style="font-size:11px;color:#6b7280;margin-top:3px;">${label}</div>
+     </td>`;
+
+  const mathVisual = hasNumbers
     ? `
-    <tr><td style="padding:0 24px 20px;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;">
-        <tr><td style="padding:18px;">
-          <p style="margin:0 0 2px 0;font-size:11px;font-weight:700;color:#ea580c;text-transform:uppercase;letter-spacing:0.06em;">At risk every month</p>
-          <p style="margin:0;font-size:30px;font-weight:700;color:#c2410c;letter-spacing:-0.5px;">${fmt(atRisk!)}</p>
-          <p style="margin:8px 0 0 0;font-size:13px;color:#9a3412;line-height:1.6;">
-            ${missedCalls} missed ${missedCalls === 1 ? "call" : "calls"} a month at ${fmt(jobValue!)} per job, assuming ${closeRate}% would have booked. A rough estimate, not a promise.
-          </p>
+    <tr><td style="padding:0 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        ${cell(String(missedCalls), missedCalls === 1 ? "missed call / mo" : "missed calls / mo")}
+        <td width="2%"></td>
+        ${cell(fmt(jobValue!), "average job")}
+        <td width="2%"></td>
+        ${cell(`${closeRate}%`, "would have booked")}
+      </tr></table>
+    </td></tr>
+
+    <tr><td align="center" style="padding:12px 24px 4px;"><div style="font-size:12px;color:#6b7280;">which works out to</div></td></tr>
+
+    <tr><td style="padding:0 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#2454d8;border-radius:12px;">
+        <tr><td align="center" style="padding:20px;">
+          <div style="font-size:34px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">${fmt(atRisk!)}</div>
+          <div style="font-size:12px;color:#c7d6ff;margin-top:3px;">likely slipping away every month</div>
         </td></tr>
       </table>
     </td></tr>`
     : "";
 
   const html = emailWrapper(`
-    <tr><td style="height:4px;background:linear-gradient(90deg,#f97316,#fb923c);font-size:0;line-height:0;">&nbsp;</td></tr>
+    <tr><td style="height:4px;background:linear-gradient(90deg,#2454d8,#5b8cff);font-size:0;line-height:0;">&nbsp;</td></tr>
 
-    <tr><td style="padding:24px 24px 0 24px;">
-      <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">Your missed-call breakdown</p>
-      <h1 style="margin:0 0 4px 0;font-size:22px;font-weight:700;color:#111827;">Here's what those missed calls add up to.</h1>
-      <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">Every unanswered call is a job that likely went to the next contractor the caller dialed.</p>
+    <tr><td style="padding:22px 24px 0 24px;">
+      <span style="font-size:16px;font-weight:800;color:#2454d8;letter-spacing:-0.2px;">Callverted</span>
     </td></tr>
 
-    <tr><td style="height:20px;font-size:0;line-height:0;">&nbsp;</td></tr>
-
-    ${breakdownHtml}
-
-    <tr><td style="padding:0 24px 20px;">
-      <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">
-        Callverted answers the calls your team can't, runs the intake, and sends you a scored, callback-ready lead while the caller is still on the hook. You keep the job instead of losing it.
-      </p>
+    <tr><td style="padding:16px 24px 0 24px;">
+      <p style="margin:0;font-size:15px;color:#111827;line-height:1.6;">Hey 👋</p>
+      <p style="margin:10px 0 0;font-size:15px;color:#111827;line-height:1.6;">You just ran your missed-call numbers on our site. Here is what they came out to:</p>
     </td></tr>
 
-    <tr><td style="padding:0 24px 28px;">
-      <a href="${signupUrl}" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;">
-        Start your 14-day trial →
-      </a>
+    <tr><td style="height:16px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+    ${mathVisual}
+
+    <tr><td style="padding:18px 24px 0;">
+      <p style="margin:0;font-size:14px;color:#374151;line-height:1.7;">${hasNumbers ? "That is a rough estimate, not a promise." : "Here is the pattern worth knowing."} But the shape of it is real: when a homeowner has a flooding basement or no heat, they do not leave a voicemail. They call the next number on the list.</p>
+      <p style="margin:12px 0 0;font-size:14px;color:#374151;line-height:1.7;">That is the whole reason we built Callverted. It answers the calls your team cannot get to, qualifies the job, and texts you a ready-to-call lead while the caller is still deciding. You keep the work instead of losing it to whoever picked up.</p>
+    </td></tr>
+
+    <tr><td style="padding:22px 24px 0;">
+      <a href="${signupUrl}" style="display:inline-block;background:#2454d8;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 28px;border-radius:8px;">Start my 14-day trial</a>
       <p style="margin:12px 0 0 0;font-size:12px;color:#9ca3af;">No charge for 14 days. Cancel anytime.</p>
     </td></tr>
 
-    <tr><td style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;">
-      <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">Powered by Callverted</p>
+    <tr><td style="padding:22px 24px 4px;">
+      <p style="margin:0;font-size:14px;color:#374151;line-height:1.7;">${signoff}</p>
+      <p style="margin:10px 0 0;font-size:13px;color:#6b7280;line-height:1.6;">Just reply to this email if you have questions. A real person reads every one.</p>
+    </td></tr>
+
+    <tr><td style="padding:20px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+      <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">Callverted · callverted.com</p>
     </td></tr>
   `);
 

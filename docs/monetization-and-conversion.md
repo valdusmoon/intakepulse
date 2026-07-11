@@ -16,8 +16,10 @@ fully work in prod:
 - **Env vars:** `CRON_SECRET` (guards `/api/cron/daily`), `ADMIN_CLERK_USER_IDS`
   (comma-separated Clerk ids for the `/admin` console), and
   `NEXT_PUBLIC_ASSISTED_ONBOARDING_URL` (Cal.com/Calendly link for the "Book a
-  setup call" CTA; the CTA is hidden until it is set). `CRON_SECRET` is set in
-  local `.env.local`; the rest still need setting in the deploy environment.
+  setup call" CTA; the CTA is hidden until it is set), and `FOUNDER_NAME`
+  (personalizes the ROI-capture email signoff; falls back to "the Callverted
+  team"). `CRON_SECRET` is set in local `.env.local`; the rest still need setting
+  in the deploy environment.
 - **TODO (scheduling):** Vercel cron will NOT be used. The trial/activation/
   win-back/monthly scans already run as Inngest crons, but the `/api/cron/daily`
   followups drain is still Vercel-cron-shaped. Move it to an Inngest scheduled
@@ -321,3 +323,46 @@ friction that they abandon.
   self-serve, without forcing a demo on everyone. Optionally flag on the business
   which owners requested help. Keep it secondary so confident self-servers breeze
   past it.
+
+---
+
+## 8. Backlog (queued 2026-07-11 evening)
+
+Decisions + not-yet-built items, from the conversion-mechanisms review.
+
+**Decisions made:**
+- **Founding pricing → reframe, don't discount.** "Founding" can signal "new/
+  unproven" to a trades audience, and a price chop anchors low + attracts churn.
+  Swap to a rate-lock framing: "$79/mo, lock this rate for life if you start now."
+  Same urgency/lock-in, signals growth not beta. No discounting.
+- **Pause = keep the number on file, service off** (owner's call). When paused we
+  hold the Twilio number (~$1/mo) and the AI does not answer. Keep the current
+  reject behavior, but improve the paused-call message + pause UX so the owner
+  knows to point their calls back to their own line while paused (otherwise a
+  forwarded caller hits a dead end). NOT switching to forward-to-their-line.
+
+**Queued builds (roughly in priority order):**
+1. **ROI capture drip (2-3 emails).** The single capture email is now proper
+   (personal, brand-blue, email-safe "your math" visual, `FOUNDER_NAME` signoff).
+   Next: a short nurture after it (day 0 breakdown -> day 2 "first responder wins"
+   proof -> day 5 "start your trial" w/ soft deadline), and gate a real 1-page ROI
+   report PDF for stronger reciprocity. Rides on the Inngest/drip plumbing.
+2. **Card-up-front gate sequence (rework).** The payment step "feels off." Revisit
+   as its own sequence: decide Model A (card during onboarding) vs Model B (let
+   them into the app, gate the card at go-live). Note: Model B is double-edged —
+   free roaming can reduce urgency to pay. Tie to the real-Stripe flip.
+3. **Guided first-run walkthrough.** Beyond the checklist: an animated,
+   popup-diagram style product tour over the (zero-state) dashboard, like these
+   SaaS onboarding flows use. Plus a single labeled **sample lead** ("Example, this
+   is what a captured lead looks like") seeded until the first real lead lands.
+4. **Twilio number lifecycle.** Numbers are a recurring ~$1/mo charge and Twilio
+   never auto-releases them. Build: provision the real number only AFTER payment;
+   **release on cancel with a grace period** (hold through the access-until window
+   / a few days so win-back keeps the number, then release). A2P 10DLC only needed
+   if we send SMS.
+5. **Richer go-live / forwarding modal.** Current is text + the number + two
+   bullets. Upgrade: a simple phone->Callverted->AI diagram, carrier-specific exact
+   forwarding codes (ask carrier), and a "text me the steps" option.
+6. **Deeper metrics rework.** Beyond the honesty captions already shipped: unify
+   the "captured" definition across dashboard vs Reports, and time-box the home
+   Conversion snapshot (all-time today).
