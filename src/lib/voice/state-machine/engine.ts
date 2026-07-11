@@ -459,9 +459,10 @@ function enterConfirmation(ctx: FlowContext, client: RealtimeClient): void {
 
 async function finishCall(ctx: FlowContext, client: RealtimeClient): Promise<void> {
   ctx.session.state = "create_lead";
-  // The public marketing demo never persists a lead — the route builds an
-  // ephemeral packet from the collected answers instead.
-  if (!ctx.session.isDemo) {
+  // Neither the public marketing demo nor the in-app test tool persists a lead —
+  // both build an ephemeral packet from the collected answers instead, so test
+  // runs never pollute real data or page the owner. Only genuine calls capture.
+  if (!ctx.session.isDemo && !ctx.session.isTestCall) {
     try {
       await captureLeadOnce(ctx);
     } catch (err) {

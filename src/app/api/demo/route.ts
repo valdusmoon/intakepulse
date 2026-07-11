@@ -2,9 +2,9 @@ import crypto from "crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
 import { logger } from "@/lib/logger";
 import { buildFlowContext, createSession, initializeOpenAIForTest } from "@/lib/voice/call-manager";
+import { buildLeadPacket } from "@/lib/voice/lead-packet";
 import { OpenAIHandlerService } from "@/lib/voice/openai-handler.service";
 import * as engine from "@/lib/voice/state-machine/engine";
 import type { FlowContext } from "@/lib/voice/state-machine/types";
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
     lines: ctx.session.conversationContext.transcript.slice(linesFrom).map((t) => ({ role: t.role, message: t.message })),
     state: ctx.session.state,
     ended,
-    packet: ended ? buildPacket(ctx) : null,
+    packet: ended ? buildLeadPacket(ctx) : null,
   });
 }
 
@@ -153,57 +153,6 @@ function restoreOrCreateSession(incomingState: SessionState | undefined): Sessio
   });
   session.isDemo = true;
   return session;
-}
-
-/** The payoff: the lead packet a real business would receive, computed on the
- *  fly from the collected answers. Never persisted. */
-function buildPacket(ctx: FlowContext) {
-  const { verticalConfig } = ctx;
-  const cc = ctx.session.conversationContext;
-  const answers = cc.answers;
-
-  const primaryQuestion = verticalConfig.questions[0];
-  const service = primaryQuestion?.options?.find((o) => o.value === answers[primaryQuestion.key])?.label ?? null;
-  const urgencyQuestion = verticalConfig.questions.find((q) => q.key === "urgency");
-  const urgency = urgencyQuestion?.options?.find((o) => o.value === answers.urgency)?.label ?? null;
-
-  const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions, verticalConfig.baseValueLow);
-
-  const ROOMS: Record<string, string> = { one: "1 room", two_three: "2 to 3 rooms", four_plus: "4 or more rooms" };
-  const tier = scores.qualityScore >= 60 ? "Hot" : scores.qualityScore >= 35 ? "Warm" : "Cool";
-  const action =
-    answers.urgency === "emergency"
-      ? "Call back within 10 minutes"
-      : answers.urgency === "soon"
-        ? "Call back within the hour"
-        : "Call back today";
-
-  const details: { label: string; value: string }[] = [];
-  if (service) details.push({ label: "Service", value: service });
-  if (urgency) details.push({ label: "Urgency", value: shortUrgency(answers.urgency) ?? urgency });
-  if (cc.zipCode) details.push({ label: "ZIP", value: cc.zipCode });
-  if (answers.cause) details.push({ label: "Cause", value: answers.cause });
-  if (answers.rooms_affected) details.push({ label: "Rooms affected", value: ROOMS[answers.rooms_affected] ?? answers.rooms_affected });
-  if (cc.callerName) details.push({ label: "Name", value: cc.callerName });
-
-  return {
-    tier,
-    leadScore: scores.qualityScore,
-    estimatedValue: `${usd(scores.estimatedValueLow)} to ${usd(scores.estimatedValueHigh)}`,
-    recommendedAction: action,
-    details,
-  };
-}
-
-function shortUrgency(value: string | undefined): string | null {
-  if (value === "emergency") return "Emergency";
-  if (value === "soon") return "Soon";
-  if (value === "flexible") return "Flexible";
-  return null;
-}
-
-function usd(cents: number): string {
-  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
 }
 
 function serializeSession(session: SessionState): SessionState {

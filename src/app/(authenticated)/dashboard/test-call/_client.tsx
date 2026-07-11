@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Icon } from "@/components/dashboard/v2/primitives";
+import type { LeadPacket } from "@/lib/voice/lead-packet";
 
 interface Line {
   role: "user" | "assistant";
@@ -26,7 +26,9 @@ interface TurnResponse {
   lines: Line[];
   state: string;
   answers: Record<string, string>;
-  leadId: string | null;
+  // Test calls are never persisted, so there is no lead id. Instead the server
+  // returns the ephemeral packet a real call would have produced, once ended.
+  preview: LeadPacket | null;
   ended: boolean;
   meta?: TurnMeta;
   error?: string;
@@ -75,7 +77,8 @@ export function TestCallClient({ businessName }: { businessName: string }) {
   const [state, setState] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [meta, setMeta] = useState<TurnMeta | null>(null);
-  const [leadId, setLeadId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<LeadPacket | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const [ended, setEnded] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -116,7 +119,7 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setState(data.state);
     setAnswers(data.answers);
     setMeta(data.meta ?? null);
-    setLeadId(data.leadId);
+    setPreview(data.preview);
     setEnded(data.ended);
   }
 
@@ -126,7 +129,8 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setLines([]);
     setAnswers({});
     setMeta(null);
-    setLeadId(null);
+    setPreview(null);
+    setShowPreview(false);
     setEnded(false);
     setDialed("");
     setShowDialer(false);
@@ -189,7 +193,8 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setState(null);
     setAnswers({});
     setMeta(null);
-    setLeadId(null);
+    setPreview(null);
+    setShowPreview(false);
     setEnded(false);
     setError(null);
     setInput("");
@@ -291,15 +296,24 @@ export function TestCallClient({ businessName }: { businessName: string }) {
                 )}
               </div>
 
-              {leadId && (
-                <div className="mx-5 rounded-[9px] border border-cv-green-soft bg-cv-green-soft/40 px-3.5 py-2.5 flex items-center justify-between gap-3">
-                  <span className="text-sm text-cv-ink font-semibold flex items-center gap-1.5">
-                    <Icon name="check_circle" className="!text-base text-cv-green" filled />
-                    Lead captured
-                  </span>
-                  <Link href={`/dashboard/leads/${leadId}`} className="text-sm font-bold text-cv-primary hover:underline">
-                    View lead →
-                  </Link>
+              {preview && (
+                <div className="mx-5">
+                  {!showPreview ? (
+                    <div className="rounded-[9px] border border-cv-green-soft bg-cv-green-soft/40 px-3.5 py-2.5 flex items-center justify-between gap-3">
+                      <span className="text-sm text-cv-ink font-semibold flex items-center gap-1.5">
+                        <Icon name="check_circle" className="!text-base text-cv-green" filled />
+                        Lead ready
+                      </span>
+                      <button
+                        onClick={() => setShowPreview(true)}
+                        className="text-sm font-bold text-cv-primary hover:underline"
+                      >
+                        View lead →
+                      </button>
+                    </div>
+                  ) : (
+                    <LeadPreview packet={preview} onClose={() => setShowPreview(false)} />
+                  )}
                 </div>
               )}
 
@@ -443,6 +457,62 @@ function Dialer({
   );
 }
 
+const TIER_STYLES: Record<LeadPacket["tier"], string> = {
+  Hot: "bg-cv-red text-white",
+  Warm: "bg-cv-amber text-white",
+  Cool: "bg-cv-primary-soft text-cv-primary-dark",
+};
+
+/** The ephemeral lead a real call would have produced. Nothing here is stored —
+ *  this is a preview of the packet the business would receive, computed on the
+ *  fly from the answers collected in this test call. */
+function LeadPreview({ packet, onClose }: { packet: LeadPacket; onClose: () => void }) {
+  return (
+    <div className="rounded-[11px] border border-cv-border bg-cv-surface shadow-cv-sm overflow-hidden">
+      <div className="flex items-center gap-1.5 bg-cv-amber-soft/60 border-b border-cv-amber-soft px-3.5 py-2 text-[11px] font-semibold text-[#92400e]">
+        <Icon name="visibility" className="!text-sm" filled />
+        Preview only. Test calls are not saved.
+        <button onClick={onClose} className="ml-auto text-[#92400e] hover:opacity-70 grid place-items-center">
+          <Icon name="close" className="!text-base" />
+        </button>
+      </div>
+      <div className="p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold">Caller</div>
+            <div className="text-base font-bold text-cv-ink truncate">{packet.callerName ?? "Not captured"}</div>
+          </div>
+          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold ${TIER_STYLES[packet.tier]}`}>
+            {packet.tier} · {packet.leadScore}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold mb-0.5">Est. value</div>
+            <div className="text-sm font-semibold text-cv-ink">{packet.estimatedValue}</div>
+          </div>
+          <div>
+            <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold mb-0.5">Recommended</div>
+            <div className="text-sm font-semibold text-cv-ink">{packet.recommendedAction}</div>
+          </div>
+        </div>
+
+        {packet.details.length > 0 && (
+          <dl className="text-sm space-y-1.5 border-t border-cv-border pt-3">
+            {packet.details.map(({ label, value }) => (
+              <div key={label} className="flex justify-between gap-2">
+                <dt className="text-cv-muted">{label}</dt>
+                <dd className="font-semibold text-cv-ink text-right">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CallInspector({
   state,
   answers,
@@ -509,8 +579,8 @@ function CallInspector({
 
         <p className="text-xs text-cv-muted leading-relaxed border-t border-cv-border pt-3">
           Typed words go through the same classification model as a real call; keypad presses are resolved by code, same
-          as real DTMF. No live audio or interrupt timing here yet. Leads created are tagged as test leads and won&apos;t
-          email the business.
+          as real DTMF. No live audio or interrupt timing here yet. Nothing is saved: no lead is created and the business
+          is never emailed. When the call ends you get a preview of the lead a real call would have produced.
         </p>
       </CardBody>
     </Card>

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { buildFlowContext, createSession, initializeOpenAIForTest, loadBusinessCallData } from "@/lib/voice/call-manager";
+import { buildLeadPacket } from "@/lib/voice/lead-packet";
 import { OpenAIHandlerService } from "@/lib/voice/openai-handler.service";
 import * as engine from "@/lib/voice/state-machine/engine";
 import type { FlowContext } from "@/lib/voice/state-machine/types";
@@ -123,8 +124,12 @@ export async function POST(req: NextRequest) {
     lines: cc.transcript.slice(linesFrom).map((t) => ({ role: t.role, message: t.message })),
     state: ctx.session.state,
     answers: cc.answers,
-    leadId: ctx.session.leadId ?? null,
     ended,
+    // Test calls are never persisted (no lead, no call row) — see engine.ts
+    // finishCall, which skips captureLeadOnce for isTestCall sessions. Instead
+    // we compute the ephemeral lead packet a real call would have produced, so
+    // the tester can preview exactly what the business would receive.
+    preview: ended ? buildLeadPacket(ctx) : null,
     // Call-metadata captured outside the scored Q&A — surfaced so the tester's
     // inspector panel can reflect real call progress, not just scored answers.
     meta: {
