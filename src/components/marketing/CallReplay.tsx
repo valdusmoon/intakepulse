@@ -167,7 +167,7 @@ export function CallReplay() {
 
       {/* Transcript + live intake, side by side (stacked on mobile) */}
       <div className="grid gap-4 md:grid-cols-[1.25fr_1fr]">
-        <div ref={scrollRef} className="flex flex-col gap-2.5 min-h-[264px] max-h-[300px] overflow-y-auto pr-1">
+        <div ref={scrollRef} className="flex flex-col gap-2.5 min-h-[264px] max-h-[300px] overflow-y-auto pr-3">
           {shown.map((step, i) => {
             if (step.kind === "keypad") {
               return (
