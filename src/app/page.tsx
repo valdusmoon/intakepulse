@@ -291,6 +291,26 @@ export default function HomePage() {
         </ScrollReveal>
       </section>
 
+      {/* ── Product showcase (light) — visual proof, not feature bullets ──── */}
+      {/* The lead packet is the differentiated output, so it precedes the ROI
+          calculator: show what they actually receive before quantifying it. */}
+      <section id="product" className="relative overflow-hidden px-6 py-16 sm:py-20 bg-white border-y border-[#e3e7ed]">
+        <div
+          className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full opacity-[0.05] blur-3xl bg-landing-primary"
+          aria-hidden
+        />
+        <ScrollReveal className="relative max-w-3xl mx-auto">
+          <div className="text-center mb-9">
+            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Product proof</p>
+            <h2 className="font-cv-heading text-3xl font-bold text-[#152033] mb-2">Show the product, not another AI promise</h2>
+            <p className="text-[#667085] text-sm">
+              The lead packet is the sell: what happened, why it matters, what it may be worth, and what to do next.
+            </p>
+          </div>
+          <ProductShowcase />
+        </ScrollReveal>
+      </section>
+
       {/* ── Missed-call calculator (dark) ────────────────────────────────── */}
       <section className="relative overflow-hidden px-6 py-16 sm:py-20 bg-landing-ink text-white border-t border-white/5">
         <div
@@ -318,24 +338,6 @@ export default function HomePage() {
           <div className="border border-white/10 bg-white/[0.045] rounded-[24px] p-6 sm:p-7">
             <MissedCallCalculator />
           </div>
-        </ScrollReveal>
-      </section>
-
-      {/* ── Product showcase (light) — visual proof, not feature bullets ──── */}
-      <section id="product" className="relative overflow-hidden px-6 py-16 sm:py-20 bg-white border-y border-[#e3e7ed]">
-        <div
-          className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full opacity-[0.05] blur-3xl bg-landing-primary"
-          aria-hidden
-        />
-        <ScrollReveal className="relative max-w-3xl mx-auto">
-          <div className="text-center mb-9">
-            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Product proof</p>
-            <h2 className="font-cv-heading text-3xl font-bold text-[#152033] mb-2">Show the product, not another AI promise</h2>
-            <p className="text-[#667085] text-sm">
-              The lead packet is the sell: what happened, why it matters, what it may be worth, and what to do next.
-            </p>
-          </div>
-          <ProductShowcase />
         </ScrollReveal>
       </section>
 
