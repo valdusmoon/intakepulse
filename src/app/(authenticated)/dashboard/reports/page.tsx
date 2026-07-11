@@ -26,14 +26,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   const [callMetrics, funnel, channels, series] = await Promise.all([
     getCallMetrics(business.id),
-    getReportsFunnel(business.id),
-    getChannelPerformance(business.id),
+    getReportsFunnel(business.id, days),
+    getChannelPerformance(business.id, days),
     getDailyCapturedVsWon(business.id, days),
   ]);
 
   const maxDaily = Math.max(1, ...series.map((d) => d.captured));
   const funnelSteps = [
-    { label: "Captured", value: funnel.captured },
+    { label: "Leads", value: funnel.captured },
     { label: "Qualified", value: funnel.qualified },
     { label: "Contacted", value: funnel.contacted },
     { label: "Won", value: funnel.won },
@@ -41,7 +41,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const maxFunnel = Math.max(1, funnel.captured);
   const biggestDropoff = (() => {
     const gaps = [
-      { label: "capture to qualify", pct: funnel.captured > 0 ? Math.round((funnel.qualified / funnel.captured) * 100) : 0 },
+      { label: "leads to qualified", pct: funnel.captured > 0 ? Math.round((funnel.qualified / funnel.captured) * 100) : 0 },
       { label: "qualify to contact", pct: funnel.qualified > 0 ? Math.round((funnel.contacted / funnel.qualified) * 100) : 0 },
       { label: "contact to won", pct: funnel.contacted > 0 ? Math.round((funnel.won / funnel.contacted) * 100) : 0 },
     ];
@@ -111,7 +111,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
         <Card>
           <CardHeader>
-            <CardTitle className="!text-base">Conversion funnel</CardTitle>
+            <div>
+              <CardTitle className="!text-base">Conversion funnel</CardTitle>
+              <p className="text-[11px] text-cv-muted mt-1">Leads captured in the last {days} days</p>
+            </div>
           </CardHeader>
           <CardBody className="flex flex-col gap-2.5">
             {funnelSteps.map((step, i) => (
@@ -136,7 +139,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle className="!text-base">Performance by channel</CardTitle>
+          <div>
+            <CardTitle className="!text-base">Performance by channel</CardTitle>
+            <p className="text-[11px] text-cv-muted mt-1">Leads captured in the last {days} days</p>
+          </div>
         </CardHeader>
         <CardBody className="flex flex-col">
           <div className="grid grid-cols-4 gap-2.5 py-1 text-cv-muted text-[10px] uppercase tracking-wide font-extrabold">

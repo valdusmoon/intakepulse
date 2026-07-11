@@ -7,6 +7,11 @@ export async function getHomeMetrics(businessId: string) {
   const now = new Date();
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  // The home "Conversion snapshot" is time-boxed to a recent window so it reflects
+  // current performance instead of an all-time ratio that never moves. (totalLeads
+  // stays all-time — it only gates the first-run activation checklist.)
+  const SNAPSHOT_WINDOW_DAYS = 90;
+  const snapshotSince = new Date(now.getTime() - SNAPSHOT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   const [row] = await db
     .select({
@@ -23,9 +28,12 @@ export async function getHomeMetrics(businessId: string) {
       avgCallbackSecondsLastMonth: sql<number | null>`avg(extract(epoch from (${leads.contactedAt} - ${leads.createdAt}))) filter (where ${leads.contactedAt} is not null and ${leads.contactedAt} >= ${startOfLastMonth.toISOString()} and ${leads.contactedAt} < ${startOfThisMonth.toISOString()})`,
 
       totalLeads: sql<number>`count(*)`,
-      contactedOrBeyond: sql<number>`count(*) filter (where ${leads.leadStatus} in ('contacted','booked','estimate_sent','converted'))`,
-      bookedOrBeyond: sql<number>`count(*) filter (where ${leads.leadStatus} in ('booked','estimate_sent','converted'))`,
-      convertedCount: sql<number>`count(*) filter (where ${leads.leadStatus} = 'converted')`,
+
+      // Time-boxed (last SNAPSHOT_WINDOW_DAYS) figures for the Conversion snapshot.
+      snapshotCaptured: sql<number>`count(*) filter (where ${leads.createdAt} >= ${snapshotSince.toISOString()})`,
+      snapshotContacted: sql<number>`count(*) filter (where ${leads.leadStatus} in ('contacted','booked','estimate_sent','converted') and ${leads.createdAt} >= ${snapshotSince.toISOString()})`,
+      snapshotBooked: sql<number>`count(*) filter (where ${leads.leadStatus} in ('booked','estimate_sent','converted') and ${leads.createdAt} >= ${snapshotSince.toISOString()})`,
+      snapshotConverted: sql<number>`count(*) filter (where ${leads.leadStatus} = 'converted' and ${leads.createdAt} >= ${snapshotSince.toISOString()})`,
     })
     .from(leads)
     .where(and(eq(leads.businessId, businessId), isNull(leads.deletedAt)));
@@ -47,9 +55,11 @@ export async function getHomeMetrics(businessId: string) {
     avgCallbackTrendSeconds:
       avgCallbackThisMonth != null && avgCallbackLastMonth != null ? avgCallbackThisMonth - avgCallbackLastMonth : null,
     totalLeads: n(row.totalLeads),
-    contactedOrBeyond: n(row.contactedOrBeyond),
-    bookedOrBeyond: n(row.bookedOrBeyond),
-    convertedCount: n(row.convertedCount),
+    snapshotWindowDays: SNAPSHOT_WINDOW_DAYS,
+    snapshotCaptured: n(row.snapshotCaptured),
+    snapshotContacted: n(row.snapshotContacted),
+    snapshotBooked: n(row.snapshotBooked),
+    snapshotConverted: n(row.snapshotConverted),
   };
 }
 
@@ -91,7 +101,8 @@ export async function getRecentCallsForActivity(businessId: string, limit = 5) {
   return db.select().from(calls).where(eq(calls.businessId, businessId)).orderBy(desc(calls.createdAt)).limit(limit);
 }
 
-export async function getReportsFunnel(businessId: string) {
+export async function getReportsFunnel(businessId: string, days?: number) {
+  const since = days ? new Date(Date.now() - days * 24 * 60 * 60 * 1000) : null;
   const [row] = await db
     .select({
       captured: sql<number>`count(*)`,
@@ -100,13 +111,20 @@ export async function getReportsFunnel(businessId: string) {
       won: sql<number>`count(*) filter (where ${leads.leadStatus} = 'converted')`,
     })
     .from(leads)
-    .where(and(eq(leads.businessId, businessId), isNull(leads.deletedAt)));
+    .where(
+      and(
+        eq(leads.businessId, businessId),
+        isNull(leads.deletedAt),
+        since ? sql`${leads.createdAt} >= ${since.toISOString()}` : undefined
+      )
+    );
 
   const n = (v: unknown) => Number(v ?? 0);
   return { captured: n(row.captured), qualified: n(row.qualified), contacted: n(row.contacted), won: n(row.won) };
 }
 
-export async function getChannelPerformance(businessId: string) {
+export async function getChannelPerformance(businessId: string, days?: number) {
+  const since = days ? new Date(Date.now() - days * 24 * 60 * 60 * 1000) : null;
   const rows = await db
     .select({
       source: leads.source,
@@ -115,7 +133,13 @@ export async function getChannelPerformance(businessId: string) {
       revenue: sql<number>`coalesce(sum(coalesce(${leads.confirmedValue}, (${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2)) filter (where ${leads.leadStatus} = 'converted'), 0)`,
     })
     .from(leads)
-    .where(and(eq(leads.businessId, businessId), isNull(leads.deletedAt)))
+    .where(
+      and(
+        eq(leads.businessId, businessId),
+        isNull(leads.deletedAt),
+        since ? sql`${leads.createdAt} >= ${since.toISOString()}` : undefined
+      )
+    )
     .groupBy(leads.source)
     .orderBy(desc(sql`count(*)`));
 

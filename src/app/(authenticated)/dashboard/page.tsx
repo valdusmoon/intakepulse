@@ -56,10 +56,12 @@ export default async function DashboardPage() {
   const showActivation = metrics.totalLeads === 0;
   const hasTestCall = recentCalls.length > 0;
 
-  const captured = metrics.totalLeads || 1; // guard div-by-zero
-  const contactedPct = Math.round((metrics.contactedOrBeyond / captured) * 100);
-  const bookedPct = metrics.contactedOrBeyond > 0 ? Math.round((metrics.bookedOrBeyond / metrics.contactedOrBeyond) * 100) : 0;
-  const wonPct = metrics.bookedOrBeyond > 0 ? Math.round((metrics.convertedCount / metrics.bookedOrBeyond) * 100) : 0;
+  // Conversion snapshot is time-boxed (last snapshotWindowDays) so it tracks
+  // current performance rather than a frozen all-time ratio.
+  const snapCaptured = metrics.snapshotCaptured || 1; // guard div-by-zero
+  const contactedPct = Math.round((metrics.snapshotContacted / snapCaptured) * 100);
+  const bookedPct = metrics.snapshotContacted > 0 ? Math.round((metrics.snapshotBooked / metrics.snapshotContacted) * 100) : 0;
+  const wonPct = metrics.snapshotBooked > 0 ? Math.round((metrics.snapshotConverted / metrics.snapshotBooked) * 100) : 0;
 
   // Recent activity feed — synthesized from recent leads + calls (no dedicated events table)
   type Activity = { key: string; icon: string; iconClass: string; title: string; body: string; time: Date };
@@ -278,9 +280,11 @@ export default async function DashboardPage() {
               </LinkButton>
             </CardHeader>
             <CardBody className="flex flex-col gap-[15px]">
-              <p className="text-[11px] text-cv-muted -mt-1">Reflects the statuses you set on leads.</p>
+              <p className="text-[11px] text-cv-muted -mt-1">
+                Last {metrics.snapshotWindowDays} days, from the statuses you set on leads.
+              </p>
               {[
-                { label: "Captured → contacted", pct: contactedPct },
+                { label: "Leads → contacted", pct: contactedPct },
                 { label: "Contacted → booked", pct: bookedPct },
                 { label: "Booked → won", pct: wonPct },
               ].map((row) => (

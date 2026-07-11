@@ -370,9 +370,22 @@ Decisions + not-yet-built items, from the conversion-mechanisms review.
    **release on cancel with a grace period** (hold through the access-until window
    / a few days so win-back keeps the number, then release). A2P 10DLC only needed
    if we send SMS.
-5. **Richer go-live / forwarding modal.** Current is text + the number + two
-   bullets. Upgrade: a simple phone->Callverted->AI diagram, carrier-specific exact
-   forwarding codes (ask carrier), and a "text me the steps" option.
-6. **Deeper metrics rework.** Beyond the honesty captions already shipped: unify
-   the "captured" definition across dashboard vs Reports, and time-box the home
-   Conversion snapshot (all-time today).
+5. **Richer go-live / forwarding modal. [DONE 2026-07-11]** `ActivationChecklist.tsx`
+   go-live modal now shows a 4-node routing diagram (caller -> you miss it ->
+   Callverted answers & qualifies -> you get a text), a carrier picker
+   (Verizon / AT&T / T-Mobile / Other) that builds the conditional-forwarding dial
+   code from the provisioned number, numbered steps, the deactivate code, and a
+   "copy these steps" clipboard button. ("Text me the steps" downgraded to on-screen
+   copy for now — SMS to owner is a later add.) The "list the number directly"
+   fallback is kept below the forwarding steps.
+6. **Deeper metrics rework. [DONE 2026-07-11]** Home Conversion snapshot is now
+   time-boxed to the last 90 days: `getHomeMetrics` returns `snapshotWindowDays` +
+   `snapshotCaptured/Contacted/Booked/Converted` (createdAt within window) and the
+   all-time `contactedOrBeyond/bookedOrBeyond/convertedCount` fields were removed.
+   Snapshot bars relabeled "Leads -> contacted" with a "Last 90 days, from the
+   statuses you set on leads" caption. Reports `getReportsFunnel` /
+   `getChannelPerformance` now honor the range selector (they ignored `days`
+   before), the funnel first step reads "Leads" (was "Captured"), the dropoff label
+   reads "leads to qualified", and both cards note "last {days} days". Remaining
+   (not blocking): a single shared "captured" definition helper across the two
+   surfaces if they drift further.

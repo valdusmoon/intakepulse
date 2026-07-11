@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardBody, Icon } from "@/components/dashboard/v2/primitives";
@@ -10,6 +10,28 @@ function fmtNumber(e164: string | null) {
   const m = e164.match(/^\+1(\d{3})(\d{3})(\d{4})$/);
   return m ? `(${m[1]}) ${m[2]}-${m[3]}` : e164;
 }
+
+// 10-digit national number, used to build the carrier dial codes.
+function nationalDigits(e164: string | null) {
+  const m = e164?.match(/^\+1(\d{10})$/);
+  return m ? m[1] : (e164 ?? "").replace(/\D/g, "");
+}
+
+// Conditional-call-forwarding (forward-on-no-answer/busy) codes for the major US
+// carriers. These leave the phone ringing on the owner's end first and only send
+// unanswered/busy calls to Callverted, so it never hijacks calls they can take.
+// Codes do vary by plan/region, hence the caveat + "book a call" escape in the UI.
+const CARRIERS: {
+  id: string;
+  name: string;
+  activate: (n: string) => string;
+  deactivate: string;
+}[] = [
+  { id: "verizon", name: "Verizon", activate: (n) => `*71${n}`, deactivate: "*73" },
+  { id: "att", name: "AT&T", activate: (n) => `*004*${n}#`, deactivate: "##004#" },
+  { id: "tmobile", name: "T-Mobile", activate: (n) => `**004*${n}#`, deactivate: "##004#" },
+  { id: "other", name: "Other / GSM", activate: (n) => `**004*${n}#`, deactivate: "##004#" },
+];
 
 /**
  * First-run activation checklist. Replaces the wall-of-zeros for a brand-new
@@ -35,6 +57,36 @@ export function ActivationChecklist({
   const router = useRouter();
   const [showGoLive, setShowGoLive] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [carrierId, setCarrierId] = useState("verizon");
+  const [copied, setCopied] = useState(false);
+
+  const carrier = CARRIERS.find((c) => c.id === carrierId) ?? CARRIERS[0];
+  const dialDigits = nationalDigits(callvertedNumber);
+  const activateCode = carrier.activate(dialDigits);
+
+  const stepsText = useMemo(
+    () =>
+      [
+        `Get your line live on ${carrier.name}:`,
+        `1. Open your phone's dialer.`,
+        `2. Dial ${activateCode} and press call.`,
+        `3. Wait for the confirmation tone, then hang up.`,
+        ``,
+        `Missed and busy calls now route to Callverted at ${fmtNumber(callvertedNumber)}.`,
+        `To turn it off later, dial ${carrier.deactivate}.`,
+      ].join("\n"),
+    [carrier, activateCode, callvertedNumber]
+  );
+
+  async function copySteps() {
+    try {
+      await navigator.clipboard.writeText(stepsText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard blocked (insecure context / permissions) — no-op, the steps are on screen.
+    }
+  }
 
   const steps = [
     { key: "test", done: hasTestCall },
@@ -136,28 +188,96 @@ export function ActivationChecklist({
               overflow calls for good.
             </p>
 
+            {/* Routing diagram: caller -> missed -> Callverted -> text back to owner */}
+            <div className="mt-4 rounded-xl bg-cv-surface-blue border border-[#dce5ff] p-4">
+              <div className="flex items-stretch justify-between gap-1.5 text-center">
+                {[
+                  { icon: "call", label: "Caller rings your line", tint: "text-cv-ink" },
+                  { icon: "phone_missed", label: "You can't pick up", tint: "text-cv-muted" },
+                  { icon: "bolt", label: "Callverted answers & qualifies", tint: "text-cv-primary" },
+                  { icon: "sms", label: "You get a ready lead", tint: "text-cv-green" },
+                ].map((node, i, arr) => (
+                  <div key={node.label} className="flex items-center gap-1.5 flex-1">
+                    <div className="flex flex-1 flex-col items-center gap-1.5">
+                      <div className="grid h-9 w-9 place-items-center rounded-full bg-white shadow-cv-sm">
+                        <Icon name={node.icon} className={`!text-[19px] ${node.tint}`} />
+                      </div>
+                      <p className="text-[10px] leading-tight text-cv-muted">{node.label}</p>
+                    </div>
+                    {i < arr.length - 1 && (
+                      <Icon name="arrow_forward" className="!text-[15px] text-cv-primary/50 shrink-0 self-start mt-2.5" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-4 rounded-xl bg-cv-surface-blue border border-[#dce5ff] p-4 text-center">
               <p className="text-[11px] font-bold uppercase tracking-wide text-cv-primary">Your Callverted number</p>
               <p className="font-cv-heading text-2xl font-bold text-cv-ink mt-1">{fmtNumber(callvertedNumber)}</p>
             </div>
 
-            <div className="mt-4 space-y-2.5 text-sm text-cv-ink">
-              <p className="font-bold">Two easy ways to route calls to it:</p>
-              <div className="flex items-start gap-2.5">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-cv-primary" />
-                <p className="text-cv-muted">
-                  <span className="font-semibold text-cv-ink">Forward missed calls.</span> Set your business phone to
-                  forward on no-answer or busy to the number above. Most carriers use a short code (often *71 or *61
-                  followed by the number and #); the exact code varies by carrier.
-                </p>
+            {/* Carrier-specific conditional-forwarding walkthrough */}
+            <div className="mt-4">
+              <p className="text-sm font-bold text-cv-ink">Forward the calls you miss</p>
+              <p className="text-xs text-cv-muted mt-0.5">
+                This rings your phone first and only sends unanswered or busy calls to Callverted. Pick your carrier:
+              </p>
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {CARRIERS.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setCarrierId(c.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                      c.id === carrierId
+                        ? "bg-cv-primary text-white"
+                        : "border border-cv-border text-cv-ink hover:bg-cv-surface-subtle"
+                    }`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
               </div>
-              <div className="flex items-start gap-2.5">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-cv-primary" />
-                <p className="text-cv-muted">
-                  <span className="font-semibold text-cv-ink">Or list it directly.</span> Show the number above on your
-                  Google Business Profile, website, and social profiles so calls reach Callverted from the start.
+
+              <div className="mt-3 rounded-xl border border-cv-border bg-cv-surface-subtle p-3.5">
+                <ol className="space-y-1.5 text-sm text-cv-ink">
+                  <li className="flex gap-2">
+                    <span className="font-bold text-cv-primary">1.</span> Open your phone's dialer.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-cv-primary">2.</span>
+                    <span>
+                      Dial{" "}
+                      <code className="rounded bg-white border border-cv-border px-1.5 py-0.5 font-cv-mono text-[13px] font-bold text-cv-primary-dark">
+                        {activateCode}
+                      </code>{" "}
+                      and press call.
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-cv-primary">3.</span> Wait for the confirmation tone, then hang up.
+                  </li>
+                </ol>
+                <p className="mt-2.5 text-[11px] text-cv-muted">
+                  To turn it off later, dial{" "}
+                  <code className="font-cv-mono font-bold">{carrier.deactivate}</code>. Codes can vary by plan, so if it
+                  does not take, we will set it up with you.
                 </p>
+                <button
+                  type="button"
+                  onClick={copySteps}
+                  className="mt-3 flex items-center gap-1.5 text-xs font-bold text-cv-primary hover:underline"
+                >
+                  <Icon name={copied ? "check" : "content_copy"} className="!text-[15px]" />
+                  {copied ? "Copied" : "Copy these steps"}
+                </button>
               </div>
+
+              <p className="mt-3 text-xs text-cv-muted">
+                <span className="font-semibold text-cv-ink">Prefer not to forward?</span> List the number above on your
+                Google Business Profile, website, and socials so calls reach Callverted from the start.
+              </p>
             </div>
 
             {assistedUrl && (
