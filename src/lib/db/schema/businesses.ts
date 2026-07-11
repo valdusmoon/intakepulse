@@ -69,6 +69,12 @@ export const businesses = pgTable("businesses", {
   // Emergency kill switch for this tenant only — blocks all inbound call handling
   isPaused: boolean("is_paused").notNull().default(false),
 
+  // Activation: the owner has confirmed they set up call forwarding from their
+  // real/GBP number to their Callverted number. This is the true "went live"
+  // signal — it can't be auto-detected (carrier-level, external), so the owner
+  // self-confirms it. Drives the "Get your line live" activation-checklist step.
+  forwardingConfirmed: boolean("forwarding_confirmed").notNull().default(false),
+
   notificationPreferences: jsonb("notification_preferences")
     .$type<BusinessNotificationPreferences>()
     .notNull()

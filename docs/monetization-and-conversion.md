@@ -14,8 +14,10 @@ fully work in prod:
   `0021_lifecycle_email_tracking.sql` (email-capture table + lifecycle tracking
   columns). NOT yet applied to any DB.
 - **Env vars:** `CRON_SECRET` (guards `/api/cron/daily`), `ADMIN_CLERK_USER_IDS`
-  (comma-separated Clerk ids for the `/admin` console). `CRON_SECRET` is set in
-  local `.env.local`; still needs setting in the deploy environment.
+  (comma-separated Clerk ids for the `/admin` console), and
+  `NEXT_PUBLIC_ASSISTED_ONBOARDING_URL` (Cal.com/Calendly link for the "Book a
+  setup call" CTA; the CTA is hidden until it is set). `CRON_SECRET` is set in
+  local `.env.local`; the rest still need setting in the deploy environment.
 - **TODO (scheduling):** Vercel cron will NOT be used. The trial/activation/
   win-back/monthly scans already run as Inngest crons, but the `/api/cron/daily`
   followups drain is still Vercel-cron-shaped. Move it to an Inngest scheduled

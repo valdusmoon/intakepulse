@@ -1,4 +1,5 @@
 import { emailClient } from "./email-client";
+import { logger } from "@/lib/logger";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -59,7 +60,13 @@ interface SignupNotificationParams {
 }
 
 export async function sendSignupNotification({ businessName, ownerName, ownerEmail, ownerPhone }: SignupNotificationParams) {
-  if (!NOTIFY_EMAIL) return;
+  // Operator signup alert — treated as important, so make silence observable:
+  // log (don't just return) when it can't be delivered, so a missing NOTIFY_EMAIL
+  // or a send failure leaves a trace instead of vanishing.
+  if (!NOTIFY_EMAIL) {
+    logger.warn("Signup alert skipped: NOTIFY_EMAIL not set", { businessName });
+    return;
+  }
 
   const now = new Date().toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" });
 
@@ -90,8 +97,10 @@ export async function sendSignupNotification({ businessName, ownerName, ownerEma
       subject: `New signup: ${businessName}`,
       html,
     });
-  } catch {
-    // fire-and-forget — never block onboarding
+  } catch (error) {
+    // fire-and-forget — never block onboarding, but log so a failed signup
+    // alert is visible rather than silently lost.
+    logger.error("Signup alert failed to send", { businessName, error: String(error) });
   }
 }
 

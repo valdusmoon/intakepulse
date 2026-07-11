@@ -62,3 +62,6 @@ craftcapture/
 saas-starter-main/
 nextjs-subscription-payments-main/
 .env*
+
+# Local-only app screenshots (never commit)
+screenshots/

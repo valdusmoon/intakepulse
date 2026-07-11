@@ -466,6 +466,7 @@ function Step3Payment({
 // ─── Step 5: Done ─────────────────────────────────────────────────────────────
 
 function Step5Done({ router }: { router: ReturnType<typeof useRouter> }) {
+  const assistedUrl = process.env.NEXT_PUBLIC_ASSISTED_ONBOARDING_URL;
   return (
     <div className="text-center">
       <div className="w-16 h-16 rounded-full bg-cv-green-soft flex items-center justify-center mx-auto mb-6">
@@ -473,7 +474,8 @@ function Step5Done({ router }: { router: ReturnType<typeof useRouter> }) {
       </div>
       <h1 className="font-cv-heading text-2xl font-bold text-cv-ink mb-2">You&apos;re all set!</h1>
       <p className="text-sm text-cv-muted mb-8 max-w-sm mx-auto">
-        Your number and trial are active (test mode) — start testing the full call flow from your dashboard.
+        Your number and trial are active (test mode). Next, from your dashboard, make a test call and forward your
+        missed calls to go fully live.
       </p>
 
       <button
@@ -482,6 +484,17 @@ function Step5Done({ router }: { router: ReturnType<typeof useRouter> }) {
       >
         Go to dashboard <ArrowRight className="w-4 h-4" />
       </button>
+
+      {assistedUrl && (
+        <a
+          href={assistedUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-block text-sm font-semibold text-cv-primary hover:underline"
+        >
+          Rather have us set it up with you? Book a 15 min call
+        </a>
+      )}
     </div>
   );
 }
