@@ -15,6 +15,8 @@ import { priorityMeta, intentMeta, initials, timeAgoShort, fmtCents, fmtValueRan
 import { Card, CardHeader, CardTitle, CardBody, Badge, StatusPill, MetricCard, Trend, Icon, LinkButton } from "@/components/dashboard/v2/primitives";
 import { hasPaymentOnFile } from "@/lib/subscription";
 import { ActivationChecklist } from "@/components/dashboard/ActivationChecklist";
+import { ExampleLead } from "@/components/dashboard/ExampleLead";
+import { DashboardTour } from "@/components/dashboard/DashboardTour";
 
 function fmtDuration(seconds: number) {
   if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -154,16 +156,18 @@ export default async function DashboardPage() {
       </div>
 
       {showActivation && (
-        <ActivationChecklist
-          hasTestCall={hasTestCall}
-          numberPublished={business.numberPublished}
-          widgetInstalled={widgetInstalled}
-          callvertedNumber={business.twilioPhoneNumber}
-          assistedUrl={process.env.NEXT_PUBLIC_ASSISTED_ONBOARDING_URL ?? null}
-        />
+        <div id="cv-tour-activation">
+          <ActivationChecklist
+            hasTestCall={hasTestCall}
+            numberPublished={business.numberPublished}
+            widgetInstalled={widgetInstalled}
+            callvertedNumber={business.twilioPhoneNumber}
+            assistedUrl={process.env.NEXT_PUBLIC_ASSISTED_ONBOARDING_URL ?? null}
+          />
+        </div>
       )}
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-4">
+      <section id="cv-tour-metrics" className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-4">
         <MetricCard
           label="Captured opportunity value"
           value={fmtCents(metrics.capturedValueThisMonth) ?? "$0"}
@@ -222,7 +226,9 @@ export default async function DashboardPage() {
             </LinkButton>
           </CardHeader>
           <div className="flex flex-col">
-            {priorityLeads.length === 0 ? (
+            {showActivation ? (
+              <ExampleLead />
+            ) : priorityLeads.length === 0 ? (
               <div className="px-5 py-10 text-center text-sm text-cv-muted">
                 No leads waiting on a callback right now.
               </div>
@@ -336,6 +342,8 @@ export default async function DashboardPage() {
           </Card>
         </div>
       </section>
+
+      {showActivation && <DashboardTour />}
     </div>
   );
 }

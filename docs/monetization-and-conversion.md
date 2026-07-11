@@ -16,7 +16,8 @@ snapshot + range-aware Reports).
 
 **DB migrations — all applied to BOTH local dev Postgres and Supabase prod:**
 `0020_add_email_captures.sql`, `0021_lifecycle_email_tracking.sql`,
-`0022_add_forwarding_confirmed.sql`, `0023_rename_forwarding_confirmed_to_number_published.sql`.
+`0022_add_forwarding_confirmed.sql`, `0023_rename_forwarding_confirmed_to_number_published.sql`,
+`0024_add_email_suppressions.sql`.
 
 **Env vars:**
 - `CRON_SECRET` (guards `/api/cron/daily`) — set in local `.env.local`.
@@ -25,6 +26,11 @@ snapshot + range-aware Reports).
   `NEXT_PUBLIC_ASSISTED_ONBOARDING_URL` (Cal.com/Calendly link for the "Book a
   setup call" CTA — the CTA is hidden until it is set), and `FOUNDER_NAME`
   (personalizes the ROI-capture email signoff; falls back to "the Callverted team").
+- CAN-SPAM (before enabling real marketing sends): `COMPANY_POSTAL_ADDRESS`
+  (REQUIRED real mailing address — footer shows a loud placeholder until set),
+  and optionally `UNSUBSCRIBE_TOKEN_SECRET` (falls back to `CRON_SECRET`),
+  `COMPANY_NAME` (defaults "Callverted"), `UNSUBSCRIBE_MAILBOX` (defaults
+  unsubscribe@callverted.com).
 
 **TODO (scheduling):** Vercel cron will NOT be used. The trial/activation/
 win-back/monthly scans already run as Inngest crons, but the `/api/cron/daily`
@@ -350,16 +356,25 @@ Decisions + not-yet-built items, from the conversion-mechanisms review.
   forwarded caller hits a dead end). NOT switching to forward-to-their-line.
 
 **Queued builds (roughly in priority order):**
-0. **CAN-SPAM / email unsubscribe (BLOCKER for any marketing email).** Captures
-   live in `email_captures` (separate from `leads`). We send via
-   `resend.emails.send`, which does NOT add unsubscribe (only Resend Broadcasts
-   do). Before switching on the ROI drip / win-back / monthly recap, build:
-   (a) `unsubscribed_at` + a signed token on `email_captures`, a public
-   `/api/unsubscribe` route, and suppression of marketing sends to opt-outs;
-   (b) a valid physical postal address in marketing footers (OWNER must provide);
-   (c) `List-Unsubscribe` + `List-Unsubscribe-Post` one-click headers. Scope to
-   COMMERCIAL email only (ROI capture+drip, win-back, monthly recap) — transactional
-   email (lead packet, receipt, dunning, trial-ending, welcome) is exempt.
+0. **CAN-SPAM / email unsubscribe. [DONE 2026-07-11]** Design note: opt-out is a
+   standalone `email_suppressions` table keyed by lowercased email (migration 0024,
+   applied local + prod), NOT a column on `email_captures` as originally sketched,
+   because marketing recipients span both prospects (`email_captures`) and signed-up
+   owners (`businesses.owner_email`), so suppression must be address-keyed across
+   both. Shipped: `signUnsubscribeToken` / `verifyUnsubscribeToken` (HMAC, non-
+   expiring, in `src/lib/email/unsubscribe.ts`), a public `GET/POST /api/unsubscribe`
+   route (GET = footer link + confirmation page, POST = RFC 8058 one-click), a
+   marketing footer (unsubscribe link + physical address), and `List-Unsubscribe` +
+   `List-Unsubscribe-Post` headers. Enforcement lives in the email client:
+   `emailClient.sendMarketing` / `batchSendMarketing` consult the suppression list,
+   inject the footer, and set the headers; the three COMMERCIAL senders
+   (`sendMissedCallBreakdownEmail`, `sendWinbackEmail`, `sendMonthlyRoiRecapEmail`,
+   plus the future ROI drip) now route through them. Transactional email (lead
+   packet, receipt, dunning, trial-ending, welcome) still uses plain `send` and is
+   exempt. **OWNER ACTION before enabling real marketing sends:** set
+   `COMPANY_POSTAL_ADDRESS` (real mailing address; footer shows a loud placeholder
+   until then), optionally `UNSUBSCRIBE_TOKEN_SECRET` (falls back to `CRON_SECRET`),
+   `COMPANY_NAME`, and `UNSUBSCRIBE_MAILBOX`.
 1. **ROI capture drip (2-3 emails).** The single capture email is now proper
    (personal, brand-blue, email-safe "your math" visual, `FOUNDER_NAME` signoff).
    Next: a short nurture after it (day 0 breakdown -> day 2 "first responder wins"
@@ -369,10 +384,15 @@ Decisions + not-yet-built items, from the conversion-mechanisms review.
    as its own sequence: decide Model A (card during onboarding) vs Model B (let
    them into the app, gate the card at go-live). Note: Model B is double-edged —
    free roaming can reduce urgency to pay. Tie to the real-Stripe flip.
-3. **Guided first-run walkthrough.** Beyond the checklist: an animated,
-   popup-diagram style product tour over the (zero-state) dashboard, like these
-   SaaS onboarding flows use. Plus a single labeled **sample lead** ("Example, this
-   is what a captured lead looks like") seeded until the first real lead lands.
+3. **Guided first-run walkthrough. [DONE 2026-07-11]** `DashboardTour.tsx` — a
+   custom (no new deps) 4-step coach-mark tour over the zero-state dashboard:
+   spotlight cutout, anchored popover (flips/clamps to viewport), step dots +
+   counter, Back/Next/Got it, Esc/arrow keys, auto-shows once, remembers dismissal
+   in `localStorage` (`cv_dashboard_tour_done`), with a subtle "Take the tour"
+   reopen pill. Plus `ExampleLead.tsx` — a single clearly-labeled synthetic sample
+   lead in the Priority queue (dashed/muted, "Example" pill, non-navigating, inline
+   explainer) rendered only while `totalLeads === 0`. Both gated behind the
+   existing zero-state condition in `dashboard/page.tsx`.
 4. **Twilio number lifecycle.** Numbers are a recurring ~$1/mo charge and Twilio
    never auto-releases them. Build: provision the real number only AFTER payment;
    **release on cancel with a grace period** (hold through the access-until window
