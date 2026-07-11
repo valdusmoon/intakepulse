@@ -23,17 +23,17 @@ export default function AboutPage() {
         <div className="space-y-5 text-[#475467] leading-relaxed text-[17px]">
           <p>
             Callverted started from a simple, expensive observation: home-service businesses win or lose jobs on the
-            phone, and the most valuable calls arrive exactly when no one can answer them — nights, weekends, and the
+            phone, and the most valuable calls arrive exactly when no one can answer them: nights, weekends, and the
             middle of a job.
           </p>
           <p>
             A homeowner with a flooding basement or a dead furnace doesn&apos;t leave a voicemail. They call the next
-            company on the list. For a plumber, an HVAC company, or a restoration crew, that&apos;s not a missed call —
+            company on the list. For a plumber, an HVAC company, or a restoration crew, that&apos;s not a missed call,
             it&apos;s a four- or five-figure job handed to a competitor, plus the referrals that would have followed.
           </p>
           <p>
             So we built an AI that answers the calls your team can&apos;t. Not an open-ended chatbot pretending to be a
-            receptionist — a rigid, trade-specific intake that asks the questions that actually decide the job, estimates
+            receptionist. It&apos;s a rigid, trade-specific intake that asks the questions that actually decide the job, estimates
             its value, reassures the caller, and hands you a ranked, callback-ready lead within minutes.
           </p>
           <p>
@@ -50,7 +50,7 @@ export default function AboutPage() {
           <h2 className="font-cv-heading text-2xl font-bold mb-6">What we believe</h2>
           <ul className="space-y-4 text-[#475467] leading-relaxed">
             {[
-              "Speed wins. The first business to answer usually gets the job — so the calls you can't take still need a fast, capable answer.",
+              "Speed wins. The first business to answer usually gets the job, so the calls you can't take still need a fast, capable answer.",
               "Your team comes first. Callverted only steps in when a call would otherwise be missed. It never gets between you and a customer you can serve.",
               "No invented prices. Caller-facing guidance only comes from ranges you approve. When in doubt, it says your team will confirm.",
               "A lead, not a message. You should hang up knowing who called, what they need, how urgent it is, and what it's worth.",

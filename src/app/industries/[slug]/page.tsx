@@ -79,7 +79,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
       {/* Scenario + capture */}
       <section className="px-6 py-16 max-w-4xl mx-auto">
         <h2 className="font-cv-heading text-2xl font-bold mb-2 text-center">A real call, captured</h2>
-        <p className="text-[#667085] text-center mb-8 max-w-xl mx-auto">Here&apos;s the kind of call your team can&apos;t always take — and exactly what Callverted hands you afterward.</p>
+        <p className="text-[#667085] text-center mb-8 max-w-xl mx-auto">Here&apos;s the kind of call your team can&apos;t always take, and exactly what Callverted hands you afterward.</p>
         <div className="grid gap-4 md:grid-cols-2 items-start">
           <div className="rounded-2xl border border-[#e3e7ed] bg-white p-6">
             <div className="text-[11px] font-cv-mono uppercase tracking-wide text-[#98a2b3] mb-3">{industry.scenario.time}</div>
@@ -90,7 +90,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
             </div>
             <div className="flex justify-start">
               <div className="rounded-2xl rounded-bl-sm bg-[#f2f4f7] text-[#475467] px-4 py-3 text-sm">
-                Answered live by Callverted — no voicemail.
+                Answered live by Callverted. No voicemail.
               </div>
             </div>
           </div>
@@ -112,7 +112,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
       <section className="px-6 py-14 bg-white border-y border-[#e3e7ed]">
         <div className="max-w-4xl mx-auto">
           <h2 className="font-cv-heading text-2xl font-bold mb-2">What Callverted asks on a {industry.name} call</h2>
-          <p className="text-[#667085] mb-6 max-w-2xl">A rigid, {industry.name.toLowerCase()}-specific intake — it collects only what matters, then stops. No rambling AI receptionist.</p>
+          <p className="text-[#667085] mb-6 max-w-2xl">A rigid, {industry.name.toLowerCase()}-specific intake. It collects only what matters, then stops. No rambling AI receptionist.</p>
           <ol className="space-y-3">
             {industry.asks.map((a, i) => (
               <li key={i} className="flex items-start gap-3">

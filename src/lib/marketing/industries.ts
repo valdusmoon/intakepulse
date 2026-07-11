@@ -49,15 +49,15 @@ export const INDUSTRIES: Industry[] = [
     heroSub:
       "When a furnace dies at 2 AM or an AC quits in a heat wave, homeowners call the next number the second they hit voicemail. Callverted answers the calls your techs can't, qualifies the job, and texts you a ranked lead before the caller gives up.",
     painPoints: [
-      "Emergency HVAC calls spike exactly when your team is on a job or asleep — nights, weekends, the first cold snap.",
+      "Emergency HVAC calls spike exactly when your team is on a job or asleep: nights, weekends, the first cold snap.",
       "A no-heat homeowner with kids at home won't leave a voicemail; they dial down the list until someone picks up.",
       "Every missed after-hours call is a $300 repair or a $9,000 system replacement handed to a competitor.",
     ],
     scenario: {
       time: "2:47 AM · February",
-      caller: "Our furnace just died and it's freezing in here — we've got kids in the house.",
+      caller: "Our furnace just died and it's freezing in here. We've got kids in the house.",
       captured: [
-        { label: "Service", value: "Heating — no heat" },
+        { label: "Service", value: "Heating: no heat" },
         { label: "Urgency", value: "Emergency" },
         { label: "Occupancy", value: "Kids at home" },
         { label: "System age", value: "~10 years" },
@@ -65,8 +65,8 @@ export const INDUSTRIES: Industry[] = [
       ],
     },
     asks: [
-      "What do you need help with — no cooling, no heat, a replacement, ductwork, or a thermostat?",
-      "How urgent is it — an emergency, soon, or whenever's convenient?",
+      "What do you need help with: no cooling, no heat, a replacement, ductwork, or a thermostat?",
+      "How urgent is it: an emergency, soon, or whenever's convenient?",
       "When did it start?",
       "Is it covered by a home warranty or financing, or out of pocket?",
       "ZIP code and the best callback number.",
@@ -75,11 +75,11 @@ export const INDUSTRIES: Industry[] = [
     faqs: [
       {
         q: "Does Callverted replace my HVAC answering service?",
-        a: "It can. Callverted answers live, runs a real intake, and scores the lead — where a traditional answering service just takes a message. Your techs still get the first ring; Callverted only steps in when the call would have gone to voicemail.",
+        a: "It can. Callverted answers live, runs a real intake, and scores the lead, where a traditional answering service just takes a message. Your techs still get the first ring; Callverted only steps in when the call would have gone to voicemail.",
       },
       {
         q: "Can it tell an emergency no-heat call from a routine tune-up?",
-        a: "Yes. It asks urgency and service type up front, tags true emergencies, and can warm-transfer to your on-call tech if you enable that — so a frozen-pipe risk doesn't sit in a queue behind a filter change.",
+        a: "Yes. It asks urgency and service type up front, tags true emergencies, and can warm-transfer to your on-call tech if you enable that, so a frozen-pipe risk doesn't sit in a queue behind a filter change.",
       },
       {
         q: "Will it quote HVAC prices to my customers?",
@@ -98,25 +98,25 @@ export const INDUSTRIES: Industry[] = [
       "Burst pipes and sewage backups don't wait for business hours. Callverted answers the plumbing calls you miss, qualifies the emergency, and sends a callback-ready lead fast.",
     h1: "The burst-pipe call you missed is flooding someone else's schedule.",
     heroSub:
-      "A flooding basement is the most urgent call a homeowner ever makes — and the least patient. Callverted answers the plumbing calls your crew can't, separates the true emergencies from the drips, and gets you the lead while the water's still running.",
+      "A flooding basement is the most urgent call a homeowner ever makes, and the least patient. Callverted answers the plumbing calls your crew can't, separates the true emergencies from the drips, and gets you the lead while the water's still running.",
     painPoints: [
-      "Plumbing emergencies are 100% unscheduled — a burst pipe at midnight is a job you either catch in five minutes or lose entirely.",
+      "Plumbing emergencies are 100% unscheduled. A burst pipe at midnight is a job you either catch in five minutes or lose entirely.",
       "Water damage compounds by the minute, so the caller will not wait on hold or leave a message.",
       "A missed burst-pipe or sewer-line call is a four-figure job gone, plus the restoration referral that would've followed.",
     ],
     scenario: {
       time: "11:20 PM · Sunday",
-      caller: "My basement is flooding from a burst pipe under the kitchen — it's spreading fast.",
+      caller: "My basement is flooding from a burst pipe under the kitchen. It's spreading fast.",
       captured: [
         { label: "Service", value: "Burst pipe / emergency" },
         { label: "Urgency", value: "Emergency" },
-        { label: "Water spreading", value: "Yes — active" },
+        { label: "Water spreading", value: "Yes, active" },
         { label: "Rooms affected", value: "2+" },
         { label: "Est. value", value: "$400–$4k+" },
       ],
     },
     asks: [
-      "What's going on — a clog, a leak, water heater, burst pipe, or sewer line?",
+      "What's going on: a clog, a leak, water heater, burst pipe, or sewer line?",
       "How urgent is it right now?",
       "When did it start?",
       "Is it covered by insurance or a warranty, or out of pocket?",
@@ -126,15 +126,15 @@ export const INDUSTRIES: Industry[] = [
     faqs: [
       {
         q: "Can Callverted handle after-hours plumbing emergencies?",
-        a: "That's the point. It answers 24/7, flags a burst pipe or sewer backup as an emergency, and can warm-transfer to your on-call plumber immediately if you turn that on — so the most valuable calls never hit voicemail.",
+        a: "That's the point. It answers 24/7, flags a burst pipe or sewer backup as an emergency, and can warm-transfer to your on-call plumber immediately if you turn that on, so the most valuable calls never hit voicemail.",
       },
       {
         q: "How is this different from a missed-call text-back?",
-        a: "A text-back asks a panicking homeowner with a flooding basement to stop and reply to a text. Callverted answers the call live, runs the intake, and hands you a scored lead — no waiting on the caller to text you back.",
+        a: "A text-back asks a panicking homeowner with a flooding basement to stop and reply to a text. Callverted answers the call live, runs the intake, and hands you a scored lead, with no waiting on the caller to text you back.",
       },
       {
         q: "Does it pass along enough detail to dispatch?",
-        a: "Yes — service type, urgency, whether water is actively spreading, rooms affected, ZIP, and callback number, plus a full transcript, so whoever calls back already knows the job.",
+        a: "Yes: service type, urgency, whether water is actively spreading, rooms affected, ZIP, and callback number, plus a full transcript, so whoever calls back already knows the job.",
       },
     ],
     related: ["restoration", "hvac", "electrical"],
@@ -151,13 +151,13 @@ export const INDUSTRIES: Industry[] = [
     heroSub:
       "Water and fire damage are emergencies measured in minutes, and the homeowner is calling every company on the search results. Callverted answers the restoration calls your crew can't, captures the cause and rooms affected, and gets you the lead before the next franchise does.",
     painPoints: [
-      "Restoration is a first-responder business — the company that answers first usually wins the whole job.",
+      "Restoration is a first-responder business. The company that answers first usually wins the whole job.",
       "Insured losses are high-value, and a homeowner in crisis has no patience for voicemail.",
       "One missed water-damage call is a five-figure mitigation-plus-rebuild job routed straight to a competitor.",
     ],
     scenario: {
       time: "6:10 AM · Weekday",
-      caller: "There's water everywhere from a burst dishwasher line — it's already in three rooms.",
+      caller: "There's water everywhere from a burst dishwasher line. It's already in three rooms.",
       captured: [
         { label: "Service", value: "Water damage" },
         { label: "Urgency", value: "Emergency" },
@@ -167,7 +167,7 @@ export const INDUSTRIES: Industry[] = [
       ],
     },
     asks: [
-      "What type of damage — water, fire or smoke, or mold?",
+      "What type of damage: water, fire or smoke, or mold?",
       "How urgent is it?",
       "What caused it, and how many rooms are affected?",
       "Is it covered by insurance, or out of pocket?",
@@ -200,9 +200,9 @@ export const INDUSTRIES: Industry[] = [
       "No power and sparking-panel calls are urgent and high-value. Callverted answers the electrical calls you miss, qualifies the job, and sends a callback-ready lead fast.",
     h1: "The no-power call you missed didn't wait for a callback.",
     heroSub:
-      "A dead panel or a sparking outlet is a safety emergency, and homeowners treat it that way — they call until someone answers. Callverted picks up the electrical calls your crew can't, flags the true emergencies, and sends you a scored lead in minutes.",
+      "A dead panel or a sparking outlet is a safety emergency, and homeowners treat it that way. They call until someone answers. Callverted picks up the electrical calls your crew can't, flags the true emergencies, and sends you a scored lead in minutes.",
     painPoints: [
-      "No-power and sparking calls are safety emergencies — the homeowner will not sit in voicemail.",
+      "No-power and sparking calls are safety emergencies. The homeowner will not sit in voicemail.",
       "Electrical work ranges from a $200 outlet to a $4,000 panel upgrade or EV-charger install; missing the call misses the whole spread.",
       "After-hours and storm-season calls cluster exactly when your electricians are unreachable.",
     ],
@@ -210,7 +210,7 @@ export const INDUSTRIES: Industry[] = [
       time: "9:40 PM · Storm night",
       caller: "Half the house lost power and there's a burning smell near the panel.",
       captured: [
-        { label: "Service", value: "No power / sparking — emergency" },
+        { label: "Service", value: "No power / sparking (emergency)" },
         { label: "Urgency", value: "Emergency" },
         { label: "Safety flag", value: "Burning smell" },
         { label: "Scope", value: "Panel-related" },
@@ -218,7 +218,7 @@ export const INDUSTRIES: Industry[] = [
       ],
     },
     asks: [
-      "What's happening — an outlet or switch, a panel upgrade, EV charger, rewiring, or no power?",
+      "What's happening: an outlet or switch, a panel upgrade, EV charger, rewiring, or no power?",
       "How urgent is it?",
       "When did it start?",
       "Is it covered by a warranty or financing, or out of pocket?",
@@ -232,11 +232,11 @@ export const INDUSTRIES: Industry[] = [
       },
       {
         q: "Does it handle both service calls and big installs?",
-        a: "It qualifies either — a quick outlet fix or a panel upgrade or EV-charger install — and puts the estimated value on the lead so you know which callbacks are worth prioritizing.",
+        a: "It qualifies either kind (a quick outlet fix, a panel upgrade, or an EV-charger install) and puts the estimated value on the lead so you know which callbacks are worth prioritizing.",
       },
       {
         q: "Will it give the customer a price?",
-        a: "Only a range you've approved for that job type. Otherwise it says your team will confirm pricing — it never invents a quote.",
+        a: "Only a range you've approved for that job type. Otherwise it says your team will confirm pricing. It never invents a quote.",
       },
     ],
     related: ["hvac", "plumbing", "general-contracting"],
@@ -251,15 +251,15 @@ export const INDUSTRIES: Industry[] = [
       "Estimate requests and project calls slip through when you're on site. Callverted answers the calls you miss, qualifies the project, and sends a ranked lead so you call the best ones back first.",
     h1: "The remodel lead you missed on a jobsite booked with someone else.",
     heroSub:
-      "You're on a ladder, not at your desk — so estimate requests and project calls hit voicemail all day. Callverted answers the calls you can't, sizes up the project, and sends you a ranked lead so the six-figure remodel doesn't get lost behind a handyman call.",
+      "You're on a ladder, not at your desk, so estimate requests and project calls hit voicemail all day. Callverted answers the calls you can't, sizes up the project, and sends you a ranked lead so the six-figure remodel doesn't get lost behind a handyman call.",
     painPoints: [
       "Contractors miss calls all day because the work is on a jobsite, not at a phone.",
-      "A remodel or addition inquiry is worth far more than a small repair — but they arrive on the same missed-call list.",
+      "A remodel or addition inquiry is worth far more than a small repair, but they arrive on the same missed-call list.",
       "Homeowners requesting estimates call several contractors; the first to respond usually gets the walkthrough.",
     ],
     scenario: {
       time: "1:15 PM · Weekday",
-      caller: "We're looking to remodel our kitchen and add a bathroom — trying to get a few estimates.",
+      caller: "We're looking to remodel our kitchen and add a bathroom, trying to get a few estimates.",
       captured: [
         { label: "Project", value: "Renovation / remodel" },
         { label: "Scope", value: "Kitchen + bath addition" },
@@ -269,7 +269,7 @@ export const INDUSTRIES: Industry[] = [
       ],
     },
     asks: [
-      "What kind of project is it — a small repair, a remodel, or a room addition or structural work?",
+      "What kind of project is it: a small repair, a remodel, or a room addition or structural work?",
       "How soon are you looking to start?",
       "Is financing involved, or out of pocket?",
       "ZIP code and the best callback number.",
@@ -278,7 +278,7 @@ export const INDUSTRIES: Industry[] = [
     faqs: [
       {
         q: "Does Callverted work for project estimates, not just emergencies?",
-        a: "Yes. It sizes the project — repair vs. remodel vs. addition — and ranks the lead by value and intent, so a large remodel inquiry surfaces above a small repair instead of getting buried.",
+        a: "Yes. It sizes the project (repair vs. remodel vs. addition) and ranks the lead by value and intent, so a large remodel inquiry surfaces above a small repair instead of getting buried.",
       },
       {
         q: "Can it filter tire-kickers from real projects?",
@@ -286,7 +286,7 @@ export const INDUSTRIES: Industry[] = [
       },
       {
         q: "What does the business get after the call?",
-        a: "A lead with the project type, scope, timeline, estimated value, ZIP, callback number, and a full transcript — enough to prep before you call back.",
+        a: "A lead with the project type, scope, timeline, estimated value, ZIP, callback number, and a full transcript, enough to prep before you call back.",
       },
     ],
     related: ["restoration", "electrical", "plumbing"],

@@ -7,7 +7,7 @@ import { INDUSTRIES } from "@/lib/marketing/industries";
 export const metadata: Metadata = {
   title: "Industries We Serve | AI Call Answering for the Trades | Callverted",
   description:
-    "Callverted answers the calls your team misses across HVAC, plumbing, restoration, electrical, and general contracting — qualifying each job and sending a ranked lead.",
+    "Callverted answers the calls your team misses across HVAC, plumbing, restoration, electrical, and general contracting, qualifying each job and sending a ranked lead.",
   alternates: { canonical: "/industries" },
 };
 

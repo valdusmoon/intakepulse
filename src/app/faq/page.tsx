@@ -7,7 +7,7 @@ import { FAQS } from "@/lib/marketing/faqs";
 export const metadata: Metadata = {
   title: "Frequently Asked Questions | Callverted",
   description:
-    "Answers to common questions about Callverted — how AI voice overflow works, what you receive after a call, pricing, setup time, recording, and more.",
+    "Answers to common questions about Callverted: how AI voice overflow works, what you receive after a call, pricing, setup time, recording, and more.",
   alternates: { canonical: "/faq" },
 };
 

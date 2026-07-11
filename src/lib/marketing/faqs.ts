@@ -12,7 +12,7 @@ export interface Faq {
 export const FAQS: Faq[] = [
   {
     q: "Is this just missed-call text-back?",
-    a: "No. Text-back waits for the caller to reply to a text. Callverted answers the call live, asks the intake questions, and creates a scored lead packet — no dependency on a panicking caller texting you back.",
+    a: "No. Text-back waits for the caller to reply to a text. Callverted answers the call live, asks the intake questions, and creates a scored lead packet, with no dependency on a panicking caller texting you back.",
   },
   {
     q: "Does it replace my phone number?",
@@ -20,7 +20,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: "Can it handle intake for my specific trade?",
-    a: "Yes. The flow is built around the details that matter for your trade — job type, timing, materials, insurance, service area, and urgency. See the industry pages for HVAC, plumbing, restoration, electrical, and general contracting.",
+    a: "Yes. The flow is built around the details that matter for your trade: job type, timing, materials, insurance, service area, and urgency. See the industry pages for HVAC, plumbing, restoration, electrical, and general contracting.",
   },
   {
     q: "Will the AI invent prices?",
@@ -28,7 +28,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: "What happens if the caller wants a person?",
-    a: "Callverted can capture the request, mark the lead accordingly, and optionally warm-transfer to a number you configure — so a true emergency reaches a human right away.",
+    a: "Callverted can capture the request, mark the lead accordingly, and optionally warm-transfer to a number you configure, so a true emergency reaches a human right away.",
   },
   {
     q: "How fast can we launch?",
@@ -36,7 +36,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: "Does Callverted work after hours and on weekends?",
-    a: "Yes. It answers 24/7. Most missed emergency calls happen exactly when your team is on a job, asleep, or off for the weekend — that's the gap it's built to close.",
+    a: "Yes. It answers 24/7. Most missed emergency calls happen exactly when your team is on a job, asleep, or off for the weekend. That's the gap it's built to close.",
   },
   {
     q: "What do I actually receive after a call?",
