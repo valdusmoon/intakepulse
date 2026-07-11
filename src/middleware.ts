@@ -9,6 +9,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/stripe/webhook',
   '/api/leads/public(.*)',
   '/api/leads/public/company(.*)',
+  '/api/demo(.*)',
   '/api/cron(.*)',
   '/api/inngest(.*)',
   '/api/ai(.*)',
