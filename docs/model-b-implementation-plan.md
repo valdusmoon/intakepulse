@@ -123,7 +123,27 @@ trial):
   dev server. Test card 4242, and **uncheck "Save my information" (Link)** or the
   phone field blocks submit.
 
-### Phase 3 — Real Twilio number: post-payment live area-code search (NEXT)
+### Phase 3 — Real Twilio number: post-payment live area-code search ✅ DONE (2026-07-12)
+Shipped + verified (live Twilio search returned real 737 Austin numbers in the
+ChooseNumber UI; account is Full/can purchase). Column `twilioPhoneNumberSid`
+added (migration 0025, local + prod). Real search/purchase/release helpers +
+gated, idempotent routes. **`purchaseNumber` sets ONLY `voiceUrl` (POST)** to
+match how our live numbers are configured — the no-answer/status callbacks are
+set per-call in the TwiML (`<Dial action>`), not on the number.
+- **KEY:** provisioning uses `env.APP_URL` for the voiceUrl, so it MUST run where
+  that's the public app URL (prod = `https://www.callverted.com`), not localhost —
+  a number bought locally gets a dead webhook.
+- The account's one existing real number **+15075843649 is Blue Star's**, already
+  pointing at `callverted.com/api/twilio/voice` (that's the working call test).
+- Only the actual purchase click is unrun (deliberately — borrowed Twilio account,
+  ~$1/mo, buy on the dedicated account at deploy). Buy/release helpers both exist.
+- **Blue Star made genuinely live** for demos: real test Stripe sub
+  (`sub_…`, trialing) + its existing real number → dashboard shows "Voice line
+  live" + trial banner, coherent.
+
+Original decision/plan below.
+
+### Phase 3 (original decision) — post-payment live area-code search
 Decision (2026-07-12): **no webhook-driven auto-provision, no pre-stored area
 code.** Since a number can only be bought after the card is on file, provisioning
 is a foreground dashboard step *after* checkout:
