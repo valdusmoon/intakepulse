@@ -164,12 +164,23 @@ is a foreground dashboard step *after* checkout:
 - Stand up the production WebSocket endpoint, set `VOICE_STREAM_WSS_URL`. Owner infra.
 - Test with the owner's own number before connecting customer accounts.
 
-### Phase 5 — Billing lifecycle
-- Re-enable the PARKED crons as they become relevant: `trialReminders` (now that
-  real charges happen), `winbackEmails`, and decide weekly-vs-monthly reporting.
-- Add cancel-at-period-end + Twilio number **release on cancel with a grace period**
-  (hold through the access window, then release; numbers are ~$1/mo, never
-  auto-released). Dunning + receipt already fire from the webhook once Stripe is real.
+### Phase 5 — Billing lifecycle (core ✅ DONE 2026-07-12)
+- ✅ **Release-on-cancel**: webhook `customer.subscription.deleted` (fires at period
+  end, after the access window) releases the Twilio number via `releaseNumber(SID)`
+  and clears it — stops the ~$1/mo leak. Failures caught + logged (number left
+  attached, not lost). NOT live-tested (would release Blue Star's real number / cost
+  on the borrowed acct) — exercise at deploy on the dedicated Twilio account.
+- ✅ Cancel-at-period-end already works: cancel flows through the Stripe Customer
+  Portal (`/api/stripe/portal`, configured at_period_end); webhook sets
+  `canceledAt = periodEnd`, so `getBannerState`/`isBusinessSubscriptionActive`
+  already render "canceled, access until X" and keep access until then. No separate
+  `cancelAtPeriodEnd` column needed (derived from `canceledAt` in the future).
+- ✅ Dunning + receipt emails already fire from the webhook.
+- ⏸ STILL PARKED (product call, not blocked): re-enable `trialReminders` /
+  `winbackEmails` crons, decide weekly-vs-monthly reporting. Left parked per the
+  simplification pass (stay lean pre-traffic).
+- 🔁 Optional hardening later: a periodic sweep to release numbers for long-canceled
+  businesses whose release call failed (no retry today).
 
 ### The MVP milestone (definition of done for this whole effort)
 Someone signs up -> configures -> tests -> clicks Go live -> enters card -> trial
