@@ -104,7 +104,7 @@ export default function HomePage() {
         <section className="relative z-10 px-6 pt-16 pb-20 sm:pt-20 sm:pb-24">
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-14 items-center">
 
-            <div className="order-2 lg:order-1">
+            <div className="order-1 lg:order-1">
               <div className="inline-flex items-center gap-2 bg-white/5 border border-white/15 rounded-full px-3.5 py-1.5 text-xs font-semibold text-landing-primary-glow mb-7">
                 <span className="relative flex h-2 w-2" aria-hidden>
                   <span className="absolute inline-flex h-full w-full rounded-full bg-landing-primary-glow opacity-75 animate-ping" />
@@ -150,7 +150,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="order-1 lg:order-2">
+            <div className="order-2 lg:order-2">
               <HeroPhoneAnimation />
             </div>
           </div>
