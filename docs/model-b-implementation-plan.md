@@ -160,7 +160,18 @@ is a foreground dashboard step *after* checkout:
 - Note: A2P/10DLC only matters if/when we SMS the owner the lead packet; voice needs
   no registration.
 
-### Phase 4 — Deploy voice WSS runtime
+### Phase 4 — Deploy voice WSS runtime ✅ DONE (per owner, 2026-07-12)
+Voice already works in prod (callverted.com) — a real call test succeeded. The
+account's real number +15075843649 points at `callverted.com/api/twilio/voice`.
+Treat as done; revisit only if the WSS bridge shows issues under load.
+
+**Live billing/provisioning test passed end-to-end (2026-07-12):** bought a real
+737 number via ChooseNumber (found + fixed: Twilio rejects a localhost voiceUrl,
+error 21402 — provision only where APP_URL is public), verified pause flips the
+voice-live gate, cancelled the sub → webhook released the number (confirmed gone
+in Twilio) + set canceled. Blue Star's real number was preserved throughout.
+
+### Phase 4 (original) — Deploy voice WSS runtime
 - Stand up the production WebSocket endpoint, set `VOICE_STREAM_WSS_URL`. Owner infra.
 - Test with the owner's own number before connecting customer accounts.
 
