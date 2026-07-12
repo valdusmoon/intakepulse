@@ -102,9 +102,9 @@ export default function HomePage() {
         </nav>
 
         <section className="relative z-10 px-6 pt-16 pb-20 sm:pt-20 sm:pb-24">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-14 items-center">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-[auto_auto] gap-x-14 gap-y-8 items-center">
 
-            <div className="order-1 lg:order-1">
+            <div className="order-1 lg:col-start-1 lg:row-start-1 lg:self-end">
               <div className="inline-flex items-center gap-2 bg-white/5 border border-white/15 rounded-full px-3.5 py-1.5 text-xs font-semibold text-landing-primary-glow mb-7">
                 <span className="relative flex h-2 w-2" aria-hidden>
                   <span className="absolute inline-flex h-full w-full rounded-full bg-landing-primary-glow opacity-75 animate-ping" />
@@ -133,10 +133,18 @@ export default function HomePage() {
                   See the lead packet
                 </Link>
               </div>
-              <p className="text-xs text-white/40 font-cv-mono mb-9">
+              <p className="text-xs text-white/40 font-cv-mono">
                 14-day free trial · Live today · Setup in ~30 min
               </p>
+            </div>
 
+            {/* Phone — right after the copy on mobile; right column on desktop */}
+            <div className="order-2 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center">
+              <HeroPhoneAnimation />
+            </div>
+
+            {/* Proof stats — below the phone on mobile; under the copy on desktop */}
+            <div className="order-3 lg:col-start-1 lg:row-start-2 lg:self-start">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-lg">
                 {HERO_PROOF.map((p) => (
                   <div
@@ -148,10 +156,6 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="order-2 lg:order-2">
-              <HeroPhoneAnimation />
             </div>
           </div>
         </section>
