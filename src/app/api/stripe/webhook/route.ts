@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { businesses } from "@/lib/db/schema/businesses";
 import { getStripe, verifyWebhookSignature } from "@/lib/stripe";
+import { releaseNumber } from "@/lib/twilio/client";
 import { sendDunningEmail, sendReceiptEmail } from "@/lib/email/notifications";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -96,26 +97,44 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.deleted": {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subscription = event.data.object as any;
-        let businessId = subscription.metadata?.businessId;
 
-        if (!businessId) {
-          const existing = await db.query.businesses.findFirst({
+        // Fetch the full business row — we need its Twilio SID to release the number.
+        let business = subscription.metadata?.businessId
+          ? await db.query.businesses.findFirst({ where: eq(businesses.id, subscription.metadata.businessId) })
+          : null;
+        if (!business) {
+          business = await db.query.businesses.findFirst({
             where: eq(businesses.stripeSubscriptionId, subscription.id),
           }) ?? await db.query.businesses.findFirst({
             where: eq(businesses.stripeCustomerId, subscription.customer as string),
-          });
-          businessId = existing?.id;
+          }) ?? null;
         }
 
-        if (!businessId) break;
+        if (!business) break;
+
+        // This fires at period end — access is fully over (cancel-at-period-end
+        // holds the sub live until then). Release the Twilio number so we stop
+        // paying its ~$1/mo rental, and clear it from the business. If the release
+        // call fails, leave the number attached rather than losing track of it.
+        let numberFields: { twilioPhoneNumber?: null; twilioPhoneNumberSid?: null; numberPublished?: boolean } = {};
+        if (business.twilioPhoneNumberSid) {
+          try {
+            await releaseNumber(business.twilioPhoneNumberSid);
+            numberFields = { twilioPhoneNumber: null, twilioPhoneNumberSid: null, numberPublished: false };
+            console.log(`Released Twilio number for business ${business.id}`);
+          } catch (err) {
+            console.error(`Failed to release Twilio number for business ${business.id}:`, err);
+          }
+        }
 
         await db.update(businesses).set({
           subscriptionStatus: "canceled",
           canceledAt: new Date(),
+          ...numberFields,
           updatedAt: new Date(),
-        }).where(eq(businesses.id, businessId));
+        }).where(eq(businesses.id, business.id));
 
-        console.log(`Subscription canceled for company ${businessId}`);
+        console.log(`Subscription canceled for business ${business.id}`);
         break;
       }
 
