@@ -69,20 +69,21 @@ export async function searchAvailableNumbers(areaCode: string, limit = 5): Promi
  * Buy a specific number and point its Voice webhook at our handler. Returns the
  * purchased number's E.164 and Twilio SID (PN…). The caller stores both on the
  * business so provisioning is idempotent and the number is releasable on cancel.
+ *
+ * Sets ONLY voiceUrl (POST) — matching how our live numbers are configured. The
+ * no-answer -> AI handoff and call-status callbacks are set per-call inside the
+ * TwiML returned by /api/twilio/voice (the <Dial action> URL), NOT as number-level
+ * webhooks, so we deliberately don't set a statusCallback here.
  */
 export async function purchaseNumber(params: {
   phoneNumber: string;
   voiceUrl: string;
-  statusCallbackUrl?: string;
 }): Promise<{ phoneNumber: string; sid: string }> {
   const client = getClient();
   const bought = await client.incomingPhoneNumbers.create({
     phoneNumber: params.phoneNumber,
     voiceUrl: params.voiceUrl,
     voiceMethod: "POST",
-    ...(params.statusCallbackUrl
-      ? { statusCallback: params.statusCallbackUrl, statusCallbackMethod: "POST" as const }
-      : {}),
   });
   return { phoneNumber: bought.phoneNumber, sid: bought.sid };
 }

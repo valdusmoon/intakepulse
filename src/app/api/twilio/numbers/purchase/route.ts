@@ -37,11 +37,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const appUrl = env.APP_URL;
+    // Point the number's Voice webhook at our handler — same config as our live
+    // numbers (voiceUrl only; status/no-answer callbacks are set per-call in the
+    // TwiML, not on the number). Uses APP_URL, so provisioning must run where
+    // that's the public app URL (prod), not localhost.
     const { phoneNumber: bought, sid } = await purchaseNumber({
       phoneNumber,
-      voiceUrl: `${appUrl}/api/twilio/voice`,
-      statusCallbackUrl: `${appUrl}/api/twilio/voice/status`,
+      voiceUrl: `${env.APP_URL}/api/twilio/voice`,
     });
 
     await updateBusiness(business.id, {
