@@ -1,22 +1,20 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { getBusinessByClerkId, updateBusiness } from "@/lib/db/queries/businesses";
 
 /**
- * MOCK — temporary stand-in for real payment collection during onboarding.
- * Returns a trialEndsAt date instead of going through Stripe Checkout, so the
- * rest of the app (voice webhook gating, billing banner, dashboard access)
- * can be tested end-to-end before the real card-collection flow is wired up.
+ * MOCK go-live stub (Model B, Phase 1). Stands in for real Stripe Checkout at
+ * the "Add payment & go live" moment on the dashboard. The business already
+ * exists (created config-only during onboarding), so this flips it straight to
+ * a 14-day trial instead of redirecting to Stripe — enough to exercise the
+ * setup-mode → live transition (voice gating, activation checklist, banners)
+ * before real card collection is wired up.
  *
- * Doesn't touch the businesses table — onboarding doesn't create a business
- * row until every step is submitted in one atomic call at the end, so there's
- * nothing to attach this to yet. The onboarding form holds this trialEndsAt
- * in state and includes it in that final submit instead.
- *
- * Deliberately does NOT touch /api/stripe/checkout, /api/stripe/portal, or the
- * webhook handler — those are the real flow and are left exactly as they are.
- * To go live: swap the onboarding "Payment" step's button handler to call
- * POST /api/stripe/checkout (already implemented) and redirect to the
- * returned Stripe URL instead of calling this route, then delete this file.
+ * PHASE 2 SWAP: replace the dashboard CTA's call to this route with
+ * POST /api/stripe/checkout (already implemented) + redirect to the returned
+ * Stripe URL; the webhook then sets subscriptionStatus authoritatively. Delete
+ * this file at that point. It deliberately does NOT touch the real Stripe
+ * checkout/portal/webhook handlers.
  */
 const MOCK_TRIAL_DAYS = 14;
 
@@ -24,6 +22,18 @@ export async function POST() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const business = await getBusinessByClerkId(userId);
+  if (!business) return NextResponse.json({ error: "Business not found" }, { status: 404 });
+
+  // Idempotent: if they already have payment on file, don't reset the trial clock.
+  if (business.subscriptionStatus) {
+    return NextResponse.json({ trialEndsAt: business.trialEndsAt, mock: true, alreadyActive: true });
+  }
+
   const trialEndsAt = new Date(Date.now() + MOCK_TRIAL_DAYS * 24 * 60 * 60 * 1000);
-  return NextResponse.json({ trialEndsAt, mock: true });
+  const updated = await updateBusiness(business.id, {
+    subscriptionStatus: "trialing",
+    trialEndsAt,
+  });
+  return NextResponse.json({ trialEndsAt: updated.trialEndsAt, mock: true });
 }

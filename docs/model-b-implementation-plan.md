@@ -75,7 +75,16 @@ start your trial").
 
 ## Phased implementation
 
-### Phase 1 — Onboarding -> "Setup mode" (pure app refactor, NO external creds)
+### Phase 1 — Onboarding -> "Setup mode" (pure app refactor, NO external creds) ✅ DONE (2026-07-12)
+Shipped: config-only wizard (business -> vertical -> done), `getSetupStage()` in
+`src/lib/subscription.ts`, Setup-mode dashboard (amber "Setup mode" pill + "Add
+payment & go live" CTA in `ActivationChecklist`), and `mock-subscribe` repurposed
+as the idempotent go-live stub that flips the existing business to `trialing`
+(the single call Phase 2 replaces with real Stripe Checkout). Verified via
+authenticated screenshots. Note: after the go-live stub the account sits in
+`provisioning` (trialing, no real number) until Phase 3 provisions Twilio.
+Original plan below.
+
 - `onboarding/_form.tsx`: remove step 3 (mock payment) and step 4 (mock number).
   Wizard becomes **business details -> vertical -> forwarding number -> done**.
   `handleFinishOnboarding` creates the business with `subscriptionStatus: null`

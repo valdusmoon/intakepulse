@@ -13,7 +13,7 @@ import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel } from "@/lib/verticals/labels";
 import { priorityMeta, intentMeta, initials, timeAgoShort, fmtCents, fmtValueRange, sourceLabel, sourceSwatch } from "@/lib/leads/priority";
 import { Card, CardHeader, CardTitle, CardBody, Badge, StatusPill, MetricCard, Trend, Icon, LinkButton } from "@/components/dashboard/v2/primitives";
-import { hasPaymentOnFile } from "@/lib/subscription";
+import { hasPaymentOnFile, getSetupStage } from "@/lib/subscription";
 import { ActivationChecklist } from "@/components/dashboard/ActivationChecklist";
 import { ExampleLead } from "@/components/dashboard/ExampleLead";
 import { DashboardTour } from "@/components/dashboard/DashboardTour";
@@ -53,9 +53,16 @@ export default async function DashboardPage() {
   );
   const widgetInstalled = sources.some((s) => s.source === "website_widget");
 
-  // First-run: no captured leads yet. Show the activation checklist instead of a
-  // wall of zeros. It falls away the moment the first real lead lands.
+  // Model B setup stage, derived from existing columns. "needs_payment" = no card
+  // yet (setup mode).
+  const setupStage = getSetupStage(business);
+
+  // First-run zero-state (example lead + tour) shows only when there are no leads
+  // at all. The activation checklist shows for a first-run account OR whenever
+  // we're in setup mode (no card yet) — so a cardless account always sees the
+  // "Add payment & go live" CTA, but an established account with leads isn't nagged.
   const showActivation = metrics.totalLeads === 0;
+  const showChecklist = showActivation || setupStage === "needs_payment";
   const hasTestCall = recentCalls.length > 0;
 
   // Conversion snapshot is time-boxed (last snapshotWindowDays) so it tracks
@@ -119,9 +126,15 @@ export default async function DashboardPage() {
   return (
     <div className="font-cv-body text-cv-ink">
       <div className="flex flex-wrap gap-2.5 mb-[18px]">
-        <StatusPill color={isVoiceLive ? "green" : "gray"} dot>
-          {isVoiceLive ? "Voice line live" : "Voice line not active"}
-        </StatusPill>
+        {setupStage === "needs_payment" ? (
+          <StatusPill color="amber" dot>
+            Setup mode · add payment to go live
+          </StatusPill>
+        ) : (
+          <StatusPill color={isVoiceLive ? "green" : "gray"} dot>
+            {isVoiceLive ? "Voice line live" : "Voice line not active"}
+          </StatusPill>
+        )}
         <StatusPill color={widgetInstalled ? "green" : "gray"}>
           <Icon name={widgetInstalled ? "check_circle" : "info"} className="!text-[15px]" />
           {widgetInstalled ? "Website widget installed" : "Website widget not yet used"}
@@ -155,7 +168,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {showActivation && (
+      {showChecklist && (
         <div id="cv-tour-activation">
           <ActivationChecklist
             hasTestCall={hasTestCall}
@@ -163,6 +176,7 @@ export default async function DashboardPage() {
             widgetInstalled={widgetInstalled}
             callvertedNumber={business.twilioPhoneNumber}
             assistedUrl={process.env.NEXT_PUBLIC_ASSISTED_ONBOARDING_URL ?? null}
+            setupStage={setupStage}
           />
         </div>
       )}

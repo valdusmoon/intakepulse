@@ -80,6 +80,39 @@ export function hasPaymentOnFile(business: {
   return isBusinessSubscriptionActive(business);
 }
 
+export type SetupStage = "needs_payment" | "provisioning" | "needs_publish" | "live";
+
+/**
+ * Model B setup stage, derived entirely from columns we already have (no
+ * dedicated activationStatus enum). Drives whether the dashboard shows "Setup
+ * mode" (card not yet on file — the business exists and is configured, but the
+ * live line is off) vs the live activation checklist.
+ *
+ *   needs_payment — no card on file. Explore/test only; primary CTA is "Add
+ *                   payment & go live". Everything before the card is free.
+ *   provisioning  — card on file but the real Twilio number isn't attached yet
+ *                   (the Phase 3 provisioning job hasn't landed). Transient.
+ *   needs_publish — number attached, owner hasn't yet published it as their
+ *                   public business line (numberPublished still false).
+ *   live          — published, payment on file, not paused.
+ *
+ * Note: a paused-but-otherwise-live business still reports "live" here (pausing
+ * is a separate, reversible kill switch surfaced elsewhere), so this stays a
+ * pure setup-progression signal.
+ */
+export function getSetupStage(business: {
+  subscriptionStatus: string | null;
+  trialEndsAt: Date | null;
+  canceledAt: Date | null;
+  twilioPhoneNumber: string | null;
+  numberPublished: boolean;
+}): SetupStage {
+  if (!hasPaymentOnFile(business)) return "needs_payment";
+  if (!business.twilioPhoneNumber) return "provisioning";
+  if (!business.numberPublished) return "needs_publish";
+  return "live";
+}
+
 export function isBusinessSubscriptionActive(business: {
   subscriptionStatus: string | null;
   trialEndsAt: Date | null;

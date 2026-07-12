@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardBody, Icon } from "@/components/dashboard/v2/primitives";
+import type { SetupStage } from "@/lib/subscription";
 
 function fmtNumber(e164: string | null) {
   if (!e164) return "your Callverted number";
@@ -28,6 +29,11 @@ const LISTING_CHANNELS: { icon: string; label: string }[] = [
  * owner's real line first and the AI only answers if no one picks up. That listing
  * update is external, so we can't detect it; the owner self-confirms it (persists
  * numberPublished), and we offer a "book a setup call" escape.
+ *
+ * Model B: before a card is on file (setupStage === "needs_payment") there is no
+ * real Twilio number to publish yet, so the second step becomes the "Add payment
+ * & go live" commitment instead of the publish-your-number guide. Once payment is
+ * on file it reverts to the publish flow below.
  */
 export function ActivationChecklist({
   hasTestCall,
@@ -35,17 +41,39 @@ export function ActivationChecklist({
   widgetInstalled,
   callvertedNumber,
   assistedUrl,
+  setupStage,
 }: {
   hasTestCall: boolean;
   numberPublished: boolean;
   widgetInstalled: boolean;
   callvertedNumber: string | null;
   assistedUrl: string | null;
+  setupStage: SetupStage;
 }) {
   const router = useRouter();
   const [showGoLive, setShowGoLive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [goingLive, setGoingLive] = useState(false);
+  const [goLiveError, setGoLiveError] = useState("");
+
+  const needsPayment = setupStage === "needs_payment";
+
+  // PHASE 1 STUB: stands in for real Stripe Checkout. Flips the existing business
+  // to trialing so the setup-mode → live transition is testable now. Phase 2
+  // swaps this single call for POST /api/stripe/checkout + redirect.
+  async function startGoLive() {
+    setGoingLive(true);
+    setGoLiveError("");
+    try {
+      const res = await fetch("/api/onboarding/mock-subscribe", { method: "POST" });
+      if (!res.ok) throw new Error("failed");
+      router.refresh();
+    } catch {
+      setGoLiveError("Couldn't start your trial. Please try again.");
+      setGoingLive(false);
+    }
+  }
 
   async function copyNumber() {
     if (!callvertedNumber) return;
@@ -58,9 +86,13 @@ export function ActivationChecklist({
     }
   }
 
+  // Before a card, step 2 is "add payment" (never "done" while shown — the moment
+  // payment lands, setupStage advances and this variant is replaced). After a
+  // card, step 2 is "publish your number", done when numberPublished.
+  const step2Done = needsPayment ? false : numberPublished;
   const steps = [
     { key: "test", done: hasTestCall },
-    { key: "live", done: numberPublished },
+    { key: "live", done: step2Done },
     { key: "widget", done: widgetInstalled },
   ];
   const doneCount = steps.filter((s) => s.done).length;
@@ -100,7 +132,11 @@ export function ActivationChecklist({
         <CardHeader>
           <div>
             <CardTitle>Finish setting up</CardTitle>
-            <p className="text-[11px] text-cv-muted mt-1">A couple of steps and you are capturing every call</p>
+            <p className="text-[11px] text-cv-muted mt-1">
+              {needsPayment
+                ? "You're in setup mode — test freely, then add a card to go live"
+                : "A couple of steps and you are capturing every call"}
+            </p>
           </div>
           <span className="font-cv-mono text-xs font-bold text-cv-muted">{doneCount}/3 done</span>
         </CardHeader>
@@ -119,19 +155,44 @@ export function ActivationChecklist({
             {!hasTestCall && <Icon name="arrow_forward" className="!text-[18px] text-cv-primary shrink-0" />}
           </Link>
 
-          {/* 2. Get your line live (opens the publish-your-number guide) */}
-          <button type="button" onClick={() => setShowGoLive(true)} className={`${rowBase} ${rowState(numberPublished)}`}>
-            {bullet(numberPublished, 2)}
-            <div className="min-w-0 flex-1">
-              <p className={`text-sm font-bold ${numberPublished ? "text-cv-muted line-through" : "text-cv-ink"}`}>
-                Get your line live
-              </p>
-              {!numberPublished && (
-                <p className="text-xs text-cv-muted mt-0.5">Publish your Callverted number so new callers route through it.</p>
+          {/* 2. Go live — before a card, this is the payment commitment; after a
+              card, it's the publish-your-number guide. */}
+          {needsPayment ? (
+            <button
+              type="button"
+              onClick={startGoLive}
+              disabled={goingLive}
+              className={`${rowBase} border-cv-primary bg-cv-surface-blue hover:bg-cv-primary-soft disabled:opacity-70`}
+            >
+              {bullet(false, 2)}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-cv-ink">Add payment &amp; go live</p>
+                <p className="text-xs text-cv-muted mt-0.5">
+                  {goLiveError
+                    ? goLiveError
+                    : "Add a card to get your live number and start capturing real calls. No charge for 14 days."}
+                </p>
+              </div>
+              {goingLive ? (
+                <span className="text-xs font-bold text-cv-primary shrink-0">Starting…</span>
+              ) : (
+                <Icon name="arrow_forward" className="!text-[18px] text-cv-primary shrink-0" />
               )}
-            </div>
-            {!numberPublished && <Icon name="arrow_forward" className="!text-[18px] text-cv-primary shrink-0" />}
-          </button>
+            </button>
+          ) : (
+            <button type="button" onClick={() => setShowGoLive(true)} className={`${rowBase} ${rowState(numberPublished)}`}>
+              {bullet(numberPublished, 2)}
+              <div className="min-w-0 flex-1">
+                <p className={`text-sm font-bold ${numberPublished ? "text-cv-muted line-through" : "text-cv-ink"}`}>
+                  Get your line live
+                </p>
+                {!numberPublished && (
+                  <p className="text-xs text-cv-muted mt-0.5">Publish your Callverted number so new callers route through it.</p>
+                )}
+              </div>
+              {!numberPublished && <Icon name="arrow_forward" className="!text-[18px] text-cv-primary shrink-0" />}
+            </button>
+          )}
 
           {/* 3. Website capture */}
           <Link href="/dashboard/capture" className={`${rowBase} ${rowState(widgetInstalled)}`}>
