@@ -11,6 +11,14 @@ function getBannerState(business: NonNullable<Awaited<ReturnType<typeof getBusin
   const now = new Date();
   const GRACE_MS = 60 * 1000;
 
+  // Model B: without a real Stripe subscription the account is in setup mode, and
+  // the setup-mode dashboard UI (the "Setup mode" pill + "Add payment & go live")
+  // owns that state. Suppress the billing banner so it can't contradict it — e.g.
+  // a leftover mock "trialing" row (subscriptionStatus set, no Stripe sub) must not
+  // render a "N days left in your trial" bar. Real trialing/active/canceled/past_due
+  // customers always have a stripeSubscriptionId, so their banners still show.
+  if (!business.stripeSubscriptionId) return { type: "no_subscription" };
+
   if (!subscriptionStatus) return { type: "no_subscription" };
 
   if (subscriptionStatus === "trialing") {
