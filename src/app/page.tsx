@@ -382,7 +382,7 @@ export default function HomePage() {
               </span>
             </div>
             <p className="font-cv-heading text-5xl font-black text-[#152033] tracking-tight">
-              $79<span className="text-base font-semibold text-[#98a2b3] ml-1">/mo</span>
+              $149<span className="text-base font-semibold text-[#98a2b3] ml-1">/mo</span>
             </p>
             <p className="text-[12.5px] text-[#667085] mt-1.5">Locked in for founding customers, while the product is focused.</p>
             <ul className="mt-6 space-y-2.5">

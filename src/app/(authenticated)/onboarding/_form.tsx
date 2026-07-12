@@ -427,7 +427,7 @@ function Step3Payment({
         <p className="text-xs font-bold text-cv-primary uppercase tracking-widest mb-1">Step 3 of 4</p>
         <h1 className="font-cv-heading text-2xl font-bold text-cv-ink">Start your free trial</h1>
         <p className="text-sm text-cv-muted mt-1">
-          14 days free. No charge until {daysOutDate(14)}, then $79/mo. Cancel anytime.
+          14 days free. No charge until {daysOutDate(14)}, then $149/mo. Cancel anytime.
         </p>
       </div>
 

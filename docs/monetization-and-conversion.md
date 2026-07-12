@@ -41,6 +41,30 @@ then drop the `crons` entry in `vercel.json`.
 Note: the Drizzle `meta/_journal.json` is stale (pre-existing) so migrations
 0007+ are hand-authored raw SQL by convention.
 
+## Simplification pass (2026-07-12)
+
+Deliberate early-stage trim: the machinery was broader than the funnel is proven,
+so several automations are PARKED (code kept, cron unregistered in
+`src/app/api/inngest/route.ts`, one-line to re-enable). Prove the core funnel with
+real customers before turning them back on.
+
+- **Price is now $149/mo, one plan** (was $79). Updated across landing, onboarding,
+  legal (terms/refunds), and the help page. The real charge amount lives in the
+  Stripe product and gets set at the real-Stripe flip.
+- **Lifecycle emails, kept firing:** welcome (signup, transactional), a SINGLE
+  activation nudge (day-3 "you're not live yet" — `activation-nudges.ts`
+  collapsed from the 3-stage day1/3/7 series to one), the weekly report, the ROI
+  capture email, and transactional dunning/receipt (dormant until Stripe).
+- **PARKED (unregistered crons):** `trialReminders` (re-enable at the Stripe flip —
+  only matters once real charges happen), `winbackEmails` (re-enable once there
+  are churned customers), `monthlyRoiRecap` (redundant with the weekly report; keep
+  one). Save-flow, admin, and the operator signup alert stay.
+- **Not building yet** (confirmed): ROI capture drip, churn/risk alerts, card-gate
+  rework, public demo.
+- Guiding principle (per external review + owner): the bottleneck is proving a
+  contractor can go live fast, capture a real missed call, and see enough value
+  that $149/mo is obvious — not more lifecycle code.
+
 ---
 
 ## 1. The model
@@ -62,7 +86,7 @@ FREE / NO ACCOUNT (build trust)       SIGNED UP, NO CARD          CARD ON FILE (
 • Scripted call replay                 • Make TEST calls ✅          • Real inbound calls captured
 • Interactive test-call demo           • See sample lead packet     • Lead packet emails
 • Sample lead packet                   • Activation checklist       • Widget / intake link live
-                                       • ❌ No real calls            • 14-day trial → $79/mo auto
+                                       • ❌ No real calls            • 14-day trial → $149/mo auto
 ```
 
 Rationale: agencies and infra-style SMB tools give enough visible value to earn
@@ -76,14 +100,14 @@ payment method is on file.
 - Free, ungated demo surfaces build trust with **no account**.
 - Sign up → onboard → **enter a card** (the commitment moment).
 - Card on file **activates the live line**.
-- 14 days free, **auto-converts to $79/mo on day 15** unless canceled. Cancel
+- 14 days free, **auto-converts to $149/mo on day 15** unless canceled. Cancel
   anytime in the trial window = never charged.
 
 Why card-required trial over no-card trial or pay-now:
 - Card-required trials convert far better to paid (industry ballpark 40–60% vs
   ~10–15% for no-card). The card *is* the qualifier — it filters tire-kickers
   without a sales demo, which is the self-serve goal.
-- Lower friction than "pay $79 now" while capturing the same commitment.
+- Lower friction than "pay $149 now" while capturing the same commitment.
 - Auto-converts, so no manual chasing — critical for a solo founder.
 
 **One-flag reversibility:** the trial is just `trialPeriodDays: 14` on the
@@ -347,7 +371,7 @@ Decisions + not-yet-built items, from the conversion-mechanisms review.
 **Decisions made:**
 - **Founding pricing → reframe, don't discount.** "Founding" can signal "new/
   unproven" to a trades audience, and a price chop anchors low + attracts churn.
-  Swap to a rate-lock framing: "$79/mo, lock this rate for life if you start now."
+  Swap to a rate-lock framing: "$149/mo, lock this rate for life if you start now."
   Same urgency/lock-in, signals growth not beta. No discounting.
 - **Pause = keep the number on file, service off** (owner's call). When paused we
   hold the Twilio number (~$1/mo) and the AI does not answer. Keep the current

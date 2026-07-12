@@ -19,7 +19,7 @@ export default function RefundPolicyPage() {
         <p>
           All new accounts receive a 14-day free trial. No charge is made during the trial period. You may cancel
           at any time before the trial ends and you will not be billed. After day 14, your subscription starts at
-          $79/month and renews automatically.
+          $149/month and renews automatically.
         </p>
       </Section>
 

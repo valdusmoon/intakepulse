@@ -23,10 +23,12 @@ const STAGE_RANK: Record<ActivationNudgeStage, number> = {
 };
 
 function targetStage(daysSinceCreated: number): ActivationNudgeStage | null {
-  if (daysSinceCreated >= 7) return "activation_day7";
+  // Collapsed to a SINGLE nudge (early-stage simplification): one "you're not
+  // live yet" email around day 3. The day-1 and day-7 stages are intentionally
+  // dormant. STAGE_RANK still guards against re-sends once day-3 has gone out.
+  // To restore the full 3-stage series, bring back the day-1/day-7 branches.
   if (daysSinceCreated >= 3) return "activation_day3";
-  if (daysSinceCreated >= 1) return "activation_day1";
-  return null; // day 0 — too soon
+  return null; // before day 3 — hold the single nudge
 }
 
 /**

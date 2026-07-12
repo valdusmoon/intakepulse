@@ -378,7 +378,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Plan</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Callverted is one plan: <span className="font-semibold">$79/month</span>, with a 14-day free trial. It includes AI voice overflow, the public intake form and website widget, AI-driven lead scoring with reasoning and recommended actions, business-approved pricing rules, the full lead dashboard, and email alerts on qualified leads plus a weekly recap. No add-ons, no lead caps.
+                  Callverted is one plan: <span className="font-semibold">$149/month</span>, with a 14-day free trial. It includes AI voice overflow, the public intake form and website widget, AI-driven lead scoring with reasoning and recommended actions, business-approved pricing rules, the full lead dashboard, and email alerts on qualified leads plus a weekly recap. No add-ons, no lead caps.
                 </p>
               </InfoCard>
               <InfoCard>

@@ -50,7 +50,7 @@ export default function TermsOfServicePage() {
 
       <Section title="3. Subscription and Billing">
         <p>
-          Callverted is offered as a paid subscription at $79/month. A 14-day free trial is available to new accounts.
+          Callverted is offered as a paid subscription at $149/month. A 14-day free trial is available to new accounts.
           Payment method is collected upfront through Stripe Checkout, but no charge is made during the trial
           period. By starting a trial, you authorize us to charge your payment method at the end of the trial unless
           you cancel first.
