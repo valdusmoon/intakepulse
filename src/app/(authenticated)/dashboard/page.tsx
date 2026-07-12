@@ -15,6 +15,7 @@ import { priorityMeta, intentMeta, initials, timeAgoShort, fmtCents, fmtValueRan
 import { Card, CardHeader, CardTitle, CardBody, Badge, StatusPill, MetricCard, Trend, Icon, LinkButton } from "@/components/dashboard/v2/primitives";
 import { hasPaymentOnFile, getSetupStage } from "@/lib/subscription";
 import { ActivationChecklist } from "@/components/dashboard/ActivationChecklist";
+import { ChooseNumber } from "@/components/dashboard/ChooseNumber";
 import { ExampleLead } from "@/components/dashboard/ExampleLead";
 import { DashboardTour } from "@/components/dashboard/DashboardTour";
 
@@ -168,7 +169,11 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {showChecklist && (
+      {setupStage === "provisioning" ? (
+        <div id="cv-tour-activation">
+          <ChooseNumber assistedUrl={process.env.NEXT_PUBLIC_ASSISTED_ONBOARDING_URL ?? null} />
+        </div>
+      ) : showChecklist ? (
         <div id="cv-tour-activation">
           <ActivationChecklist
             hasTestCall={hasTestCall}
@@ -179,7 +184,7 @@ export default async function DashboardPage() {
             setupStage={setupStage}
           />
         </div>
-      )}
+      ) : null}
 
       <section id="cv-tour-metrics" className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-4">
         <MetricCard

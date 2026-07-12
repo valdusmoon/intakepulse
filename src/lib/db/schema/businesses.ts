@@ -47,6 +47,9 @@ export const businesses = pgTable("businesses", {
 
   // Twilio — the business's dedicated inbound voice number
   twilioPhoneNumber: text("twilio_phone_number"),
+  // Twilio's SID for that number (PN…). Stored on purchase so provisioning is
+  // idempotent (never double-buy) and the number can be released on cancel.
+  twilioPhoneNumberSid: text("twilio_phone_number_sid"),
 
   // 'ring_then_ai' (default): dial forwardingNumber first, AI overflow only on no-answer/busy/failed.
   // 'ai_immediate': AI answers every call without ringing the business first.

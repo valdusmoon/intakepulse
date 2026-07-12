@@ -39,6 +39,63 @@ export async function hangupCall(callSid: string): Promise<void> {
   await client.calls(callSid).update({ status: "completed" });
 }
 
+export interface AvailableNumber {
+  phoneNumber: string; // E.164, e.g. +15125550123
+  friendlyName: string; // Twilio's formatted label, e.g. (512) 555-0123
+  locality: string | null;
+  region: string | null;
+}
+
+/**
+ * Search Twilio for available local US voice numbers in an area code.
+ * Voice-capable only. Returns up to `limit` numbers (default 5).
+ */
+export async function searchAvailableNumbers(areaCode: string, limit = 5): Promise<AvailableNumber[]> {
+  const client = getClient();
+  const results = await client.availablePhoneNumbers("US").local.list({
+    areaCode: Number(areaCode),
+    voiceEnabled: true,
+    limit,
+  });
+  return results.map((n) => ({
+    phoneNumber: n.phoneNumber,
+    friendlyName: n.friendlyName,
+    locality: n.locality ?? null,
+    region: n.region ?? null,
+  }));
+}
+
+/**
+ * Buy a specific number and point its Voice webhook at our handler. Returns the
+ * purchased number's E.164 and Twilio SID (PN…). The caller stores both on the
+ * business so provisioning is idempotent and the number is releasable on cancel.
+ */
+export async function purchaseNumber(params: {
+  phoneNumber: string;
+  voiceUrl: string;
+  statusCallbackUrl?: string;
+}): Promise<{ phoneNumber: string; sid: string }> {
+  const client = getClient();
+  const bought = await client.incomingPhoneNumbers.create({
+    phoneNumber: params.phoneNumber,
+    voiceUrl: params.voiceUrl,
+    voiceMethod: "POST",
+    ...(params.statusCallbackUrl
+      ? { statusCallback: params.statusCallbackUrl, statusCallbackMethod: "POST" as const }
+      : {}),
+  });
+  return { phoneNumber: bought.phoneNumber, sid: bought.sid };
+}
+
+/**
+ * Release a provisioned number back to Twilio (stops the ~$1/mo rental). Used on
+ * cancel (Phase 5) and to clean up test purchases.
+ */
+export async function releaseNumber(sid: string): Promise<void> {
+  const client = getClient();
+  await client.incomingPhoneNumbers(sid).remove();
+}
+
 /**
  * Escape a string for safe inclusion in TwiML XML.
  */
