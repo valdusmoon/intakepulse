@@ -169,13 +169,20 @@ export function ActivationChecklist({
                 ].map((node, i, arr) => (
                   <div key={node.label} className="flex items-center gap-1.5 flex-1">
                     <div className="flex flex-1 flex-col items-center gap-1.5">
-                      <div className="grid h-9 w-9 place-items-center rounded-full bg-white shadow-cv-sm">
+                      <div
+                        className="cv-flow-node grid h-9 w-9 place-items-center rounded-full bg-white shadow-cv-sm"
+                        style={{ animationDelay: `${i * 0.6}s` }}
+                      >
                         <Icon name={node.icon} className={`!text-[19px] ${node.tint}`} />
                       </div>
                       <p className="text-[10px] leading-tight text-cv-muted">{node.label}</p>
                     </div>
                     {i < arr.length - 1 && (
-                      <Icon name="arrow_forward" className="!text-[15px] text-cv-primary/50 shrink-0 self-start mt-2.5" />
+                      <Icon
+                        name="arrow_forward"
+                        className="cv-flow-arrow !text-[15px] text-cv-primary shrink-0 self-start mt-2.5"
+                        style={{ animationDelay: `${i * 0.6 + 0.3}s` }}
+                      />
                     )}
                   </div>
                 ))}
