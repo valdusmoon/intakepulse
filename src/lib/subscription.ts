@@ -65,19 +65,19 @@ export async function hasActiveSubscription(
  * usage — above all, the live inbound phone line. "Payment on file" is the
  * product's core commitment moment (see docs/monetization-and-conversion.md).
  *
- * Today (payment mocked) an active or in-trial subscription IS our proxy for a
- * card on file, so this delegates to isBusinessSubscriptionActive. When real
- * Stripe is wired, tighten this to ALSO require a real stripeSubscriptionId —
- * that one change flips the whole app from mock to real without touching call
- * sites. This is the seam.
+ * Real card on file = a real Stripe subscription (stripeSubscriptionId set by the
+ * checkout webhook) that is currently active or in-trial. Requiring the id is the
+ * seam that flips the whole app from mock to real: without it, the old mock path
+ * (subscriptionStatus flipped to "trialing" with no Stripe record) no longer
+ * counts as paid, so the live line only turns on for genuine checkouts.
  */
 export function hasPaymentOnFile(business: {
   subscriptionStatus: string | null;
   trialEndsAt: Date | null;
   canceledAt: Date | null;
-  // stripeSubscriptionId?: string | null; // <- require this once Stripe is live
+  stripeSubscriptionId: string | null;
 }): boolean {
-  return isBusinessSubscriptionActive(business);
+  return !!business.stripeSubscriptionId && isBusinessSubscriptionActive(business);
 }
 
 export type SetupStage = "needs_payment" | "provisioning" | "needs_publish" | "live";
@@ -104,6 +104,7 @@ export function getSetupStage(business: {
   subscriptionStatus: string | null;
   trialEndsAt: Date | null;
   canceledAt: Date | null;
+  stripeSubscriptionId: string | null;
   twilioPhoneNumber: string | null;
   numberPublished: boolean;
 }): SetupStage {

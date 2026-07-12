@@ -100,26 +100,45 @@ Original plan below.
   mock) until Phase 2 wires real Stripe.
 - This is the whole UX shift to Model B and needs zero credentials. **Start here.**
 
-### Phase 2 — Real Stripe Checkout at "Go live"
-- "Add payment & go live" CTA -> `POST /api/stripe/checkout` (trial mode, $149
-  price) -> redirect to Stripe -> **webhook is authoritative** (already handles
-  `checkout.session.completed` + `customer.subscription.*`) -> sets
-  `stripeCustomerId/SubscriptionId`, `subscriptionStatus: trialing`.
-- Retire `/api/onboarding/mock-subscribe`.
-- Change `hasPaymentOnFile` from "trialEndsAt in the future" to
-  "`subscriptionStatus` in {trialing, active}" (+ short `past_due` grace per policy).
-- Needs: Stripe test keys + a $149/mo recurring price (see "What the owner provides").
+### Phase 2 — Real Stripe Checkout at "Go live" ✅ DONE (2026-07-12)
+Shipped + verified end-to-end (real test checkout via `stripe listen`, test card
+4242 → webhook → DB got `sub_…`/`cus_…`, `subscriptionStatus: trialing`, 14-day
+trial):
+- "Add payment & go live" CTA now calls `POST /api/stripe/checkout` and redirects
+  to Stripe's hosted page; the webhook (`checkout.session.completed` +
+  `customer.subscription.*` + `invoice.*`) is authoritative.
+- Retired `/api/onboarding/mock-subscribe` (deleted).
+- Tightened `hasPaymentOnFile` to require a real `stripeSubscriptionId` **and** an
+  active/trialing status — the one seam that flips the whole app mock→real.
+- **Env (interim):** reusing the shared CraftCapture **test** Stripe account/keys
+  already in `.env.local`. Created a dedicated **Callverted product + $149/mo
+  price** in that account: `price_1TsTYdCIwu8rvWRe4AFA3t6X` (prod
+  `prod_UsE0dSXW8C4KUH`); `.env.local` `NEXT_PUBLIC_STRIPE_PRICE_ID` now points at
+  it (uncommitted — local only). Account display name still reads "Craft Capture
+  Sandbox" (account-level) — swap when we move to a dedicated Callverted Stripe
+  account before launch, along with all keys.
+- **Local webhook testing:** `stripe listen --api-key <sk_test> --forward-to
+  localhost:3000/api/stripe/webhook` (CLI is logged into a different account, so
+  pass `--api-key`); use the `whsec_` it prints as `STRIPE_WEBHOOK_SECRET` for the
+  dev server. Test card 4242, and **uncheck "Save my information" (Link)** or the
+  phone field blocks submit.
 
-### Phase 3 — Real Twilio provisioning after subscription
-- On `subscription = trialing` (webhook), fire an **idempotent** provision job
-  (guard on `twilioPhoneNumberSid`; if set, return existing) -> buy a real number,
-  store number + SID. Prefer an Inngest job emitted from the webhook over a browser
-  call, so an interrupted redirect can't skip provisioning.
-- Replace the mock search/purchase. Voice route already gates correctly once the
-  number + payment are real.
-- Add columns: `twilioPhoneNumberSid`, `cancelAtPeriodEnd`.
-- Needs: Twilio account SID + auth token for this app (voice only; no A2P/10DLC
-  unless we send SMS).
+### Phase 3 — Real Twilio number: post-payment live area-code search (NEXT)
+Decision (2026-07-12): **no webhook-driven auto-provision, no pre-stored area
+code.** Since a number can only be bought after the card is on file, provisioning
+is a foreground dashboard step *after* checkout:
+- New "Choose your number" dashboard surface (shown at `getSetupStage ===
+  "provisioning"`): area-code input -> **real Twilio search** (`/api/twilio/
+  numbers/search`) -> pick -> **buy** (`/api/twilio/numbers/purchase`) -> store
+  `twilioPhoneNumber` + `twilioPhoneNumberSid`. Resurrect the old mock Step4Number
+  UI against real Twilio. Nobody can be charged for a number they never picked.
+- Replace the mock search/purchase with real Twilio (creds already in `.env.local`:
+  `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN`). Guard purchase behind explicit
+  confirm; real buys cost ~$1/mo, so during testing buy one and release it.
+- Add column: `twilioPhoneNumberSid` (for release-on-cancel in Phase 5).
+- Voice route already gates correctly once number + payment are real.
+- Note: A2P/10DLC only matters if/when we SMS the owner the lead packet; voice needs
+  no registration.
 
 ### Phase 4 — Deploy voice WSS runtime
 - Stand up the production WebSocket endpoint, set `VOICE_STREAM_WSS_URL`. Owner infra.

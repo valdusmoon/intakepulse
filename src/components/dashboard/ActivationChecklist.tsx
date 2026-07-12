@@ -59,18 +59,20 @@ export function ActivationChecklist({
 
   const needsPayment = setupStage === "needs_payment";
 
-  // PHASE 1 STUB: stands in for real Stripe Checkout. Flips the existing business
-  // to trialing so the setup-mode → live transition is testable now. Phase 2
-  // swaps this single call for POST /api/stripe/checkout + redirect.
+  // Go live = start the real subscription. Creates a Stripe Checkout session
+  // (trial mode, $149/mo) and hands off to Stripe's hosted card page; the webhook
+  // is authoritative and sets subscriptionStatus/trialing on return. The Twilio
+  // number is chosen afterward, on the dashboard (live area-code search).
   async function startGoLive() {
     setGoingLive(true);
     setGoLiveError("");
     try {
-      const res = await fetch("/api/onboarding/mock-subscribe", { method: "POST" });
-      if (!res.ok) throw new Error("failed");
-      router.refresh();
-    } catch {
-      setGoLiveError("Couldn't start your trial. Please try again.");
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) throw new Error(data.error || "failed");
+      window.location.href = data.url; // hand off to Stripe Checkout
+    } catch (e) {
+      setGoLiveError(e instanceof Error && e.message !== "failed" ? e.message : "Couldn't start checkout. Please try again.");
       setGoingLive(false);
     }
   }
