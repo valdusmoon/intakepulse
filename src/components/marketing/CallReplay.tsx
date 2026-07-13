@@ -60,7 +60,7 @@ const CALLER_EXPERIENCE = [
   "Guided through in about forty seconds",
   "No hold music, no web form to fill out",
   "Told a real person will confirm pricing",
-  "Promised a fast callback — and believed it",
+  "Promised a fast callback, and believed it",
 ];
 
 // The scored output the caller never sees. The raw facts live in the capture

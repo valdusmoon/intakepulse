@@ -28,13 +28,13 @@ const HERO_PROOF = [
 const OUTCOMES = [
   {
     n: "01",
-    title: "Nights, weekends, and mid-job — covered",
-    body: "Most emergency calls come in while you're on a roof, under a house, or asleep. Every one gets a live answer and a promised callback — not a voicemail they'll never leave.",
+    title: "Nights, weekends, and mid-job, covered",
+    body: "Most emergency calls come in while you're on a roof, under a house, or asleep. Every one gets a live answer and a promised callback, not a voicemail they'll never leave.",
   },
   {
     n: "02",
     title: "Leads arrive qualified and priced",
-    body: "Every recovered call becomes a lead packet: what happened, how urgent it is, whether it's in your area, and an estimated value — with pricing read only from rules you approve.",
+    body: "Every recovered call becomes a lead packet: what happened, how urgent it is, whether it's in your area, and an estimated value, with pricing read only from rules you approve.",
   },
   {
     n: "03",
@@ -53,13 +53,13 @@ const STEPS = [
   },
   {
     n: "2",
-    title: "We answer the miss — live",
+    title: "We answer the miss, live",
     body: "After about 20 seconds unanswered, Callverted picks up the same call. No voicemail. No “text us back” gamble.",
   },
   {
     n: "3",
     title: "We qualify and quote",
-    body: "A short, trade-specific intake: what happened, how urgent, service-area fit. Price guidance comes only from rules you approve — never invented.",
+    body: "A short, trade-specific intake: what happened, how urgent, service-area fit. Price guidance comes only from rules you approve, never invented.",
   },
   {
     n: "4",
@@ -71,7 +71,7 @@ const STEPS = [
 // Draws the boundary against the crowded "AI receptionist" category: same
 // mechanism (AI voice), completely different job.
 const VS_RECEPTIONIST = [
-  { them: "Answers every call", us: "Steps in when your team can't answer — or when you choose immediate coverage" },
+  { them: "Answers every call", us: "Steps in when your team can't answer, or when you choose immediate coverage" },
   { them: "Tries to handle many tasks", us: "Focused on recovering and qualifying missed opportunities" },
   { them: "Books, answers FAQs, routes, chats", us: "Captures issue, urgency, fit, value, and callback need" },
   { them: "Optimizes for call handling", us: "Optimizes for recovered revenue" },
@@ -80,7 +80,7 @@ const VS_RECEPTIONIST = [
 const INCLUDED = [
   "24/7 live answering on the calls your team misses",
   "Trade-specific qualification on every recovered call",
-  "Price guidance from rules you approve — never invented",
+  "Price guidance from rules you approve, never invented",
   "Urgency, intent, and estimated value on every lead",
   "Instant lead alerts with summaries and full transcripts",
   "Website widget and shareable intake link",
@@ -177,7 +177,7 @@ export default function HomePage() {
                 Stop losing emergency jobs to voicemail.
               </h1>
               <p className="text-lg text-white/60 mb-9 max-w-md leading-relaxed">
-                When your team can&apos;t pick up, Callverted answers the same call live — qualifies the job, quotes
+                When your team can&apos;t pick up, Callverted answers the same call live. It qualifies the job, quotes
                 from pricing you approve, and hands you a ranked, callback-ready lead while the customer is still
                 yours.
               </p>
@@ -292,7 +292,7 @@ export default function HomePage() {
             dark
             eyebrow="See it work"
             title="Forty seconds for the caller. A ranked lead for you."
-            sub="The exact flow that runs on your line, played out on a real water-damage call. Your caller gets a calm, live answer — you get the scored packet."
+            sub="The exact flow that runs on your line, played out on a real water-damage call. Your caller gets a calm, live answer. You get the scored packet."
           />
           <CallReplay />
           <p className="mt-6 text-center text-sm text-white/50">
@@ -333,7 +333,7 @@ export default function HomePage() {
           <SectionHeader
             eyebrow="What you receive"
             title="A lead packet, not a voicemail light."
-            sub="Every recovered call lands in one place — scored, summarized, and sorted by who to call first. A minute in the morning is usually all it takes."
+            sub="Every recovered call lands in one place: scored, summarized, and sorted by who to call first. A minute in the morning is usually all it takes."
           />
           <ProductShowcase />
         </ScrollReveal>
@@ -354,7 +354,7 @@ export default function HomePage() {
             </h2>
             <p className="text-white/55 text-[15px] leading-relaxed">
               Drag the sliders to your own call volume and job size. It&apos;s meant to make the cost of silence
-              concrete — not to promise every missed call becomes a job.
+              concrete, not to promise every missed call becomes a job.
             </p>
           </div>
           <div className="border border-white/10 bg-white/[0.045] rounded-[24px] p-6 sm:p-7">
@@ -390,7 +390,7 @@ export default function HomePage() {
             ))}
           </div>
           <p className="text-center text-sm text-[#667085] mt-6 max-w-xl mx-auto">
-            Unlike voicemail or missed-call text-back, Callverted answers the original call live &mdash; and hands you
+            Unlike voicemail or missed-call text-back, Callverted answers the original call live and hands you
             a lead packet, not just a phone number.
           </p>
         </ScrollReveal>
@@ -406,7 +406,7 @@ export default function HomePage() {
             </h2>
             <p className="text-[#667085] text-[15px] leading-relaxed">
               No per-lead fees, no per-minute surprises, no contracts. If one recovered job a month doesn&apos;t cover
-              it several times over, Callverted isn&apos;t for you — and the 14-day trial will tell you either way.
+              it several times over, Callverted isn&apos;t for you, and the 14-day trial will tell you either way.
             </p>
           </div>
 
@@ -507,7 +507,7 @@ export default function HomePage() {
               The next missed call doesn&apos;t have to be a lost job.
             </h2>
             <p className="text-white/55 mb-8 text-[15px] leading-relaxed">
-              Put Callverted behind your number this week. Your team keeps the first ring — we catch, qualify, and
+              Put Callverted behind your number this week. Your team keeps the first ring. We catch, qualify, and
               rank everything they can&apos;t.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
