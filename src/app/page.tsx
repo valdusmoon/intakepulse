@@ -59,6 +59,16 @@ const COMPARISON = [
   { label: "Callverted", sub: "Answers live, reassures the caller, runs the intake, and delivers a lead packet you can act on immediately.", strong: true },
 ];
 
+// Draws the boundary against the crowded "AI receptionist" category: same
+// mechanism (AI voice), completely different job. Left = generic receptionist,
+// right = what Callverted actually optimizes for.
+const VS_RECEPTIONIST = [
+  { them: "Answers every call", us: "Only steps in on missed or after-hours calls" },
+  { them: "Tries to handle many tasks", us: "One job: recover and qualify the lead" },
+  { them: "Books, answers FAQs, routes, chats", us: "Captures issue, urgency, fit, value, and callback need" },
+  { them: "Optimizes for call handling", us: "Optimizes for recovered revenue" },
+];
+
 
 export default function HomePage() {
   return (
@@ -110,14 +120,14 @@ export default function HomePage() {
                   <span className="absolute inline-flex h-full w-full rounded-full bg-landing-primary-glow opacity-75 animate-ping" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-landing-primary-glow" />
                 </span>
-                AI voice overflow for urgent home-service calls
+                Missed-call lead recovery for urgent home services
               </div>
               <h1 className="font-cv-heading text-4xl sm:text-6xl font-bold leading-[1.0] tracking-tight mb-6">
                 The emergency call you missed just became a qualified lead.
               </h1>
               <p className="text-lg text-white/60 mb-9 max-w-md leading-relaxed">
-                Callverted picks up when your team can&apos;t, asks the intake questions that matter, estimates
-                job value, and sends a callback-ready lead while the caller is still hot.
+                Your team answers first. If no one picks up, Callverted recovers the same call &mdash; captures the
+                job, checks urgency and fit, and sends a callback-ready lead before the customer calls someone else.
               </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-7">
                 <Link
@@ -349,6 +359,40 @@ export default function HomePage() {
               >
                 <p className={`font-cv-heading text-xl font-bold mb-2 ${item.strong ? "text-[#152033]" : "text-[#475467]"}`}>{item.label}</p>
                 <p className={`text-sm leading-relaxed ${item.strong ? "text-[#475467]" : "text-[#98a2b3]"}`}>{item.sub}</p>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── Not a receptionist — the category boundary ───────────────────── */}
+      <section className="px-6 py-16 sm:py-20 bg-white">
+        <ScrollReveal className="max-w-3xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">The difference</p>
+            <h2 className="font-cv-heading text-2xl sm:text-3xl font-bold text-[#152033] mb-3">
+              Not a receptionist. A recovery system.
+            </h2>
+            <p className="text-sm text-[#667085] max-w-xl mx-auto">
+              Generic AI receptionists try to answer everything. Callverted does one job: recover the calls your
+              team couldn&apos;t answer, qualify them, and tell you who to call first.
+            </p>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-[#e3e7ed] shadow-sm">
+            <div className="grid grid-cols-2 text-sm border-b border-[#e3e7ed]">
+              <div className="bg-[#f9fafb] px-4 sm:px-5 py-3.5 font-cv-heading font-bold text-[#98a2b3]">
+                Generic AI receptionist
+              </div>
+              <div className="bg-landing-primary/[0.06] px-4 sm:px-5 py-3.5 font-cv-heading font-bold text-[#152033] border-l border-[#e3e7ed]">
+                Callverted
+              </div>
+            </div>
+            {VS_RECEPTIONIST.map((row) => (
+              <div key={row.us} className="grid grid-cols-2 text-sm border-b border-[#eef1f4] last:border-0">
+                <div className="px-4 sm:px-5 py-4 text-[#98a2b3] leading-snug">{row.them}</div>
+                <div className="px-4 sm:px-5 py-4 text-[#475467] font-medium leading-snug bg-landing-primary/[0.03] border-l border-[#e3e7ed]">
+                  {row.us}
+                </div>
               </div>
             ))}
           </div>
