@@ -23,36 +23,35 @@ const HERO_PROOF = [
   { num: "$1.8k–$3.2k", label: "Estimated job value, before you call back", color: "text-landing-green" },
 ];
 
-// Outcome cards — what actually changes for the owner, not how the machinery
-// works. The mechanism lives one section down.
-const OUTCOMES = [
-  {
-    n: "01",
-    title: "Nights, weekends, and mid-job, covered",
-    body: "The calls that come in while you're on a roof or asleep get a live answer and a promised callback, not a dead voicemail.",
-  },
-  {
-    n: "02",
-    title: "Leads arrive qualified and priced",
-    body: "Every recovered call comes back as a lead packet: the issue, urgency, service-area fit, and an estimated value.",
-  },
-  {
-    n: "03",
-    title: "You always know who to call first",
-    body: "Leads are ranked by urgency, intent, and value, so the $6,000 emergency never waits behind a tire-kicker.",
-  },
-];
-
-// The service, in four steps. "We" voice on the recovery steps — Callverted is
-// sold as a done-for-you service, not software the owner has to operate. Kept to
-// a title + a short tag so the row reads as a scannable timeline, not another
-// block of paragraph text next to the outcome cards above. The detailed demo
-// (CallReplay) directly below carries the full walkthrough.
+// The recovery flow, as a single benefit-embedded section (merges what used to
+// be a separate "outcomes" grid + a "how it works" strip — they answered the
+// same "why should I care?" question twice). Each step is the mechanism AND the
+// payoff. Step 3 renders a before/after contrast instead of a body paragraph.
 const STEPS = [
-  { n: "1", title: "Your team rings first", tag: "Answered calls stay normal" },
-  { n: "2", title: "We answer the miss, live", tag: "~20 seconds unanswered" },
-  { n: "3", title: "We qualify and quote", tag: "From pricing you approve" },
-  { n: "4", title: "You call back and win it", tag: "A full scored lead in hand" },
+  {
+    n: "1",
+    title: "Your team gets the first ring",
+    body: "Answered calls stay completely normal. Callverted only takes over when you're on a job, asleep, or already with a customer, instead of letting it hit voicemail.",
+  },
+  {
+    n: "2",
+    title: "The missed call becomes a live conversation",
+    body: "The caller stays on the line while Callverted captures what happened, how urgent it is, the service needed, and where. No form, no callback tag, no time to dial a competitor.",
+  },
+  {
+    n: "3",
+    title: "The lead gets qualified and prioritized",
+    // Rendered as a before/after contrast, not a paragraph.
+    contrast: {
+      before: "Someone called about plumbing.",
+      after: "Emergency water leak. 3 rooms affected. Insurance involved. Call within 10 minutes.",
+    },
+  },
+  {
+    n: "4",
+    title: "You call back the right jobs first",
+    body: "Every recovered call becomes a ranked lead packet: urgency, intent, estimated value, transcript, and the recommended next move.",
+  },
 ];
 
 // Draws the boundary against the crowded "AI receptionist" category: same
@@ -225,50 +224,45 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── Outcomes (light) — what changes for the owner ─────────────────── */}
-      <section className="px-6 py-20 sm:py-24 bg-white border-b border-[#e3e7ed]">
-        <ScrollReveal className="max-w-5xl mx-auto">
-          <SectionHeader
-            eyebrow="Why owners keep it on"
-            title="You'll still miss calls. You'll stop losing the jobs."
-            sub="Callverted doesn't change how your team works. It changes what a missed call costs you."
-          />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {OUTCOMES.map((o) => (
-              <div key={o.n} className="rounded-2xl border border-[#e3e7ed] bg-white p-7 shadow-sm">
-                <div className="font-cv-mono text-[11px] font-bold text-landing-primary mb-4">{o.n}</div>
-                <h3 className="font-cv-heading text-lg font-bold text-[#152033] leading-snug mb-2.5">{o.title}</h3>
-                <p className="text-sm text-[#667085] leading-relaxed">{o.body}</p>
-              </div>
-            ))}
-          </div>
-        </ScrollReveal>
-      </section>
-
-      {/* ── How the service works (light gray) ────────────────────────────── */}
-      <section id="how" className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-b border-[#e3e7ed]">
-        <ScrollReveal className="max-w-6xl mx-auto">
+      {/* ── How it works (light) — one merged section: the mechanism AND the
+          payoff, as a vertical timeline. Replaces the old separate outcomes
+          grid + how-it-works strip, which asked "why care?" twice. ────────── */}
+      <section id="how" className="px-6 py-20 sm:py-24 bg-white border-b border-[#e3e7ed]">
+        <ScrollReveal className="max-w-3xl mx-auto">
           <SectionHeader
             eyebrow="How it works"
-            title="Set it up once. It runs in the background."
-            sub="About 30 minutes to go live: forward your line, confirm your services and pricing, make a test call. After that, most owners just check the morning lead list."
+            title="How Callverted recovers a missed job"
+            sub="Your team keeps working normally. Callverted only steps in when a valuable call would otherwise disappear."
           />
-          {/* Horizontal numbered flow — reads as a sequence, not another card
-              grid. A connecting line runs behind the circles on desktop; the
-              rings cut a clean gap so the numbers sit "on" the line. */}
-          <div className="relative max-w-5xl mx-auto">
+          <div className="relative">
+            {/* Vertical rail connecting the steps, fading out at the payoff */}
             <div
-              className="hidden lg:block absolute top-6 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-landing-primary/40 via-landing-primary/30 to-landing-primary/15"
+              className="absolute left-[19px] top-4 bottom-4 w-px bg-gradient-to-b from-landing-primary/45 via-landing-primary/25 to-transparent"
               aria-hidden
             />
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-9">
+            <div className="space-y-9 sm:space-y-10">
               {STEPS.map((s) => (
-                <div key={s.n} className="relative text-center">
-                  <div className="relative z-10 mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-landing-primary font-cv-heading text-lg font-bold text-white shadow-[0_8px_22px_-8px_rgba(36,84,216,0.7)] ring-4 ring-[#f9fafb]">
+                <div key={s.n} className="relative flex gap-5">
+                  <div className="relative z-10 shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-landing-primary font-cv-heading text-[15px] font-bold text-white shadow-[0_8px_22px_-8px_rgba(36,84,216,0.7)] ring-4 ring-white">
                     {s.n}
                   </div>
-                  <h3 className="font-cv-heading text-[15px] font-bold text-[#152033] leading-snug mb-1">{s.title}</h3>
-                  <p className="font-cv-mono text-[11.5px] uppercase tracking-wide text-[#98a2b3]">{s.tag}</p>
+                  <div className="pt-1">
+                    <h3 className="font-cv-heading text-lg font-bold text-[#152033] leading-snug mb-2">{s.title}</h3>
+                    {s.contrast ? (
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2.5 rounded-xl border border-[#e3e7ed] bg-[#f9fafb] px-3.5 py-2.5">
+                          <span className="mt-0.5 font-cv-mono text-[10px] font-bold uppercase tracking-wide text-[#98a2b3]">Before</span>
+                          <span className="text-sm text-[#98a2b3] line-through decoration-[#cbd2dc]">{s.contrast.before}</span>
+                        </div>
+                        <div className="flex items-start gap-2.5 rounded-xl border border-landing-primary/25 bg-landing-primary/[0.05] px-3.5 py-2.5">
+                          <span className="mt-0.5 font-cv-mono text-[10px] font-bold uppercase tracking-wide text-landing-primary">After</span>
+                          <span className="text-sm font-medium text-[#152033]">{s.contrast.after}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-[#667085] leading-relaxed max-w-lg">{s.body}</p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
