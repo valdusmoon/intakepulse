@@ -29,42 +29,43 @@ const OUTCOMES = [
   {
     n: "01",
     title: "Nights, weekends, and mid-job, covered",
-    body: "Most emergency calls come in while you're on a roof, under a house, or asleep. Every one gets a live answer and a promised callback, not a voicemail they'll never leave.",
+    body: "The calls that come in while you're on a roof or asleep get a live answer and a promised callback, not a dead voicemail.",
   },
   {
     n: "02",
     title: "Leads arrive qualified and priced",
-    body: "Every recovered call becomes a lead packet: what happened, how urgent it is, whether it's in your area, and an estimated value, with pricing read only from rules you approve.",
+    body: "Every recovered call comes back as a lead packet: the issue, urgency, service-area fit, and an estimated value.",
   },
   {
     n: "03",
     title: "You always know who to call first",
-    body: "Leads are ranked by urgency, intent, and job value, so the $6,000 emergency never waits behind a tire-kicker.",
+    body: "Leads are ranked by urgency, intent, and value, so the $6,000 emergency never waits behind a tire-kicker.",
   },
 ];
 
 // The service, in four steps. "We" voice on the recovery steps — Callverted is
-// sold as a done-for-you service, not software the owner has to operate.
+// sold as a done-for-you service, not software the owner has to operate. Bodies
+// are single tight lines to fit the horizontal stepper.
 const STEPS = [
   {
     n: "1",
-    title: "Your team gets the first ring",
+    title: "Your team rings first",
     body: "Your Callverted number rings your real phones first. Answered calls stay exactly as they are today.",
   },
   {
     n: "2",
     title: "We answer the miss, live",
-    body: "After about 20 seconds unanswered, Callverted picks up the same call. No voicemail. No “text us back” gamble.",
+    body: "After about 20 seconds unanswered, Callverted picks up the same call. No voicemail, no text-back gamble.",
   },
   {
     n: "3",
     title: "We qualify and quote",
-    body: "A short, trade-specific intake: what happened, how urgent, service-area fit. Price guidance comes only from rules you approve, never invented.",
+    body: "A short, trade-specific intake, with price guidance read only from rules you approve.",
   },
   {
     n: "4",
     title: "You call back and win it",
-    body: "An instant alert with the scored lead: urgency, intent, estimated value, transcript, and the recommended next move.",
+    body: "An instant alert with the scored lead: urgency, intent, value, and the recommended next move.",
   },
 ];
 
@@ -177,9 +178,8 @@ export default function HomePage() {
                 Stop losing emergency jobs to voicemail.
               </h1>
               <p className="text-lg text-white/60 mb-9 max-w-md leading-relaxed">
-                When your team can&apos;t pick up, Callverted answers the same call live. It qualifies the job, quotes
-                from pricing you approve, and hands you a ranked, callback-ready lead while the customer is still
-                yours.
+                When your team can&apos;t pick up, Callverted answers the same call live, qualifies the job, and hands
+                you a ranked, callback-ready lead before the customer moves on.
               </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-7">
                 <Link
@@ -266,16 +266,25 @@ export default function HomePage() {
             title="Set it up once. It runs in the background."
             sub="About 30 minutes to go live: forward your line, confirm your services and pricing, make a test call. After that, most owners just check the morning lead list."
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {STEPS.map((s) => (
-              <div key={s.n} className="relative rounded-2xl border border-[#e3e7ed] bg-white p-6 shadow-sm">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-landing-primary/[0.08] font-cv-mono text-[13px] font-bold text-landing-primary mb-4">
-                  {s.n}
+          {/* Horizontal numbered flow — reads as a sequence, not another card
+              grid. A connecting line runs behind the circles on desktop; the
+              rings cut a clean gap so the numbers sit "on" the line. */}
+          <div className="relative max-w-5xl mx-auto">
+            <div
+              className="hidden lg:block absolute top-6 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-landing-primary/40 via-landing-primary/30 to-landing-primary/15"
+              aria-hidden
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+              {STEPS.map((s) => (
+                <div key={s.n} className="relative text-center">
+                  <div className="relative z-10 mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-landing-primary font-cv-heading text-lg font-bold text-white shadow-[0_8px_22px_-8px_rgba(36,84,216,0.7)] ring-4 ring-[#f9fafb]">
+                    {s.n}
+                  </div>
+                  <h3 className="font-cv-heading text-[15.5px] font-bold text-[#152033] leading-snug mb-2">{s.title}</h3>
+                  <p className="text-[13.5px] text-[#667085] leading-relaxed max-w-[240px] mx-auto">{s.body}</p>
                 </div>
-                <h3 className="font-cv-heading text-[15.5px] font-bold text-[#152033] leading-snug mb-2">{s.title}</h3>
-                <p className="text-[13.5px] text-[#667085] leading-relaxed">{s.body}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </ScrollReveal>
       </section>
