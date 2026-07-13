@@ -146,6 +146,36 @@ export const POSTS: Post[] = [
       { type: "p", text: "The practical fix is to guarantee a fast, capable answer on the calls your team can't take, one that qualifies the job and gets you a callback-ready lead within minutes, not hours. That's the window where the customer is still yours." },
     ],
   },
+  {
+    slug: "which-lead-to-call-back-first",
+    title: "Which lead do you call back first?",
+    metaTitle: "Which Lead Do You Call Back First? | Callverted",
+    metaDescription:
+      "Come off a job to a stack of missed calls and the order you return them in decides which job you win. A simple triage guide for home-service teams.",
+    date: "2026-07-13",
+    readMinutes: 4,
+    excerpt:
+      "Come off a job to five missed calls and the instinct is to work them oldest-first. That's the wrong order, and it quietly costs you the best job in the stack.",
+    image: "/blog/which-lead-to-call-back-first.jpg",
+    imageAlt: "Glossy 3D lead cards sorting themselves into a ranked priority order, the top card glowing brightest.",
+    imagePrompt: "A glossy 3D stack of rounded lead cards floating and sorting themselves into a ranked vertical order, the top card larger and glowing brightest with a small upward priority arrow and a subtle warm urgency spark, the lower cards calmer and cooler-toned, conveying triage and prioritization.",
+    body: [
+      { type: "p", text: "Come off a four-hour job and you've got five missed calls and three web leads waiting. The instinct is to work the list top to bottom, oldest first. That's the wrong order, and on a busy day it quietly costs you the best job in the stack." },
+      { type: "h2", text: "Return order beats return effort" },
+      { type: "p", text: "You won't reach everyone, and the ones you reach won't all book. So the only question that really matters is which call you make first. Get the order right and you win the job that was about to dial someone else. Get it wrong and you burn your first callback on a tire-kicker while a $6,000 restoration walks." },
+      { type: "h2", text: "Three signals decide the order" },
+      { type: "p", text: "Every lead can be ranked on three things, and you can read all three from a good intake instead of guessing from a name and a number." },
+      { type: "ul", items: [
+        "Urgency: is this happening right now? A flooding basement or a no-heat call at 20 degrees won't wait. A 'sometime next month' quote will.",
+        "Intent: how ready are they to hire? 'My water heater just burst' is a buyer. 'Just getting a few prices' is a maybe.",
+        "Fit and value: is it the kind of job you want, in your service area, at a size worth the drive? A full remediation outranks a $120 service call.",
+      ]},
+      { type: "h2", text: "Rank on all three, not just one" },
+      { type: "p", text: "The trap is sorting on a single signal. The most urgent call isn't always the most valuable, and the biggest job isn't always ready to book. Weigh urgency, intent, and value together and a clear order falls out: high-urgency, high-intent, high-value calls first; low-everything last." },
+      { type: "h2", text: "Do the triage before you pick up the phone" },
+      { type: "p", text: "The reason most teams call back in the wrong order is that there's nothing to sort on until they've already spent the call. The fix is to capture what happened on the way in, the issue, how urgent it is, whether it fits, and a rough value, so the list arrives pre-sorted. Then your first callback is always the one most likely to turn into a booked job." },
+    ],
+  },
 ];
 
 export function getPost(slug: string): Post | undefined {
