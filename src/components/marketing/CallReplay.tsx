@@ -67,7 +67,7 @@ const CALLER_EXPERIENCE = [
 // panel above; this is only what SCORING produced from them.
 const PACKET = {
   tier: "Hot",
-  score: 66,
+  score: 92,
   estValue: "$4,500 – $9,000",
   action: "Call back within 10 minutes",
 };
