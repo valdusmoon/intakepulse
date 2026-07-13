@@ -4,8 +4,8 @@ import { HeroPhoneAnimation } from "@/components/marketing/HeroPhoneAnimation";
 import { ProductShowcase } from "@/components/marketing/ProductShowcase";
 import { MissedCallCalculator } from "@/components/marketing/MissedCallCalculator";
 import { CallReplay } from "@/components/marketing/CallReplay";
-// Retired: public "drive it yourself" sandbox — see the commented <details> in
-// the demo section below. Kept for easy revival.
+// Retired: public "drive it yourself" sandbox — see the note in the demo
+// section below. Kept for easy revival.
 // import { InteractiveDemo } from "@/components/marketing/InteractiveDemo";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { AuthAwareNavCta } from "@/components/marketing/AuthAwareNavCta";
@@ -13,43 +13,63 @@ import { MarketingFooter } from "@/components/marketing/MarketingChrome";
 import { JsonLd, faqSchema } from "@/components/marketing/JsonLd";
 import { FAQS } from "@/lib/marketing/faqs";
 
+/** Self-serve demo booking (Calendly or similar). Set in env; the fallback keeps
+ *  the CTA rendered in dev so the layout never silently loses it. */
+const DEMO_URL = process.env.NEXT_PUBLIC_DEMO_BOOKING_URL ?? "https://calendly.com/callverted/demo";
+
 const HERO_PROOF = [
   { num: "2:47 AM", label: "Call answered after your team misses it", color: "text-landing-alert" },
-  { num: "90 sec", label: "Typical structured intake window", color: "text-landing-primary-glow" },
-  { num: "$1.8k–$3.2k", label: "Estimated value shown before callback", color: "text-landing-green" },
+  { num: "90 sec", label: "Typical qualification, on the same call", color: "text-landing-primary-glow" },
+  { num: "$1.8k–$3.2k", label: "Estimated job value, before you call back", color: "text-landing-green" },
 ];
 
-const FLOW = [
+// Outcome cards — what actually changes for the owner, not how the machinery
+// works. The mechanism lives one section down.
+const OUTCOMES = [
   {
-    k: "Missed",
-    title: "Your team rings first",
-    body: "Your Callverted number rings your real phone first. Answered calls stay normal — Callverted only steps in on the ones that would hit voicemail.",
+    n: "01",
+    title: "Nights, weekends, and mid-job — covered",
+    body: "Most emergency calls come in while you're on a roof, under a house, or asleep. Every one gets a live answer and a promised callback — not a voicemail they'll never leave.",
   },
   {
-    k: "Answered",
-    title: "Callverted picks up live",
-    body: "After ~20 seconds unanswered, it takes over the same call — no voicemail, no missed-call text for a panicked homeowner to ignore.",
+    n: "02",
+    title: "Leads arrive qualified and priced",
+    body: "Every recovered call becomes a lead packet: what happened, how urgent it is, whether it's in your area, and an estimated value — with pricing read only from rules you approve.",
   },
   {
-    k: "Qualified",
-    title: "It runs the intake",
-    body: "The questions that actually decide the job: what's going on, how urgent it is, what service is needed, and whether it's in your area.",
+    n: "03",
+    title: "You always know who to call first",
+    body: "Leads are ranked by urgency, intent, and job value, so the $6,000 emergency never waits behind a tire-kicker.",
+  },
+];
+
+// The service, in four steps. "We" voice on the recovery steps — Callverted is
+// sold as a done-for-you service, not software the owner has to operate.
+const STEPS = [
+  {
+    n: "1",
+    title: "Your team gets the first ring",
+    body: "Your Callverted number rings your real phones first. Answered calls stay exactly as they are today.",
   },
   {
-    k: "Assessed",
-    title: "It shares guidance you approved",
-    body: "If you've approved value guidance for that job, the caller hears a realistic ballpark — otherwise your team confirms pricing. It never invents a number.",
+    n: "2",
+    title: "We answer the miss — live",
+    body: "After about 20 seconds unanswered, Callverted picks up the same call. No voicemail. No “text us back” gamble.",
   },
   {
-    k: "Reassured",
-    title: "It sets the callback, then alerts you",
-    body: "The caller is promised a fast callback so they don't dial a competitor. You get a scored lead packet: urgency, intent, value, summary, transcript, and next action.",
+    n: "3",
+    title: "We qualify and quote",
+    body: "A short, trade-specific intake: what happened, how urgent, service-area fit. Price guidance comes only from rules you approve — never invented.",
+  },
+  {
+    n: "4",
+    title: "You call back and win it",
+    body: "An instant alert with the scored lead: urgency, intent, estimated value, transcript, and the recommended next move.",
   },
 ];
 
 // Draws the boundary against the crowded "AI receptionist" category: same
-// mechanism (AI voice), completely different job. Left = generic receptionist,
-// right = what Callverted actually optimizes for.
+// mechanism (AI voice), completely different job.
 const VS_RECEPTIONIST = [
   { them: "Answers every call", us: "Steps in when your team can't answer — or when you choose immediate coverage" },
   { them: "Tries to handle many tasks", us: "Focused on recovering and qualifying missed opportunities" },
@@ -57,17 +77,52 @@ const VS_RECEPTIONIST = [
   { them: "Optimizes for call handling", us: "Optimizes for recovered revenue" },
 ];
 
+const INCLUDED = [
+  "24/7 live answering on the calls your team misses",
+  "Trade-specific qualification on every recovered call",
+  "Price guidance from rules you approve — never invented",
+  "Urgency, intent, and estimated value on every lead",
+  "Instant lead alerts with summaries and full transcripts",
+  "Website widget and shareable intake link",
+  "Weekly performance recap",
+];
+
+/** Consistent section header — one type scale and rhythm across the page. */
+function SectionHeader({
+  eyebrow,
+  title,
+  sub,
+  dark = false,
+}: {
+  eyebrow: string;
+  title: string;
+  sub?: string;
+  dark?: boolean;
+}) {
+  return (
+    <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-14">
+      <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${dark ? "text-landing-primary-glow" : "text-landing-primary"}`}>
+        {eyebrow}
+      </p>
+      <h2 className={`font-cv-heading text-3xl sm:text-4xl font-bold tracking-tight leading-tight ${dark ? "text-white" : "text-[#152033]"}`}>
+        {title}
+      </h2>
+      {sub && (
+        <p className={`mt-4 text-[15px] leading-relaxed ${dark ? "text-white/55" : "text-[#667085]"}`}>{sub}</p>
+      )}
+    </div>
+  );
+}
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-landing-paper text-[#152033]">
 
-      {/* ── Hero (dark) — interactive: click a step to seek the animation ─── */}
+      {/* ── Hero (dark) ────────────────────────────────────────────────────── */}
       <div
         className="relative overflow-hidden text-white"
         style={{ background: "linear-gradient(180deg,#12224e 0%,#0b1226 48%,#0a0f1c 100%)" }}
       >
-        {/* Blue light spilling from the top — adds warmth and pop without a floating orb */}
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-[560px]"
           style={{ background: "radial-gradient(ellipse 65% 90% at 50% -12%, rgba(91,140,255,0.22), transparent 72%)" }}
@@ -91,9 +146,17 @@ export default function HomePage() {
             </Link>
             <div className="flex items-center gap-5">
               <Link href="#how" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">How it works</Link>
-              <Link href="#demo" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">Demo</Link>
-              <Link href="/industries" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">Industries</Link>
+              <Link href="#demo" className="text-sm text-white/60 hover:text-white transition-colors hidden md:block">See it work</Link>
+              <Link href="/industries" className="text-sm text-white/60 hover:text-white transition-colors hidden lg:block">Industries</Link>
               <Link href="#pricing" className="text-sm text-white/60 hover:text-white transition-colors hidden sm:block">Pricing</Link>
+              <a
+                href={DEMO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-semibold text-white/85 border border-white/25 px-4 py-2 rounded-lg hover:bg-white/10 transition-colors hidden sm:block"
+              >
+                Book a demo
+              </a>
               <AuthAwareNavCta />
             </div>
           </div>
@@ -108,31 +171,34 @@ export default function HomePage() {
                   <span className="absolute inline-flex h-full w-full rounded-full bg-landing-primary-glow opacity-75 animate-ping" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-landing-primary-glow" />
                 </span>
-                Missed-call lead recovery for urgent home services
+                Lead recovery service for home-service trades
               </div>
-              <h1 className="font-cv-heading text-4xl sm:text-6xl font-bold leading-[1.0] tracking-tight mb-6">
-                The emergency call you missed just became a qualified lead.
+              <h1 className="font-cv-heading text-4xl sm:text-6xl font-bold leading-[1.02] tracking-tight mb-6">
+                Stop losing emergency jobs to voicemail.
               </h1>
               <p className="text-lg text-white/60 mb-9 max-w-md leading-relaxed">
-                Your team gets the first chance to answer. If no one picks up, Callverted takes over the same call,
-                qualifies the job, and sends you a callback-ready lead before the customer moves on.
+                When your team can&apos;t pick up, Callverted answers the same call live — qualifies the job, quotes
+                from pricing you approve, and hands you a ranked, callback-ready lead while the customer is still
+                yours.
               </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-7">
                 <Link
                   href="/sign-up"
                   className="w-full sm:w-auto text-center font-semibold bg-landing-primary text-white px-7 py-3.5 rounded-xl hover:bg-blue-600 transition-colors text-base shadow-[0_10px_40px_-8px_rgba(36,84,216,0.65)]"
                 >
-                  Start 14-day trial
+                  Start 14-day free trial
                 </Link>
-                <Link
-                  href="#product"
+                <a
+                  href={DEMO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-full sm:w-auto text-center font-medium text-white/80 px-7 py-3.5 rounded-xl border border-white/20 hover:bg-white/5 transition-colors text-base"
                 >
-                  See the lead packet
-                </Link>
+                  Book a 15-min demo
+                </a>
               </div>
               <p className="text-xs text-white/40 font-cv-mono">
-                14-day free trial · Live today · Setup in ~30 min
+                No contracts · Set up in ~30 minutes · Then it runs on its own
               </p>
             </div>
 
@@ -159,7 +225,8 @@ export default function HomePage() {
         </section>
 
         <div className="relative z-10 border-t border-white/10 px-6 py-6">
-          <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-sm font-medium text-white/40">
+          <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 sm:gap-x-10 text-sm font-medium">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-white/35">Built for</span>
             <span className="text-white/70">Restoration</span>
             <span className="text-white/15">·</span>
             <span className="text-white/70">Emergency plumbing</span>
@@ -171,67 +238,69 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── How it works (light) — the recovery flow as a connected timeline ─ */}
-      <section id="how" className="relative overflow-hidden px-6 py-16 sm:py-20 bg-white border-y border-[#e3e7ed]">
-        <div
-          className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full opacity-[0.05] blur-3xl bg-landing-primary"
-          aria-hidden
-        />
-        <ScrollReveal className="relative max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">The recovery flow</p>
-            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold text-[#152033] mb-3 leading-tight">
-              One missed call, recovered in five steps.
-            </h2>
-            <p className="text-[#667085] max-w-xl mx-auto">
-              Every step happens on the original call, while the homeowner is still on the line: urgent, emotional, and
-              expensive to miss.
-            </p>
-          </div>
-
-          <div className="max-w-2xl mx-auto">
-            <div className="relative">
-              {/* Vertical rail connecting the beats — fades out at the payoff */}
-              <div
-                className="absolute left-[5px] top-2 bottom-2 w-px bg-gradient-to-b from-landing-primary/45 via-landing-primary/20 to-transparent"
-                aria-hidden
-              />
-              <div className="space-y-8">
-                {FLOW.map((s) => (
-                  <div key={s.k} className="relative flex gap-5">
-                    <div className="relative z-10 shrink-0 mt-[7px] w-[11px] h-[11px] rounded-full bg-landing-primary ring-4 ring-white" />
-                    <div>
-                      <p className="font-cv-mono text-[11px] font-bold text-landing-primary uppercase tracking-wider mb-1">{s.k}</p>
-                      <h3 className="font-cv-heading text-lg font-bold text-[#152033] mb-1.5">{s.title}</h3>
-                      <p className="text-sm text-[#667085] leading-relaxed">{s.body}</p>
-                    </div>
-                  </div>
-                ))}
+      {/* ── Outcomes (light) — what changes for the owner ─────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-white border-b border-[#e3e7ed]">
+        <ScrollReveal className="max-w-5xl mx-auto">
+          <SectionHeader
+            eyebrow="Why owners keep it on"
+            title="You'll still miss calls. You'll stop losing the jobs."
+            sub="Callverted doesn't change how your team works. It changes what a missed call costs you."
+          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {OUTCOMES.map((o) => (
+              <div key={o.n} className="rounded-2xl border border-[#e3e7ed] bg-white p-7 shadow-sm">
+                <div className="font-cv-mono text-[11px] font-bold text-landing-primary mb-4">{o.n}</div>
+                <h3 className="font-cv-heading text-lg font-bold text-[#152033] leading-snug mb-2.5">{o.title}</h3>
+                <p className="text-sm text-[#667085] leading-relaxed">{o.body}</p>
               </div>
-            </div>
+            ))}
           </div>
         </ScrollReveal>
       </section>
 
-      {/* ── Interactive demo (dark) — let them feel the intake, then see the packet ── */}
-      <section id="demo" className="relative overflow-hidden px-6 py-16 sm:py-20 bg-landing-ink text-white">
+      {/* ── How the service works (light gray) ────────────────────────────── */}
+      <section id="how" className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-b border-[#e3e7ed]">
+        <ScrollReveal className="max-w-6xl mx-auto">
+          <SectionHeader
+            eyebrow="How it works"
+            title="Set it up once. It runs in the background."
+            sub="About 30 minutes to go live: forward your line, confirm your services and pricing, make a test call. After that, most owners just check the morning lead list."
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {STEPS.map((s) => (
+              <div key={s.n} className="relative rounded-2xl border border-[#e3e7ed] bg-white p-6 shadow-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-landing-primary/[0.08] font-cv-mono text-[13px] font-bold text-landing-primary mb-4">
+                  {s.n}
+                </div>
+                <h3 className="font-cv-heading text-[15.5px] font-bold text-[#152033] leading-snug mb-2">{s.title}</h3>
+                <p className="text-[13.5px] text-[#667085] leading-relaxed">{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── Live call demo (dark) ─────────────────────────────────────────── */}
+      <section id="demo" className="relative overflow-hidden px-6 py-20 sm:py-24 bg-landing-ink text-white">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-64 opacity-[0.2]"
           style={{ background: "radial-gradient(ellipse 65% 100% at 50% 0%, rgba(91,140,255,.45), transparent 75%)" }}
           aria-hidden
         />
         <ScrollReveal className="relative max-w-3xl mx-auto">
-          <div className="text-center mb-9">
-            <p className="text-xs font-bold text-landing-primary-glow uppercase tracking-widest mb-2">See it work</p>
-            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold mb-3 leading-tight">
-              Watch one call become a scored lead.
-            </h2>
-            <p className="text-white/55 leading-relaxed">
-              A calm, forty-second call for your caller. A scored lead packet for you the second they hang up. Same
-              engine that answers your overflow, playing out below.
-            </p>
-          </div>
+          <SectionHeader
+            dark
+            eyebrow="See it work"
+            title="Forty seconds for the caller. A ranked lead for you."
+            sub="The exact flow that runs on your line, played out on a real water-damage call. Your caller gets a calm, live answer — you get the scored packet."
+          />
           <CallReplay />
+          <p className="mt-6 text-center text-sm text-white/50">
+            Want to see it run on your own trade?{" "}
+            <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-landing-primary-glow hover:text-white transition-colors">
+              Book a 15-minute demo →
+            </a>
+          </p>
 
           {/* RETIRED — public "drive it yourself" sandbox. It called the real
               engine over /api/demo, an unauthenticated, cost-bearing LLM
@@ -258,28 +327,20 @@ export default function HomePage() {
         </ScrollReveal>
       </section>
 
-      {/* ── Product showcase (light) — visual proof, not feature bullets ──── */}
-      {/* The lead packet is the differentiated output, so it precedes the ROI
-          calculator: show what they actually receive before quantifying it. */}
-      <section id="product" className="relative overflow-hidden px-6 py-16 sm:py-20 bg-white border-y border-[#e3e7ed]">
-        <div
-          className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full opacity-[0.05] blur-3xl bg-landing-primary"
-          aria-hidden
-        />
-        <ScrollReveal className="relative max-w-3xl mx-auto">
-          <div className="text-center mb-9">
-            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Product proof</p>
-            <h2 className="font-cv-heading text-3xl font-bold text-[#152033] mb-2">Show the product, not another AI promise</h2>
-            <p className="text-[#667085] text-sm">
-              The lead packet is the sell: what happened, why it matters, what it may be worth, and what to do next.
-            </p>
-          </div>
+      {/* ── What you receive (light) ──────────────────────────────────────── */}
+      <section id="product" className="px-6 py-20 sm:py-24 bg-white border-b border-[#e3e7ed]">
+        <ScrollReveal className="max-w-3xl mx-auto">
+          <SectionHeader
+            eyebrow="What you receive"
+            title="A lead packet, not a voicemail light."
+            sub="Every recovered call lands in one place — scored, summarized, and sorted by who to call first. A minute in the morning is usually all it takes."
+          />
           <ProductShowcase />
         </ScrollReveal>
       </section>
 
-      {/* ── Missed-call calculator (dark) ────────────────────────────────── */}
-      <section className="relative overflow-hidden px-6 py-16 sm:py-20 bg-landing-ink text-white border-t border-white/5">
+      {/* ── Missed-call calculator (dark) ─────────────────────────────────── */}
+      <section className="relative overflow-hidden px-6 py-20 sm:py-24 bg-landing-ink text-white border-t border-white/5">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-64 opacity-[0.22]"
           style={{ background: "radial-gradient(ellipse 65% 100% at 50% 0%, rgba(91,140,255,.5), transparent 75%)" }}
@@ -287,13 +348,13 @@ export default function HomePage() {
         />
         <ScrollReveal className="relative max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-10 items-center">
           <div>
-            <p className="text-xs font-bold text-landing-primary-glow uppercase tracking-widest mb-2">Missed-call math</p>
-            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold mb-3 leading-tight">
-              How much emergency revenue is sitting in missed calls?
+            <p className="text-xs font-bold text-landing-primary-glow uppercase tracking-widest mb-3">The math</p>
+            <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-tight mb-4 leading-tight">
+              What are missed calls costing you right now?
             </h2>
-            <p className="text-white/55 leading-relaxed">
-              Drag the slider to your own call volume. It&apos;s meant to make the cost of silence concrete, not to
-              promise every missed call becomes a job.
+            <p className="text-white/55 text-[15px] leading-relaxed">
+              Drag the sliders to your own call volume and job size. It&apos;s meant to make the cost of silence
+              concrete — not to promise every missed call becomes a job.
             </p>
           </div>
           <div className="border border-white/10 bg-white/[0.045] rounded-[24px] p-6 sm:p-7">
@@ -302,19 +363,14 @@ export default function HomePage() {
         </ScrollReveal>
       </section>
 
-      {/* ── Not a receptionist — the category boundary (lead comparison) ──── */}
-      <section className="px-6 py-16 sm:py-20 bg-white">
+      {/* ── Not a receptionist — the category boundary ────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-white border-b border-[#e3e7ed]">
         <ScrollReveal className="max-w-3xl mx-auto">
-          <div className="text-center mb-10">
-            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">The difference</p>
-            <h2 className="font-cv-heading text-2xl sm:text-3xl font-bold text-[#152033] mb-3">
-              Not a receptionist. A recovery system.
-            </h2>
-            <p className="text-sm text-[#667085] max-w-xl mx-auto">
-              Generic AI receptionists try to answer everything. Callverted does one job: recover the calls your
-              team couldn&apos;t answer, qualify them, and tell you who to call first.
-            </p>
-          </div>
+          <SectionHeader
+            eyebrow="The difference"
+            title="Not a receptionist. A recovery service."
+            sub="Generic AI receptionists try to answer everything. Callverted does one job: recover the calls your team couldn't answer, qualify them, and tell you who to call first."
+          />
           <div className="overflow-hidden rounded-2xl border border-[#e3e7ed] shadow-sm">
             <div className="grid grid-cols-2 text-sm border-b border-[#e3e7ed]">
               <div className="bg-[#f9fafb] px-4 sm:px-5 py-3.5 font-cv-heading font-bold text-[#98a2b3]">
@@ -334,22 +390,23 @@ export default function HomePage() {
             ))}
           </div>
           <p className="text-center text-sm text-[#667085] mt-6 max-w-xl mx-auto">
-            Unlike voicemail or missed-call text-back, Callverted answers the original call live &mdash; and hands you a lead packet, not just a phone number.
+            Unlike voicemail or missed-call text-back, Callverted answers the original call live &mdash; and hands you
+            a lead packet, not just a phone number.
           </p>
         </ScrollReveal>
       </section>
 
-      {/* ── Pricing (light) ──────────────────────────────────────────────── */}
-      <section id="pricing" className="px-6 py-16 sm:py-20 bg-[#f9fafb] border-y border-[#e3e7ed]">
+      {/* ── Pricing (light gray) ──────────────────────────────────────────── */}
+      <section id="pricing" className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-b border-[#e3e7ed]">
         <ScrollReveal className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-10 items-center">
           <div>
-            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Founding pricing</p>
-            <h2 className="font-cv-heading text-3xl sm:text-[42px] font-bold text-[#152033] mb-3 leading-tight">
-              Simple enough to say yes. Valuable enough to keep.
+            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-3">Pricing</p>
+            <h2 className="font-cv-heading text-3xl sm:text-[42px] font-bold tracking-tight text-[#152033] mb-4 leading-tight">
+              One flat rate. The whole service.
             </h2>
-            <p className="text-[#667085] leading-relaxed">
-              Start with one plan while the product is focused. Higher tiers can come later once usage, minutes, and
-              customer value are proven.
+            <p className="text-[#667085] text-[15px] leading-relaxed">
+              No per-lead fees, no per-minute surprises, no contracts. If one recovered job a month doesn&apos;t cover
+              it several times over, Callverted isn&apos;t for you — and the 14-day trial will tell you either way.
             </p>
           </div>
 
@@ -361,56 +418,51 @@ export default function HomePage() {
             />
             <div className="relative rounded-[26px] border border-[#e3e7ed] bg-white p-8 shadow-lg">
               <div className="flex justify-between items-start gap-4 mb-6">
-              <div>
-                <p className="font-extrabold text-[18px] text-[#152033]">Convert</p>
-                <p className="text-[#667085] text-[13px] mt-1">For home service businesses that miss calls after hours or during jobs.</p>
+                <div>
+                  <p className="font-extrabold text-[18px] text-[#152033]">Convert</p>
+                  <p className="text-[#667085] text-[13px] mt-1">For home-service businesses that miss calls after hours or during jobs.</p>
+                </div>
+                <span className="inline-flex items-center rounded-full border border-[#cfdbff] bg-[#eaf0ff] text-[#173a8f] px-2.5 py-1 text-[11px] font-bold whitespace-nowrap">
+                  Founding rate
+                </span>
               </div>
-              <span className="inline-flex items-center rounded-full border border-[#cfdbff] bg-[#eaf0ff] text-[#173a8f] px-2.5 py-1 text-[11px] font-bold whitespace-nowrap">
-                Founding rate
-              </span>
-            </div>
-            <p className="font-cv-heading text-5xl font-black text-[#152033] tracking-tight">
-              $149<span className="text-base font-semibold text-[#98a2b3] ml-1">/mo</span>
-            </p>
-            <p className="text-[12.5px] text-[#667085] mt-1.5">Locked in for founding customers, while the product is focused.</p>
-            <ul className="mt-6 space-y-2.5">
-              {[
-                "AI voice overflow when your team misses a call",
-                "Intake flows tuned to your service categories",
-                "Urgency, intent, and estimated value on every qualified lead",
-                "Business-approved price/value guidance by service category",
-                "Lead dashboard, call log, summaries, and transcripts",
-                "Public intake link and website embed",
-                "Email alerts and weekly performance recap",
-              ].map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm text-[#475467]">
-                  <svg className="w-4 h-4 shrink-0 mt-0.5 text-landing-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/sign-up"
-              className="mt-7 block text-center font-semibold bg-landing-primary text-white py-3 rounded-xl hover:bg-blue-600 transition-colors text-sm"
-            >
-              Start free trial
-            </Link>
-            <p className="text-center text-xs text-[#98a2b3] mt-3">14-day free trial. Cancel anytime.</p>
+              <p className="font-cv-heading text-5xl font-black text-[#152033] tracking-tight">
+                $149<span className="text-base font-semibold text-[#98a2b3] ml-1">/mo</span>
+              </p>
+              <p className="text-[12.5px] text-[#667085] mt-1.5">Locked in for founding customers, while the product is focused.</p>
+              <ul className="mt-6 space-y-2.5">
+                {INCLUDED.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-[#475467]">
+                    <svg className="w-4 h-4 shrink-0 mt-0.5 text-landing-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/sign-up"
+                className="mt-7 block text-center font-semibold bg-landing-primary text-white py-3 rounded-xl hover:bg-blue-600 transition-colors text-sm"
+              >
+                Start 14-day free trial
+              </Link>
+              <p className="text-center text-xs text-[#98a2b3] mt-3">
+                Cancel anytime · or{" "}
+                <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-landing-primary hover:underline">
+                  book a 15-min demo
+                </a>{" "}
+                first
+              </p>
             </div>
           </div>
         </ScrollReveal>
       </section>
 
       {/* ── FAQ (light, accordion — native <details>, no JS needed) ───────── */}
-      <section className="px-6 py-16 sm:py-20">
+      <section className="px-6 py-20 sm:py-24">
         <JsonLd data={faqSchema(FAQS)} />
         <ScrollReveal className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">FAQ</p>
-            <h2 className="font-cv-heading text-2xl font-bold text-[#152033]">Questions owners ask first</h2>
-          </div>
+          <SectionHeader eyebrow="FAQ" title="Questions owners ask first" />
           <div className="rounded-2xl border border-[#e3e7ed] bg-white overflow-hidden">
             {FAQS.map((faq, i) => (
               <details key={faq.q} className={`group ${i > 0 ? "border-t border-[#e3e7ed]" : ""} [&_summary::-webkit-details-marker]:hidden`}>
@@ -449,24 +501,33 @@ export default function HomePage() {
           style={{ background: "radial-gradient(ellipse 60% 90% at 50% -10%, rgba(91,140,255,0.18), transparent 72%)" }}
           aria-hidden
         />
-        <section className="relative z-10 px-6 py-20">
+        <section className="relative z-10 px-6 py-20 sm:py-24">
           <ScrollReveal className="max-w-xl mx-auto text-center">
-            <h2 className="font-cv-heading text-2xl sm:text-3xl font-bold mb-3 leading-tight">
-              Stop letting emergency calls become someone else&apos;s job.
+            <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-tight mb-4 leading-tight">
+              The next missed call doesn&apos;t have to be a lost job.
             </h2>
-            <p className="text-white/55 mb-7 text-sm leading-relaxed">
-              Give your team the first ring. Let Callverted catch the calls they can&apos;t answer, qualify the
-              emergency, and push the right leads to the top.
+            <p className="text-white/55 mb-8 text-[15px] leading-relaxed">
+              Put Callverted behind your number this week. Your team keeps the first ring — we catch, qualify, and
+              rank everything they can&apos;t.
             </p>
-            <Link
-              href="/sign-up"
-              className="inline-block font-semibold bg-landing-primary text-white px-8 py-3.5 rounded-xl hover:bg-blue-600 transition-colors"
-            >
-              Start 14-day trial
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href="/sign-up"
+                className="w-full sm:w-auto font-semibold bg-landing-primary text-white px-8 py-3.5 rounded-xl hover:bg-blue-600 transition-colors"
+              >
+                Start 14-day free trial
+              </Link>
+              <a
+                href={DEMO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto font-medium text-white/80 px-8 py-3.5 rounded-xl border border-white/20 hover:bg-white/5 transition-colors"
+              >
+                Book a 15-min demo
+              </a>
+            </div>
           </ScrollReveal>
         </section>
-
       </div>
 
       <MarketingFooter />

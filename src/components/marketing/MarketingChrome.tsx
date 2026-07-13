@@ -70,7 +70,7 @@ export function MarketingFooter() {
               <span className="font-cv-heading text-base font-bold">Callverted</span>
             </Link>
             <p className="mt-3 text-[13px] text-white/45 leading-relaxed max-w-[220px]">
-              AI voice overflow for urgent home-service calls. Answer the ones your team can&apos;t, and turn them into ranked leads.
+              The missed-call lead recovery service for home-service trades. We answer the calls your team can&apos;t — and hand back ranked, callback-ready leads.
             </p>
           </div>
 
