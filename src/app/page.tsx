@@ -178,8 +178,9 @@ export default function HomePage() {
                 Stop losing emergency jobs to voicemail.
               </h1>
               <p className="text-lg text-white/60 mb-9 max-w-md leading-relaxed">
-                When your team can&apos;t pick up, Callverted answers the same call live, qualifies the job, and hands
-                you a ranked, callback-ready lead before the customer moves on.
+                When your team can&apos;t pick up, Callverted answers the same call live. It qualifies the job, quotes
+                from pricing you approve, and hands you a ranked, callback-ready lead while the customer is still
+                yours.
               </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-7">
                 <Link
