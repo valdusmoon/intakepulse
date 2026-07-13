@@ -212,6 +212,14 @@ the account/dashboard setup (agent will give exact steps):
   `STRIPE_WEBHOOK_SECRET`; register the webhook endpoint (Stripe CLI locally,
   dashboard for prod).
 - **Twilio:** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` for this app.
+- **Resend (email deliverability):** the account is in SANDBOX today — `from` is
+  `onboarding@resend.dev` and Resend only delivers to the account owner's own
+  address (`moonvaldus@gmail.com`); sends to any other recipient are rejected
+  (verified 2026-07-12 via `/api/capture`). This blocks EVERY transactional email
+  (lead-magnet breakdown, qualified-lead alerts, receipts, trial reminders) from
+  reaching real customers. Fix: verify `callverted.com` at resend.com/domains and
+  set `RESEND_FROM_EMAIL=<something>@callverted.com`. The code path is correct and
+  already tested end-to-end — only this config gates real delivery.
 - Also still-unset deploy vars from the simplification pass: `COMPANY_POSTAL_ADDRESS`
   (before real marketing), `ADMIN_CLERK_USER_IDS`, `NEXT_PUBLIC_ASSISTED_ONBOARDING_URL`,
   `FOUNDER_NAME`.
