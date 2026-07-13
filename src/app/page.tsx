@@ -44,29 +44,15 @@ const OUTCOMES = [
 ];
 
 // The service, in four steps. "We" voice on the recovery steps — Callverted is
-// sold as a done-for-you service, not software the owner has to operate. Bodies
-// are single tight lines to fit the horizontal stepper.
+// sold as a done-for-you service, not software the owner has to operate. Kept to
+// a title + a short tag so the row reads as a scannable timeline, not another
+// block of paragraph text next to the outcome cards above. The detailed demo
+// (CallReplay) directly below carries the full walkthrough.
 const STEPS = [
-  {
-    n: "1",
-    title: "Your team rings first",
-    body: "Your Callverted number rings your real phones first. Answered calls stay exactly as they are today.",
-  },
-  {
-    n: "2",
-    title: "We answer the miss, live",
-    body: "After about 20 seconds unanswered, Callverted picks up the same call. No voicemail, no text-back gamble.",
-  },
-  {
-    n: "3",
-    title: "We qualify and quote",
-    body: "A short, trade-specific intake, with price guidance read only from rules you approve.",
-  },
-  {
-    n: "4",
-    title: "You call back and win it",
-    body: "An instant alert with the scored lead: urgency, intent, value, and the recommended next move.",
-  },
+  { n: "1", title: "Your team rings first", tag: "Answered calls stay normal" },
+  { n: "2", title: "We answer the miss, live", tag: "~20 seconds unanswered" },
+  { n: "3", title: "We qualify and quote", tag: "From pricing you approve" },
+  { n: "4", title: "You call back and win it", tag: "A full scored lead in hand" },
 ];
 
 // Draws the boundary against the crowded "AI receptionist" category: same
@@ -275,14 +261,14 @@ export default function HomePage() {
               className="hidden lg:block absolute top-6 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-landing-primary/40 via-landing-primary/30 to-landing-primary/15"
               aria-hidden
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-9">
               {STEPS.map((s) => (
                 <div key={s.n} className="relative text-center">
-                  <div className="relative z-10 mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-landing-primary font-cv-heading text-lg font-bold text-white shadow-[0_8px_22px_-8px_rgba(36,84,216,0.7)] ring-4 ring-[#f9fafb]">
+                  <div className="relative z-10 mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-landing-primary font-cv-heading text-lg font-bold text-white shadow-[0_8px_22px_-8px_rgba(36,84,216,0.7)] ring-4 ring-[#f9fafb]">
                     {s.n}
                   </div>
-                  <h3 className="font-cv-heading text-[15.5px] font-bold text-[#152033] leading-snug mb-2">{s.title}</h3>
-                  <p className="text-[13.5px] text-[#667085] leading-relaxed max-w-[240px] mx-auto">{s.body}</p>
+                  <h3 className="font-cv-heading text-[15px] font-bold text-[#152033] leading-snug mb-1">{s.title}</h3>
+                  <p className="font-cv-mono text-[11.5px] uppercase tracking-wide text-[#98a2b3]">{s.tag}</p>
                 </div>
               ))}
             </div>
