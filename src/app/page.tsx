@@ -15,7 +15,7 @@ import { FAQS } from "@/lib/marketing/faqs";
 
 /** Self-serve demo booking (Calendly or similar). Set in env; the fallback keeps
  *  the CTA rendered in dev so the layout never silently loses it. */
-const DEMO_URL = process.env.NEXT_PUBLIC_DEMO_BOOKING_URL ?? "https://calendly.com/callverted/demo";
+const DEMO_URL = process.env.NEXT_PUBLIC_DEMO_BOOKING_URL ?? "https://calendly.com/nileh/demo";
 
 const HERO_PROOF = [
   { num: "2:47 AM", label: "Call answered after your team misses it", color: "text-landing-alert" },
