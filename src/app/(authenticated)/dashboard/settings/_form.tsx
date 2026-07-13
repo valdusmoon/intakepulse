@@ -595,7 +595,7 @@ function NotificationsPanel({ business }: { business: Business }) {
 
 // ─── Billing ────────────────────────────────────────────────────────────────
 
-const PLAN_PRICE = 79;
+const PLAN_PRICE = 149;
 const PLAN_FEATURES = [
   "AI voice overflow — answers and qualifies calls your team can't get to",
   "Public lead intake form — shareable link and website embed",
