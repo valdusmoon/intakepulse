@@ -211,15 +211,19 @@ export default function HomePage() {
         </section>
 
         <div className="relative z-10 border-t border-white/10 px-6 py-6">
-          <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 sm:gap-x-10 text-sm font-medium">
+          <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:gap-x-8 text-sm font-medium">
             <span className="text-[11px] font-bold uppercase tracking-widest text-white/35">Built for</span>
             <span className="text-white/70">Restoration</span>
             <span className="text-white/15">·</span>
-            <span className="text-white/70">Emergency plumbing</span>
+            <span className="text-white/70">Plumbing</span>
             <span className="text-white/15">·</span>
             <span className="text-white/70">HVAC</span>
-            <span className="text-white/15 hidden sm:block">·</span>
+            <span className="text-white/15">·</span>
             <span className="text-white/70">Electrical</span>
+            <span className="text-white/15 hidden sm:block">·</span>
+            <span className="text-white/70 hidden sm:block">General contracting</span>
+            <span className="text-white/15">·</span>
+            <span className="text-white/50">&amp; other urgent home-service trades</span>
           </div>
         </div>
       </div>
