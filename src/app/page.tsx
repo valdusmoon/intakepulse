@@ -63,8 +63,8 @@ const COMPARISON = [
 // mechanism (AI voice), completely different job. Left = generic receptionist,
 // right = what Callverted actually optimizes for.
 const VS_RECEPTIONIST = [
-  { them: "Answers every call", us: "Only steps in on missed or after-hours calls" },
-  { them: "Tries to handle many tasks", us: "One job: recover and qualify the lead" },
+  { them: "Answers every call", us: "Steps in when your team can't answer — or when you choose immediate coverage" },
+  { them: "Tries to handle many tasks", us: "Focused on recovering and qualifying missed opportunities" },
   { them: "Books, answers FAQs, routes, chats", us: "Captures issue, urgency, fit, value, and callback need" },
   { them: "Optimizes for call handling", us: "Optimizes for recovered revenue" },
 ];
@@ -336,36 +336,7 @@ export default function HomePage() {
         </ScrollReveal>
       </section>
 
-      {/* ── Comparison (light) ───────────────────────────────────────────── */}
-      <section className="relative overflow-hidden px-6 py-16 sm:py-20">
-        <div
-          className="pointer-events-none absolute -bottom-24 left-1/2 -translate-x-1/2 h-72 w-[32rem] opacity-[0.05] blur-3xl"
-          style={{ background: "radial-gradient(ellipse, var(--color-landing-primary), transparent 70%)" }}
-          aria-hidden
-        />
-        <ScrollReveal className="relative max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Why it converts</p>
-            <h2 className="font-cv-heading text-2xl sm:text-3xl font-bold text-[#152033] mb-3">
-              Not a text-back. Not a voicemail. Not a generic bot.
-            </h2>
-            <p className="text-sm text-[#667085]">Emergency callers are often anxious about cost and timing. The first real answer has an advantage.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {COMPARISON.map((item) => (
-              <div
-                key={item.label}
-                className={`rounded-2xl p-6 border ${item.strong ? "bg-white border-landing-primary/30 shadow-md" : "bg-[#f9fafb] border-[#e3e7ed] opacity-75"}`}
-              >
-                <p className={`font-cv-heading text-xl font-bold mb-2 ${item.strong ? "text-[#152033]" : "text-[#475467]"}`}>{item.label}</p>
-                <p className={`text-sm leading-relaxed ${item.strong ? "text-[#475467]" : "text-[#98a2b3]"}`}>{item.sub}</p>
-              </div>
-            ))}
-          </div>
-        </ScrollReveal>
-      </section>
-
-      {/* ── Not a receptionist — the category boundary ───────────────────── */}
+      {/* ── Not a receptionist — the category boundary (lead comparison) ──── */}
       <section className="px-6 py-16 sm:py-20 bg-white">
         <ScrollReveal className="max-w-3xl mx-auto">
           <div className="text-center mb-10">
@@ -393,6 +364,35 @@ export default function HomePage() {
                 <div className="px-4 sm:px-5 py-4 text-[#475467] font-medium leading-snug bg-landing-primary/[0.03] border-l border-[#e3e7ed]">
                   {row.us}
                 </div>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── Why it converts (vs the fallbacks) ───────────────────────────── */}
+      <section className="relative overflow-hidden px-6 py-16 sm:py-20">
+        <div
+          className="pointer-events-none absolute -bottom-24 left-1/2 -translate-x-1/2 h-72 w-[32rem] opacity-[0.05] blur-3xl"
+          style={{ background: "radial-gradient(ellipse, var(--color-landing-primary), transparent 70%)" }}
+          aria-hidden
+        />
+        <ScrollReveal className="relative max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Why it converts</p>
+            <h2 className="font-cv-heading text-2xl sm:text-3xl font-bold text-[#152033] mb-3">
+              Not a text-back. Not a voicemail. Not a generic bot.
+            </h2>
+            <p className="text-sm text-[#667085]">Emergency callers are often anxious about cost and timing. The first useful response has an advantage.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {COMPARISON.map((item) => (
+              <div
+                key={item.label}
+                className={`rounded-2xl p-6 border ${item.strong ? "bg-white border-landing-primary/30 shadow-md" : "bg-[#f9fafb] border-[#e3e7ed] opacity-75"}`}
+              >
+                <p className={`font-cv-heading text-xl font-bold mb-2 ${item.strong ? "text-[#152033]" : "text-[#475467]"}`}>{item.label}</p>
+                <p className={`text-sm leading-relaxed ${item.strong ? "text-[#475467]" : "text-[#98a2b3]"}`}>{item.sub}</p>
               </div>
             ))}
           </div>
