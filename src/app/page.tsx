@@ -14,9 +14,9 @@ import { JsonLd, faqSchema } from "@/components/marketing/JsonLd";
 import { FAQS } from "@/lib/marketing/faqs";
 
 const HERO_PROOF = [
-  { num: "2:47 AM", label: "Call answered after your team misses it" },
-  { num: "90 sec", label: "Typical structured intake window" },
-  { num: "$1.8k–$3.2k", label: "Estimated value shown before callback" },
+  { num: "2:47 AM", label: "Call answered after your team misses it", color: "text-landing-alert" },
+  { num: "90 sec", label: "Typical structured intake window", color: "text-landing-primary-glow" },
+  { num: "$1.8k–$3.2k", label: "Estimated value shown before callback", color: "text-landing-green" },
 ];
 
 const FLOW = [
@@ -149,7 +149,7 @@ export default function HomePage() {
                     key={p.label}
                     className="rounded-2xl border border-white/12 bg-gradient-to-b from-white/[0.09] to-white/[0.02] px-3.5 py-3"
                   >
-                    <div className="font-cv-mono text-[15px] font-bold text-landing-primary-glow">{p.num}</div>
+                    <div className={`font-cv-mono text-[15px] font-bold ${p.color}`}>{p.num}</div>
                     <div className="text-white/55 text-[11.5px] leading-snug mt-1">{p.label}</div>
                   </div>
                 ))}

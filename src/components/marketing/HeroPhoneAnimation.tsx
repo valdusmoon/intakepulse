@@ -16,10 +16,10 @@ import { useEffect, useRef, useState } from "react";
  */
 
 const BEATS = [
-  { key: "ringing", time: "0:00", label: "Rings unanswered", body: "Your team gets the first ring. No answer in ~20 seconds, Callverted keeps the same caller on the line.", ms: 3200 },
-  { key: "answered", time: "0:04", label: "AI answers", body: "No voicemail, no text-back delay. Callverted answers the missed call live.", ms: 2600 },
-  { key: "intake", time: "0:22", label: "Qualifies", body: "The caller is reassured while Callverted collects job details, urgency, and service fit.", ms: 4600 },
-  { key: "captured", time: "1:10", label: "Lead captured", body: "The result is a callback-ready lead with urgency, intent, estimated value, transcript, and next action.", ms: 5200 },
+  { key: "ringing", time: "0:00", label: "Rings unanswered", accent: "text-landing-alert", body: "Your team gets the first ring. No answer in ~20 seconds, Callverted keeps the same caller on the line.", ms: 3200 },
+  { key: "answered", time: "0:04", label: "AI answers", accent: "text-landing-primary-glow", body: "No voicemail, no text-back delay. Callverted answers the missed call live.", ms: 2600 },
+  { key: "intake", time: "0:22", label: "Qualifies", accent: "text-landing-purple", body: "The caller is reassured while Callverted collects job details, urgency, and service fit.", ms: 4600 },
+  { key: "captured", time: "1:10", label: "Lead captured", accent: "text-landing-green", body: "The result is a callback-ready lead with urgency, intent, estimated value, transcript, and next action.", ms: 5200 },
 ] as const;
 
 const CAPTURED = 3;
@@ -97,7 +97,7 @@ export function HeroPhoneAnimation() {
               beat === i ? "border-landing-primary-glow/60 bg-white/8" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
             }`}
           >
-            <span className={`block font-cv-mono text-[10px] ${beat === i ? "text-landing-primary-glow" : "text-white/35"}`}>{step.time}</span>
+            <span className={`block font-cv-mono text-[10px] ${beat === i ? step.accent : "text-white/35"}`}>{step.time}</span>
             <span className={`block text-[12.5px] font-semibold mt-0.5 ${beat === i ? "text-white" : "text-white/60"}`}>{step.label}</span>
           </button>
         ))}

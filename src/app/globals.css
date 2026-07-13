@@ -85,6 +85,12 @@ body {
   --color-landing-alert: #ff5d5d;
   --color-landing-paper: #f5f6f8;
   --color-landing-muted: #8b94ab;
+  /* Semantic accents — the same meanings the dashboard uses (urgency/intent/
+   * value/won), tuned brighter so they pop on the dark hero. Used sparingly as
+   * meaning-coded accents; brand blue stays dominant. */
+  --color-landing-amber: #ffb020;
+  --color-landing-green: #34d399;
+  --color-landing-purple: #a78bfa;
 }
 
 .material-symbols-outlined {
