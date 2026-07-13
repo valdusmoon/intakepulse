@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CallvertedLogo } from "@/components/CallvertedLogo";
-import { HeroPhoneAnimation } from "@/components/marketing/HeroPhoneAnimation";
+import { HeroCallPanel } from "@/components/marketing/HeroCallPanel";
 import { ProductShowcase } from "@/components/marketing/ProductShowcase";
 import { MissedCallCalculator } from "@/components/marketing/MissedCallCalculator";
 import { CallReplay } from "@/components/marketing/CallReplay";
@@ -16,12 +16,6 @@ import { FAQS } from "@/lib/marketing/faqs";
 /** Self-serve demo booking (Calendly or similar). Set in env; the fallback keeps
  *  the CTA rendered in dev so the layout never silently loses it. */
 const DEMO_URL = process.env.NEXT_PUBLIC_DEMO_BOOKING_URL ?? "https://calendly.com/nileh/demo";
-
-const HERO_PROOF = [
-  { num: "2:47 AM", label: "Call answered after your team misses it", color: "text-landing-alert" },
-  { num: "90 sec", label: "Typical qualification, on the same call", color: "text-landing-primary-glow" },
-  { num: "$1.8k–$3.2k", label: "Estimated job value, before you call back", color: "text-landing-green" },
-];
 
 // The recovery flow, as a single benefit-embedded section (merges what used to
 // be a separate "outcomes" grid + a "how it works" strip — they answered the
@@ -104,23 +98,33 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-landing-paper text-[#152033]">
 
-      {/* ── Hero (dark) ────────────────────────────────────────────────────── */}
-      <div
-        className="relative overflow-hidden text-white"
-        style={{ background: "linear-gradient(180deg,#12224e 0%,#0b1226 48%,#0a0f1c 100%)" }}
-      >
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-[560px]"
-          style={{ background: "radial-gradient(ellipse 65% 90% at 50% -12%, rgba(91,140,255,0.22), transparent 72%)" }}
+      {/* ── Hero (dark) — full-bleed photograph of the emergency caller, with a
+          scrim for legibility and a glass call panel floating over it. ─────── */}
+      <div className="relative overflow-hidden bg-landing-ink text-white">
+        {/* The photo: the worried homeowner mid-call. Positioned so the subject
+            sits toward the right, leaving the darker left for copy. */}
+        <img
+          src="/hero/emergency-caller.jpg"
+          alt="A homeowner making an urgent after-hours call to a service business"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[68%_center] select-none"
           aria-hidden
         />
+        {/* Left-to-right scrim — keeps the headline legible over any crop */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.35]"
-          style={{
-            backgroundImage: "radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px)",
-            backgroundSize: "26px 26px",
-            maskImage: "radial-gradient(ellipse 80% 60% at 50% 0%, black 34%, transparent 95%)",
-          }}
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "linear-gradient(90deg,#0a0f1c 0%, rgba(10,15,28,0.94) 26%, rgba(10,15,28,0.6) 52%, rgba(10,15,28,0.32) 100%)" }}
+          aria-hidden
+        />
+        {/* Top darken (for the nav) + bottom fade into the page below */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "linear-gradient(180deg, rgba(10,15,28,0.72) 0%, transparent 20%, transparent 58%, #0a0f1c 100%)" }}
+          aria-hidden
+        />
+        {/* Blue brand glow spilling from the top-right, tying the photo to the brand */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-[520px]"
+          style={{ background: "radial-gradient(ellipse 55% 80% at 78% -8%, rgba(91,140,255,0.2), transparent 70%)" }}
           aria-hidden
         />
 
@@ -148,21 +152,21 @@ export default function HomePage() {
           </div>
         </nav>
 
-        <section className="relative z-10 px-6 pt-16 pb-20 sm:pt-20 sm:pb-24">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-[auto_auto] gap-x-14 gap-y-8 items-center">
+        <section className="relative z-10 px-6 pt-14 pb-20 sm:pt-20 sm:pb-28">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10 items-center">
 
-            <div className="order-1 lg:col-start-1 lg:row-start-1 lg:self-end">
-              <div className="inline-flex items-center gap-2 bg-white/5 border border-white/15 rounded-full px-3.5 py-1.5 text-xs font-semibold text-landing-primary-glow mb-7">
+            <div className="order-1">
+              <div className="inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-3.5 py-1.5 text-xs font-semibold text-landing-primary-glow mb-7 backdrop-blur-sm">
                 <span className="relative flex h-2 w-2" aria-hidden>
                   <span className="absolute inline-flex h-full w-full rounded-full bg-landing-primary-glow opacity-75 animate-ping" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-landing-primary-glow" />
                 </span>
                 Lead recovery service for home-service trades
               </div>
-              <h1 className="font-cv-heading text-4xl sm:text-6xl font-bold leading-[1.02] tracking-tight mb-6">
+              <h1 className="font-cv-heading text-4xl sm:text-6xl font-bold leading-[1.02] tracking-tight mb-6 [text-shadow:0_2px_30px_rgba(0,0,0,0.5)]">
                 Stop losing emergency jobs to voicemail.
               </h1>
-              <p className="text-lg text-white/60 mb-9 max-w-md leading-relaxed">
+              <p className="text-lg text-white/70 mb-9 max-w-md leading-relaxed [text-shadow:0_1px_16px_rgba(0,0,0,0.5)]">
                 When your team can&apos;t pick up, Callverted answers the same call live. It qualifies the job, quotes
                 from pricing you approve, and hands you a ranked, callback-ready lead while the customer is still
                 yours.
@@ -178,34 +182,19 @@ export default function HomePage() {
                   href={DEMO_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full sm:w-auto text-center font-medium text-white/80 px-7 py-3.5 rounded-xl border border-white/20 hover:bg-white/5 transition-colors text-base"
+                  className="w-full sm:w-auto text-center font-medium text-white/90 px-7 py-3.5 rounded-xl border border-white/25 bg-white/5 hover:bg-white/10 transition-colors text-base backdrop-blur-sm"
                 >
                   Book a 15-min demo
                 </a>
               </div>
-              <p className="text-xs text-white/40 font-cv-mono">
+              <p className="text-xs text-white/55 font-cv-mono">
                 No contracts · Set up in ~30 minutes · Then it runs on its own
               </p>
             </div>
 
-            {/* Phone — right after the copy on mobile; right column on desktop */}
-            <div className="order-2 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center">
-              <HeroPhoneAnimation />
-            </div>
-
-            {/* Proof stats — below the phone on mobile; under the copy on desktop */}
-            <div className="order-3 lg:col-start-1 lg:row-start-2 lg:self-start">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-lg">
-                {HERO_PROOF.map((p) => (
-                  <div
-                    key={p.label}
-                    className="rounded-2xl border border-white/12 bg-gradient-to-b from-white/[0.09] to-white/[0.02] px-3.5 py-3"
-                  >
-                    <div className={`font-cv-mono text-[15px] font-bold ${p.color}`}>{p.num}</div>
-                    <div className="text-white/55 text-[11.5px] leading-snug mt-1">{p.label}</div>
-                  </div>
-                ))}
-              </div>
+            {/* Glass call panel floating over the photo */}
+            <div className="order-2 lg:justify-self-end w-full">
+              <HeroCallPanel />
             </div>
           </div>
         </section>
