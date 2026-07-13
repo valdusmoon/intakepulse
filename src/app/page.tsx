@@ -19,44 +19,32 @@ const HERO_PROOF = [
   { num: "$1.8k–$3.2k", label: "Estimated value shown before callback" },
 ];
 
-const STATS = [
-  { stat: "100×", label: "more likely to make contact responding in 5 min vs. 30" },
-  { stat: "78%", label: "of customers buy from the first business to respond" },
-  { stat: "47 hrs", label: "average industry response time to a new lead" },
-];
-
 const FLOW = [
   {
     k: "Missed",
     title: "Your team rings first",
-    body: "The customer calls your Callverted number and your real phone rings. Answered calls stay completely normal. Callverted only steps in on the ones that would hit voicemail.",
+    body: "Your Callverted number rings your real phone first. Answered calls stay normal — Callverted only steps in on the ones that would hit voicemail.",
   },
   {
     k: "Answered",
     title: "Callverted picks up live",
-    body: "After ~20 seconds with no answer, it answers the same call itself: no voicemail, no missed-call text for a panicked homeowner to ignore.",
+    body: "After ~20 seconds unanswered, it takes over the same call — no voicemail, no missed-call text for a panicked homeowner to ignore.",
   },
   {
     k: "Qualified",
     title: "It runs the intake",
-    body: "The questions that actually decide the job: what's going on, how urgent it is, what type of service is needed, and whether it's in your service area.",
+    body: "The questions that actually decide the job: what's going on, how urgent it is, what service is needed, and whether it's in your area.",
   },
   {
-    k: "Guided",
+    k: "Assessed",
     title: "It shares guidance you approved",
-    body: "If you've approved value guidance for that job type, the caller hears a realistic ballpark. If you haven't, it simply says your team will confirm pricing. It never invents a number or commits you to a formal quote.",
+    body: "If you've approved value guidance for that job, the caller hears a realistic ballpark — otherwise your team confirms pricing. It never invents a number.",
   },
   {
     k: "Reassured",
     title: "It sets the callback, then alerts you",
-    body: "The caller is told a specialist will call back fast, so they don't dial your competitor next. You get a scored lead packet with urgency, intent, value, summary, transcript, and next action.",
+    body: "The caller is promised a fast callback so they don't dial a competitor. You get a scored lead packet: urgency, intent, value, summary, transcript, and next action.",
   },
-];
-
-const COMPARISON = [
-  { label: "Voicemail", sub: "Asks the homeowner to do the work. No urgency, no scoring, no service context, no next action.", strong: false },
-  { label: "Missed-call text", sub: "Useful for simple follow-up, but it still depends on a panicked caller seeing and replying to a text.", strong: false },
-  { label: "Callverted", sub: "Answers live, reassures the caller, runs the intake, and delivers a lead packet you can act on immediately.", strong: true },
 ];
 
 // Draws the boundary against the crowded "AI receptionist" category: same
@@ -126,8 +114,8 @@ export default function HomePage() {
                 The emergency call you missed just became a qualified lead.
               </h1>
               <p className="text-lg text-white/60 mb-9 max-w-md leading-relaxed">
-                Your team answers first. If no one picks up, Callverted recovers the same call &mdash; captures the
-                job, checks urgency and fit, and sends a callback-ready lead before the customer calls someone else.
+                Your team gets the first chance to answer. If no one picks up, Callverted takes over the same call,
+                qualifies the job, and sends you a callback-ready lead before the customer moves on.
               </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-7">
                 <Link
@@ -182,28 +170,6 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-
-      {/* ── Stats (light) ────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden px-6 py-14 sm:py-16">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-72 opacity-[0.06]"
-          style={{ background: "radial-gradient(ellipse 55% 100% at 50% 0%, var(--color-landing-primary), transparent 70%)" }}
-          aria-hidden
-        />
-        <ScrollReveal className="relative max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {STATS.map((s) => (
-              <div key={s.stat} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3.5 border border-[#e3e7ed]">
-                <p className="font-cv-mono text-2xl font-bold text-landing-primary shrink-0">{s.stat}</p>
-                <p className="text-[12.5px] text-[#344054] leading-snug">{s.label}</p>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-[11px] text-[#98a2b3] mt-5">
-            Source: MIT / Lead Response Management Study · Drift/InsideSales.com
-          </p>
-        </ScrollReveal>
-      </section>
 
       {/* ── How it works (light) — the recovery flow as a connected timeline ─ */}
       <section id="how" className="relative overflow-hidden px-6 py-16 sm:py-20 bg-white border-y border-[#e3e7ed]">
@@ -367,35 +333,9 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </ScrollReveal>
-      </section>
-
-      {/* ── Why it converts (vs the fallbacks) ───────────────────────────── */}
-      <section className="relative overflow-hidden px-6 py-16 sm:py-20">
-        <div
-          className="pointer-events-none absolute -bottom-24 left-1/2 -translate-x-1/2 h-72 w-[32rem] opacity-[0.05] blur-3xl"
-          style={{ background: "radial-gradient(ellipse, var(--color-landing-primary), transparent 70%)" }}
-          aria-hidden
-        />
-        <ScrollReveal className="relative max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <p className="text-xs font-bold text-landing-primary uppercase tracking-widest mb-2">Why it converts</p>
-            <h2 className="font-cv-heading text-2xl sm:text-3xl font-bold text-[#152033] mb-3">
-              Not a text-back. Not a voicemail. Not a generic bot.
-            </h2>
-            <p className="text-sm text-[#667085]">Emergency callers are often anxious about cost and timing. The first useful response has an advantage.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {COMPARISON.map((item) => (
-              <div
-                key={item.label}
-                className={`rounded-2xl p-6 border ${item.strong ? "bg-white border-landing-primary/30 shadow-md" : "bg-[#f9fafb] border-[#e3e7ed] opacity-75"}`}
-              >
-                <p className={`font-cv-heading text-xl font-bold mb-2 ${item.strong ? "text-[#152033]" : "text-[#475467]"}`}>{item.label}</p>
-                <p className={`text-sm leading-relaxed ${item.strong ? "text-[#475467]" : "text-[#98a2b3]"}`}>{item.sub}</p>
-              </div>
-            ))}
-          </div>
+          <p className="text-center text-sm text-[#667085] mt-6 max-w-xl mx-auto">
+            Unlike voicemail or missed-call text-back, Callverted answers the original call live &mdash; and hands you a lead packet, not just a phone number.
+          </p>
         </ScrollReveal>
       </section>
 
