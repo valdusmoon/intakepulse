@@ -336,7 +336,7 @@ export default function V4Page() {
 
         {/* Keep-your-number flow — phone-setup reassurance, full width */}
         <ScrollReveal className="max-w-6xl mx-auto mb-4">
-          <div className="rounded-3xl border border-[#e3e7ed] bg-[#f9fafb] p-6 sm:p-8">
+          <div className="rounded-3xl border border-[#e3e7ed] bg-[#f9fafb] p-5 sm:p-8">
             <div className="grid grid-cols-1 lg:grid-cols-[0.82fr_1.18fr] gap-8 items-center">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-landing-primary mb-2">Fits your phone setup</p>
@@ -351,16 +351,16 @@ export default function V4Page() {
                   { l: "Ranked lead", i: "M4 6h16M4 12h10M4 18h6" },
                 ].map((n, i, arr) => (
                   <div key={n.l} className="contents">
-                    <div className="flex flex-col items-center gap-2 shrink-0 w-16">
-                      <span className={`grid h-11 w-11 place-items-center rounded-xl ${i === 3 ? "bg-landing-primary text-white ring-4 ring-[#eef3ff]" : "bg-white border border-[#e3e7ed] text-[#475467]"}`}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d={n.i} /></svg>
+                    <div className="flex flex-col items-center gap-2 shrink-0 w-[52px] sm:w-16">
+                      <span className={`grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-xl ${i === 3 ? "bg-landing-primary text-white ring-4 ring-[#eef3ff]" : "bg-white border border-[#e3e7ed] text-[#475467]"}`}>
+                        <svg className="h-4 w-4 sm:h-[18px] sm:w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d={n.i} /></svg>
                       </span>
-                      <span className="text-[10.5px] font-semibold text-[#667085] text-center leading-tight">{n.l}</span>
+                      <span className="text-[10px] sm:text-[10.5px] font-semibold text-[#667085] text-center leading-tight">{n.l}</span>
                     </div>
                     {i < arr.length - 1 && (
-                      <div className="flex flex-1 items-center h-11">
+                      <div className="flex flex-1 items-center h-10 sm:h-11 min-w-[14px]">
                         <span className="h-[2px] flex-1 bg-gradient-to-r from-[#dbe3f0] to-[#cdd9ee]" />
-                        <svg className="text-landing-primary/70 shrink-0 -mx-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                        <svg className="text-landing-primary/70 shrink-0 -mx-0.5 h-4 w-4 sm:h-[18px] sm:w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                       </div>
                     )}
                   </div>
@@ -410,20 +410,20 @@ export default function V4Page() {
             <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em]">Not a receptionist. A recovery service.</h2>
             <p className="mt-3 text-[15px] text-[#667085]">How the other ways of handling a missed call stack up.</p>
           </div>
-          <div className="overflow-x-auto rounded-3xl border border-[#e3e7ed] bg-white">
-            <div className="min-w-[640px]">
-              {/* header */}
-              <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1.1fr] bg-[#f9fafb] border-b border-[#e3e7ed] text-[11.5px] sm:text-[13px] font-bold">
+          <div className="rounded-3xl border border-[#e3e7ed] bg-white overflow-hidden">
+            <div>
+              {/* header — on phones only label + AI receptionist + Callverted show (voicemail & text-back are hidden < sm to avoid horizontal scroll) */}
+              <div className="grid grid-cols-[1.4fr_1.1fr_1.2fr] sm:grid-cols-[1.5fr_1fr_1fr_1fr_1.1fr] bg-[#f9fafb] border-b border-[#e3e7ed] text-[11.5px] sm:text-[13px] font-bold">
                 <div className="px-4 sm:px-6 py-4" />
                 {COMPARE_COLS.map((c, i) => (
-                  <div key={c} className={`px-2 sm:px-3 py-4 text-center ${i === 3 ? "text-landing-primary bg-[#eef3ff] rounded-t-xl" : "text-[#667085]"}`}>{c}</div>
+                  <div key={c} className={`px-2 sm:px-3 py-4 text-center ${i < 2 ? "hidden sm:block" : ""} ${i === 3 ? "text-landing-primary bg-[#eef3ff] rounded-t-xl" : "text-[#667085]"}`}>{c}</div>
                 ))}
               </div>
               {COMPARE_ROWS.map((row, i) => (
-                <div key={row.dim} className={`grid grid-cols-[1.5fr_1fr_1fr_1fr_1.1fr] items-center text-[12.5px] sm:text-[13.5px] ${i > 0 ? "border-t border-[#eef1f4]" : ""}`}>
+                <div key={row.dim} className={`grid grid-cols-[1.4fr_1.1fr_1.2fr] sm:grid-cols-[1.5fr_1fr_1fr_1fr_1.1fr] items-center text-[12.5px] sm:text-[13.5px] ${i > 0 ? "border-t border-[#eef1f4]" : ""}`}>
                   <div className="px-4 sm:px-6 py-4 font-semibold text-[#152033]">{row.dim}</div>
                   {row.vals.map((v, j) => (
-                    <div key={j} className={`px-2 sm:px-3 py-4 text-center ${j === 3 ? "bg-[#f7faff] font-semibold text-[#152033]" : "text-[#667085]"}`}>
+                    <div key={j} className={`px-2 sm:px-3 py-4 text-center ${j < 2 ? "hidden sm:block" : ""} ${j === 3 ? "bg-[#f7faff] font-semibold text-[#152033]" : "text-[#667085]"}`}>
                       <Cell v={v} accent={j === 3} />
                     </div>
                   ))}
@@ -431,6 +431,7 @@ export default function V4Page() {
               ))}
             </div>
           </div>
+          <p className="sm:hidden mt-3 text-center text-[11.5px] text-[#98a2b3]">Shown vs. an AI receptionist — voicemail &amp; text-back columns appear on a wider screen.</p>
         </ScrollReveal>
       </section>
 
@@ -449,7 +450,7 @@ export default function V4Page() {
             {TRADES.map((t, i) => (
               <ScrollReveal key={t.name} delay={(i % 3) * 90} className="group relative block overflow-hidden rounded-2xl border border-[#e3e7ed] transition-shadow hover:shadow-[0_18px_40px_-16px_rgba(16,24,40,.35)]"><Link href={t.href} className="block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={t.img} alt={t.name} className="h-40 w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]" />
+                <img src={t.img} alt={t.name} className="h-44 sm:h-40 w-full object-cover object-[50%_32%] transition-transform duration-500 group-hover:scale-[1.05]" />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent p-4">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-cv-heading text-[15px] font-bold text-white drop-shadow-sm">{t.name}</span>

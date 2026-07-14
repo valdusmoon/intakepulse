@@ -92,6 +92,13 @@ export function HeroBackdrop() {
       ))}
       <div className="absolute inset-0" style={{ background: wash.side }} />
       <div className="absolute inset-0" style={{ background: wash.bottom }} />
+      {/* Mobile-only: the panel is hidden < lg and the headline spans full width, so
+          the left-weighted desktop wash leaves the right side too bright behind text.
+          Darken more uniformly on phones for legibility. */}
+      <div
+        className="absolute inset-0 lg:hidden"
+        style={{ background: "linear-gradient(180deg, rgba(8,11,20,0.62) 0%, rgba(8,11,20,0.44) 42%, rgba(8,11,20,0.58) 100%)" }}
+      />
     </div>
   );
 }
