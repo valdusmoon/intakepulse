@@ -176,6 +176,35 @@ export const POSTS: Post[] = [
       { type: "p", text: "The reason most teams call back in the wrong order is that there's nothing to sort on until they've already spent the call. The fix is to capture what happened on the way in, the issue, how urgent it is, whether it fits, and a rough value, so the list arrives pre-sorted. Then your first callback is always the one most likely to turn into a booked job." },
     ],
   },
+  {
+    slug: "emergency-plumbing-after-hours",
+    title: "The 2 a.m. burst pipe: why emergency plumbing goes to whoever answers",
+    metaTitle: "Emergency Plumbing Calls After Hours: Who Wins the Job | Callverted",
+    metaDescription:
+      "A burst pipe or backed-up sewer doesn't wait until morning. Here's why after-hours plumbing calls go to whoever picks up, and how to be that company.",
+    date: "2026-07-14",
+    readMinutes: 4,
+    excerpt:
+      "A burst pipe at 2 a.m. is the most valuable, least patient call a plumber takes. It goes to whoever answers, not whoever's cheapest. Here's how to be that company.",
+    image: "/blog/emergency-plumbing-after-hours.jpg",
+    imageAlt: "A glossy 3D burst pipe with a water droplet and a brightly ringing phone floating beside it.",
+    imagePrompt: "A glossy 3D chrome pipe with a single bright teal water droplet bursting from a small crack, floating beside a blue smartphone with a glowing ring-notification and a small coral urgency spark, conveying an after-hours plumbing emergency in a cheerful, bright, premium way.",
+    body: [
+      { type: "p", text: "Ask any plumber which calls pay the bills and it's not the dripping faucet at 10 a.m. It's the burst supply line, the backed-up sewer, the water heater that let go and is running down the hallway, and those calls almost never arrive during business hours." },
+      { type: "h2", text: "Water damage compounds by the minute" },
+      { type: "p", text: "A no-heat call is urgent. A water call is urgent and getting worse every minute it isn't answered. The homeowner knows it: they can see the damage spreading. That's exactly why they won't sit through your voicemail greeting: they'll hang up mid-message and dial the next plumber while they're still holding a towel against the leak." },
+      { type: "h2", text: "The job goes to whoever picks up, not whoever's best" },
+      { type: "p", text: "At 2 a.m. nobody is comparing reviews or getting three quotes. The first plumber who answers, sounds like they can help, and can say when they'll arrive wins the job. Being cheaper or more experienced than the shop down the road doesn't matter if that shop answered and you didn't." },
+      { type: "h2", text: "What good after-hours coverage looks like for plumbing" },
+      { type: "ul", items: [
+        "Answers live, 24/7, so a midnight water call never lands in voicemail.",
+        "Tells a true emergency (burst line, sewage backup, no water) from a routine ask, and flags it.",
+        "Captures the details that size the job: what's leaking, how long it's been going, shutoff status, and whether it's one fixture or the whole house.",
+        "Can warm-transfer a genuine emergency to your on-call tech instead of parking it until morning.",
+      ]},
+      { type: "p", text: "You can't answer the phone yourself at 2 a.m., and you shouldn't have to. The goal is simpler: make sure the water calls your team can't take are still answered, qualified, and handed back as a ranked lead, while the customer is still bailing water and still yours to win." },
+    ],
+  },
 ];
 
 export function getPost(slug: string): Post | undefined {

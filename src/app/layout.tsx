@@ -127,7 +127,7 @@ const SOFTWARE_JSONLD = {
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   description: "AI call answering that qualifies missed home-service calls into ranked, callback-ready leads.",
-  offers: { "@type": "Offer", price: "79", priceCurrency: "USD" },
+  offers: { "@type": "Offer", price: "149", priceCurrency: "USD" },
 };
 
 export default function RootLayout({
