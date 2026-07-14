@@ -188,7 +188,7 @@ export default async function DashboardPage() {
       ) : null}
 
       {/* Nudge to enable phone push alerts (self-hides once on / unsupported / dismissed). */}
-      <NotificationsPrompt />
+      <NotificationsPrompt id="cv-tour-notifications" />
 
       <section id="cv-tour-metrics" className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-4">
         <MetricCard

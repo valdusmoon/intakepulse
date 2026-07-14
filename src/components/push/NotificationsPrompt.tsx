@@ -16,7 +16,7 @@ const DISMISS_KEY = "cv-push-prompt-dismissed";
  * On iOS Safari, Web Push only works from an installed PWA, so there we show
  * Add-to-Home-Screen instructions instead of an enable button.
  */
-export function NotificationsPrompt() {
+export function NotificationsPrompt({ id }: { id?: string }) {
   const { state, busy, error, enable } = usePushNotifications();
   // Default hidden to avoid a flash before we've read localStorage on the client.
   const [dismissed, setDismissed] = useState(true);
@@ -66,6 +66,10 @@ export function NotificationsPrompt() {
   }
 
   return (
+    // The id lives on this wrapper (not the module scope) so the dashboard tour
+    // only finds an anchor when the prompt is actually on screen; when it's
+    // hidden the tour degrades to a centered step.
+    <div id={id}>
     <Card className="mb-4">
       <CardBody className="flex items-start gap-3.5">
         <div className="w-10 h-10 rounded-[11px] grid place-items-center shrink-0 bg-cv-primary-soft text-cv-primary">
@@ -88,5 +92,6 @@ export function NotificationsPrompt() {
         </div>
       </CardBody>
     </Card>
+    </div>
   );
 }

@@ -26,6 +26,12 @@ const STEPS: Step[] = [
     target: "cv-tour-activation",
   },
   {
+    icon: "notifications_active",
+    title: "Get pinged the moment a lead lands",
+    body: "Turn on phone alerts and Callverted notifies you the instant a new lead is ready to call back — the fastest way to win the job. On iPhone, add Callverted to your Home Screen first.",
+    target: "cv-tour-notifications",
+  },
+  {
     icon: "lightbulb",
     title: "This is a captured lead",
     body: "Here is an example of what a real lead looks like, with urgency, intent, and an estimated value. Your live leads will appear here in this same spot.",
