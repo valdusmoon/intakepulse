@@ -64,23 +64,30 @@ async function assessAndNotify(
 
     if (business.notificationPreferences?.qualifiedLead === false) return;
 
-    await sendLeadPacketEmail({
-      ownerEmail: business.ownerEmail,
-      ownerName: business.ownerName,
-      businessName: business.businessName,
-      leadId,
-      callerName: lead.callerName,
-      callerPhone: lead.callerPhone,
-      urgencyScore: scores.urgencyScore,
-      qualityScore: scores.qualityScore,
-      estimatedValueLow: scores.estimatedValueLow,
-      estimatedValueHigh: scores.estimatedValueHigh,
-      urgencyReasoning: reasoning.urgencyReasoning,
-      qualityReasoning: reasoning.qualityReasoning,
-      recommendedActions: reasoning.recommendedActions,
-      intakeAnswers: answers,
-      questions: config.questions,
-    });
+    // Email and push are independent channels — a failure in one must not skip
+    // the other (push is the primary, more-reliable alert), so the email gets its
+    // own try/catch rather than sharing the outer one.
+    try {
+      await sendLeadPacketEmail({
+        ownerEmail: business.ownerEmail,
+        ownerName: business.ownerName,
+        businessName: business.businessName,
+        leadId,
+        callerName: lead.callerName,
+        callerPhone: lead.callerPhone,
+        urgencyScore: scores.urgencyScore,
+        qualityScore: scores.qualityScore,
+        estimatedValueLow: scores.estimatedValueLow,
+        estimatedValueHigh: scores.estimatedValueHigh,
+        urgencyReasoning: reasoning.urgencyReasoning,
+        qualityReasoning: reasoning.qualityReasoning,
+        recommendedActions: reasoning.recommendedActions,
+        intakeAnswers: answers,
+        questions: config.questions,
+      });
+    } catch (err) {
+      logger.error("lead packet email failed", { leadId, error: String(err) });
+    }
 
     // Push-primary operator alert (PWA/browser). Fire alongside the email; never
     // throws, prunes dead subscriptions itself. Default-on unless turned off.
