@@ -16,7 +16,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: "Does it replace my phone number?",
-    a: "No. Your team gets the first chance to answer every call. Callverted only steps in when the call would otherwise be missed or routed to voicemail.",
+    a: "Your existing phones and team stay exactly as they are. You publish a new Callverted number for customers to call; it rings your team first and only hands off to the AI on calls that would otherwise be missed or go to voicemail.",
   },
   {
     q: "Can it handle intake for my specific trade?",

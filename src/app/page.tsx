@@ -74,7 +74,7 @@ const CASES = [
 ];
 
 const TIMELINE = [
-  { when: "Day 1", title: "Point your calls at Callverted", body: "Forward missed and after-hours calls. About 30 minutes, once." },
+  { when: "Day 1", title: "Publish your Callverted number", body: "It rings your team first and catches the misses. About 30 minutes, once." },
   { when: "Day 2", title: "It starts catching calls", body: "Every miss becomes a live conversation, qualified and scored." },
   { when: "Ongoing", title: "You just call back", body: "Ranked leads, highest value first. It runs itself from here." },
 ];
@@ -334,18 +334,18 @@ export default function V4Page() {
           </div>
         </ScrollReveal>
 
-        {/* Keep-your-number flow — phone-setup reassurance, full width */}
+        {/* Phone-setup reassurance — publish a Callverted number that rings your team first, full width */}
         <ScrollReveal className="max-w-6xl mx-auto mb-4">
           <div className="rounded-3xl border border-[#e3e7ed] bg-[#f9fafb] p-5 sm:p-8">
             <div className="grid grid-cols-1 lg:grid-cols-[0.82fr_1.18fr] gap-8 items-center">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-landing-primary mb-2">Fits your phone setup</p>
-                <h3 className="font-cv-heading text-xl font-bold mb-1">Keep your number. Nothing to rip out.</h3>
-                <p className="text-[13.5px] text-[#667085] leading-relaxed max-w-[42ch]">Your team always gets the first ring. Callverted only answers the calls that ring out or come in after hours.</p>
+                <h3 className="font-cv-heading text-xl font-bold mb-1">Keep your phones and your team.</h3>
+                <p className="text-[13.5px] text-[#667085] leading-relaxed max-w-[42ch]">You publish one Callverted number. It rings your team first — Callverted only answers the calls that ring out or come in after hours.</p>
               </div>
               <div className="flex items-start">
                 {[
-                  { l: "Your number", i: "M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1L6.6 10.8z" },
+                  { l: "Customer calls", i: "M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1L6.6 10.8z" },
                   { l: "Missed", i: "M18 6 6 18M6 6l12 12" },
                   { l: "Callverted", i: "M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" },
                   { l: "Ranked lead", i: "M4 6h16M4 12h10M4 18h6" },
