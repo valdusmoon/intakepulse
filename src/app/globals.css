@@ -251,3 +251,49 @@ body {
     animation: none;
   }
 }
+
+/* ─── Logo marquee — an infinite, edge-faded horizontal scroll of customer
+ * wordmarks (a "trusted by" carousel). The track holds two copies of the set
+ * back-to-back and translates by -50% so the loop is seamless. */
+.cv-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: cv-marquee 38s linear infinite;
+}
+@keyframes cv-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.cv-marquee:hover .cv-marquee-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-marquee-track {
+    animation: none;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* Subtle attention pulse on the /v4 hero callback CTA. */
+.cv-pulse-cta {
+  animation: cv-pulse-cta 2.4s ease-in-out infinite;
+}
+@keyframes cv-pulse-cta {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(36, 84, 216, 0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(36, 84, 216, 0); }
+}
+
+/* Gently drifting notification chips (closing CTA). Pure CSS, no JS. */
+.cv-drift {
+  animation: cv-drift 6.5s ease-in-out infinite;
+}
+@keyframes cv-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-pulse-cta,
+  .cv-drift { animation: none; }
+}

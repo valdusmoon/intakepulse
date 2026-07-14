@@ -137,7 +137,7 @@ export function CallReplay() {
   return (
     <div
       ref={rootRef}
-      className="rounded-[24px] border border-white/10 bg-white/[0.045] p-5 sm:p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8)]"
+      className="rounded-[24px] border border-white/10 bg-landing-ink p-5 sm:p-6 shadow-[0_40px_90px_-40px_rgba(16,24,40,0.5)]"
     >
       {/* Call header — reads as a live voice line, not a chat window */}
       <div className="flex items-center gap-2.5 mb-4">

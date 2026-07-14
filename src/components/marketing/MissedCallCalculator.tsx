@@ -151,26 +151,30 @@ export function MissedCallCalculator() {
 
       {status === "sent" ? (
         <p className="mt-4 text-center text-sm font-medium text-landing-primary-glow">
-          Sent. Check your inbox for the breakdown.
+          Sent — check your inbox.
         </p>
       ) : (
-        <form onSubmit={handleCapture} className="mt-4">
+        <form onSubmit={handleCapture} className="mt-5">
+          <label htmlFor="roi-email" className="block text-xs text-white/50 mb-2">
+            Want it in writing? We&apos;ll email you the numbers.
+          </label>
           <div className="flex flex-col sm:flex-row gap-2">
             <input
+              id="roi-email"
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
               aria-label="Email address"
-              className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-landing-primary-glow focus:outline-none"
+              className="flex-1 rounded-xl border border-white/20 bg-white/[0.07] px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-landing-primary-glow focus:bg-white/10 focus:outline-none"
             />
             <button
               type="submit"
               disabled={status === "sending"}
-              className="rounded-xl bg-landing-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-600 disabled:opacity-60"
+              className="shrink-0 rounded-xl bg-landing-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-600 disabled:opacity-60"
             >
-              {status === "sending" ? "Sending..." : "Email me this breakdown"}
+              {status === "sending" ? "Sending..." : "Email me the numbers"}
             </button>
           </div>
           {status === "error" && (
