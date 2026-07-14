@@ -49,7 +49,7 @@ import {
   wrapUpReasonPrompt,
   zipPrompt,
 } from "./call-flow";
-import { captureLeadOnce, checkServiceArea, getPriceRangeForCategory, transferCallAction } from "../functions/actions";
+import { captureLeadOnce, checkServiceArea, getPriceRangeForCategory, transferCallAction, canWarmTransfer } from "../functions/actions";
 import { INTERRUPTION } from "../config/constants";
 
 const RETRY_LIMIT = 1; // "maximum clarification attempts per state: 1"
@@ -607,7 +607,9 @@ function hasKnownReason(ctx: FlowContext): boolean {
 }
 
 async function handleWantsHuman(ctx: FlowContext, client: RealtimeClient): Promise<void> {
-  if (!ctx.session.urgentTransferNumber) {
+  // No transfer number, or the only one we have is the line that already rang out
+  // on this call — don't promise a transfer we can't (usefully) make. Take a message.
+  if (!canWarmTransfer(ctx.session)) {
     await jumpToWrapUp(ctx, client, noTransferAvailableLine());
     return;
   }

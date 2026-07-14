@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from "react";
  */
 
 const BEATS = [
-  { key: "ringing", time: "0:00", label: "Rings unanswered", accent: "text-landing-alert", body: "Your team gets the first ring. No answer in ~20 seconds, Callverted keeps the same caller on the line.", ms: 3200 },
+  { key: "ringing", time: "0:00", label: "Rings unanswered", accent: "text-landing-alert", body: "Your team gets the first ring. No answer in ~15 seconds, Callverted keeps the same caller on the line.", ms: 3200 },
   { key: "answered", time: "0:04", label: "AI answers", accent: "text-landing-primary-glow", body: "No voicemail, no text-back delay. Callverted answers the missed call live.", ms: 2600 },
   { key: "intake", time: "0:22", label: "Qualifies", accent: "text-landing-purple", body: "The caller is reassured while Callverted collects job details, urgency, and service fit.", ms: 4600 },
   { key: "captured", time: "1:10", label: "Lead captured", accent: "text-landing-green", body: "The result is a callback-ready lead with urgency, intent, estimated value, transcript, and next action.", ms: 5200 },

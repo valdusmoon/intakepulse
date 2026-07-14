@@ -101,7 +101,8 @@ export function SettingsTabs({ business, pricingRules, serviceOptions, initialTa
 
 // ─── Call setup ─────────────────────────────────────────────────────────────
 
-const RING_TIMES = [15, 20, 25, 30];
+// Ring time is a fixed product default now (see CALL_RING_TIMEOUT_SECONDS) — no
+// longer operator-configurable, so no RING_TIMES options list.
 const VOICES = [
   { value: "alloy", label: "Alloy — neutral and balanced" },
   { value: "ash", label: "Ash — clear and precise" },
@@ -111,7 +112,6 @@ const VOICES = [
 
 function CallSetupPanel({ business }: { business: Business }) {
   const [forwardingNumber, setForwardingNumber] = useState(business.forwardingNumber ?? "");
-  const [callTimeoutSeconds, setCallTimeoutSeconds] = useState(business.callTimeoutSeconds);
   const [overflowMode, setOverflowMode] = useState(business.overflowMode);
   const routing = useSave();
 
@@ -119,8 +119,8 @@ function CallSetupPanel({ business }: { business: Business }) {
   const [voiceName, setVoiceName] = useState(business.voiceName);
   const [urgentTransferNumber, setUrgentTransferNumber] = useState(business.urgentTransferNumber ?? "");
   const [aiInstructions, setAiInstructions] = useState(business.aiInstructions ?? "");
-  const [recordingEnabled, setRecordingEnabled] = useState(business.recordingEnabled);
-  const [recordingDisclosure, setRecordingDisclosure] = useState(business.recordingDisclosure ?? "");
+  // Call recording (audio) is pulled for launch — see generateDialTwiml. The
+  // schema columns remain so it can be re-added later; no UI/save for now.
   const experience = useSave();
 
   return (
@@ -147,7 +147,7 @@ function CallSetupPanel({ business }: { business: Business }) {
                 <Icon name="storefront" />
               </div>
               <strong className="block text-[11px]">Your business rings</strong>
-              <span className="block text-cv-muted text-[9px] mt-0.5">For {callTimeoutSeconds} seconds</span>
+              <span className="block text-cv-muted text-[9px] mt-0.5">For about 15 seconds</span>
             </div>
             <div className="text-center">
               <div className="w-[46px] h-[46px] rounded-full grid place-items-center mx-auto mb-2 bg-cv-primary text-white">
@@ -165,14 +165,8 @@ function CallSetupPanel({ business }: { business: Business }) {
             <FormGroup label="Forward calls to" help="Your office, cell phone, or existing business line.">
               <Field className="font-cv-mono" value={forwardingNumber} onChange={(e) => setForwardingNumber(e.target.value)} placeholder="+1 (555) 000-0000" />
             </FormGroup>
-            <FormGroup label="Ring time" help="Approximately 4–5 rings before Callverted answers.">
-              <Select value={callTimeoutSeconds} onChange={(e) => setCallTimeoutSeconds(Number(e.target.value))}>
-                {RING_TIMES.map((s) => (
-                  <option key={s} value={s}>
-                    {s} seconds{s === 20 ? " — recommended" : ""}
-                  </option>
-                ))}
-              </Select>
+            <FormGroup label="Ring time" help="How long your line rings before Callverted answers (~3 rings).">
+              <Field value="About 15 seconds" readOnly />
             </FormGroup>
             <FormGroup label="Overflow mode">
               <Select value={overflowMode} onChange={(e) => setOverflowMode(e.target.value as Business["overflowMode"])}>
@@ -187,7 +181,7 @@ function CallSetupPanel({ business }: { business: Business }) {
             variant="primary"
             className="self-end"
             disabled={routing.loading}
-            onClick={() => routing.save({ forwardingNumber: forwardingNumber || null, callTimeoutSeconds, overflowMode })}
+            onClick={() => routing.save({ forwardingNumber: forwardingNumber || null, overflowMode })}
           >
             {routing.loading ? "Saving…" : routing.saved ? "Saved ✓" : "Save call setup"}
           </Button>
@@ -216,25 +210,12 @@ function CallSetupPanel({ business }: { business: Business }) {
               </Select>
             </FormGroup>
           </div>
-          <FormGroup label="Urgent transfer number (optional)" help="If set, the AI can offer to transfer emergency calls here live.">
+          <FormGroup label="Urgent transfer number (optional)" help="If a caller asks for a person, the AI can transfer them here live. Use a reliably-staffed line (an on-call phone) — not the number Callverted already rings, or it'll just ring out again.">
             <Field className="font-cv-mono" value={urgentTransferNumber} onChange={(e) => setUrgentTransferNumber(e.target.value)} placeholder="+1 (555) 000-0000" />
           </FormGroup>
           <FormGroup label="Extra instructions for the AI (optional)">
             <TextArea value={aiInstructions} onChange={(e) => setAiInstructions(e.target.value)} placeholder="Any business-specific notes the AI should know when answering calls." />
           </FormGroup>
-
-          <div className="flex justify-between items-center py-3.5 border-t border-cv-border">
-            <div>
-              <strong className="block text-xs">Record overflow calls</strong>
-              <span className="block text-cv-muted text-[10px] mt-1">Plays the disclosure below before recording begins.</span>
-            </div>
-            <Toggle checked={recordingEnabled} onChange={setRecordingEnabled} />
-          </div>
-          {recordingEnabled && (
-            <FormGroup label="Recording disclosure" help="Spoken by the AI at the start of the call. Confirm required wording with counsel for your state.">
-              <Field value={recordingDisclosure} onChange={(e) => setRecordingDisclosure(e.target.value)} placeholder="This call may be recorded to help the team respond." />
-            </FormGroup>
-          )}
 
           {experience.error && <p className="text-sm text-cv-red">{experience.error}</p>}
           <Button
@@ -247,8 +228,6 @@ function CallSetupPanel({ business }: { business: Business }) {
                 voiceName,
                 urgentTransferNumber: urgentTransferNumber || null,
                 aiInstructions: aiInstructions || null,
-                recordingEnabled,
-                recordingDisclosure: recordingDisclosure || null,
               })
             }
           >

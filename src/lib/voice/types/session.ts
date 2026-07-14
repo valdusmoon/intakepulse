@@ -41,6 +41,13 @@ export interface SessionState {
   businessId: string;
   businessName: string;
   urgentTransferNumber: string | null;
+  // The line Callverted rings first (ring_then_ai). Kept on the session so a
+  // warm transfer can refuse to dial a number that already rang out this call.
+  forwardingNumber: string | null;
+  // True when the business's own line was dialed and went unanswered before the
+  // AI took over on THIS call (ring_then_ai overflow). Used to suppress a warm
+  // transfer back to that same number — it would just ring out again.
+  businessLineAlreadyTried: boolean;
   callStartTime: Date;
 
   // True only for a session driven by the admin test-call harness (no real
@@ -168,6 +175,7 @@ export interface BusinessCallData {
   serviceArea: string | null;
   timezone: string;
   forwardingNumber: string | null;
+  overflowMode: string;
   urgentTransferNumber: string | null;
   greetingMessage: string | null;
   aiInstructions: string | null;

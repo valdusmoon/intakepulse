@@ -43,7 +43,11 @@ export const FAQS: Faq[] = [
     a: "A callback-ready lead: the caller's name and number, service type, urgency, estimated job value, a recommended callback window, a short summary, and the full transcript.",
   },
   {
-    q: "Is the call recorded, and what about consent?",
-    a: "Recording is optional per business and off by default. When it's on, Callverted reads a disclosure at the start of the call. You control the disclosure text in settings.",
+    q: "How do I find out about a new lead?",
+    a: "Instantly. However the lead reaches you — a phone call, your intake link, or the website widget — Callverted sends a push notification to your phone and an email with the scored lead, and it's waiting in your dashboard with the full transcript.",
+  },
+  {
+    q: "Do you record my calls?",
+    a: "Every call Callverted handles is saved as a written transcript in your dashboard, so you can read exactly what the caller said and how the job was qualified — no audio recordings to store or manage.",
   },
 ];

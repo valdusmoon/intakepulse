@@ -31,6 +31,8 @@ export function createSession(opts: {
   businessName: string;
   urgentTransferNumber: string | null;
   callerPhone: string;
+  forwardingNumber?: string | null;
+  businessLineAlreadyTried?: boolean;
 }): SessionState {
   return {
     streamSid: undefined,
@@ -50,6 +52,8 @@ export function createSession(opts: {
     businessId: opts.businessId,
     businessName: opts.businessName,
     urgentTransferNumber: opts.urgentTransferNumber,
+    forwardingNumber: opts.forwardingNumber ?? null,
+    businessLineAlreadyTried: opts.businessLineAlreadyTried ?? false,
     callStartTime: new Date(),
     state: "greeting",
     qualificationIndex: 0,
@@ -74,6 +78,7 @@ export async function loadBusinessCallData(
     serviceArea: business.serviceArea,
     timezone: business.timezone,
     forwardingNumber: business.forwardingNumber,
+    overflowMode: business.overflowMode,
     urgentTransferNumber: business.urgentTransferNumber,
     greetingMessage: business.greetingMessage,
     aiInstructions: business.aiInstructions,

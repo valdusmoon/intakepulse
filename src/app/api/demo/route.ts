@@ -54,6 +54,7 @@ const DEMO_BUSINESS: BusinessCallData = {
   serviceArea: null,
   timezone: "America/New_York",
   forwardingNumber: null,
+  overflowMode: "ai_immediate",
   urgentTransferNumber: null,
   greetingMessage: null,
   aiInstructions: null,

@@ -7,6 +7,7 @@ import { getBusinessByTwilioNumber } from "@/lib/db/queries/businesses";
 import { createCall } from "@/lib/db/queries/calls";
 import { normalizePhone } from "@/lib/utils/phone-validation";
 import { hasPaymentOnFile } from "@/lib/subscription";
+import { CALL_RING_TIMEOUT_SECONDS } from "@/lib/voice/config/constants";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -97,7 +98,7 @@ export async function POST(req: Request) {
     const recordingStatusCallbackUrl = `${env.APP_URL}/api/twilio/voice/recording`;
     return xml(generateDialTwiml({
       forwardingNumber: business.forwardingNumber!,
-      timeoutSeconds: business.callTimeoutSeconds,
+      timeoutSeconds: CALL_RING_TIMEOUT_SECONDS,
       actionUrl: statusUrl,
       recordingEnabled: business.recordingEnabled,
       recordingStatusCallbackUrl,

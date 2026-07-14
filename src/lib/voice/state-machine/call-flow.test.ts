@@ -54,12 +54,12 @@ describe("greetingPrompt", () => {
     expect(greetingPrompt(ctx)).toContain("Welcome to Acme!");
   });
 
-  it("includes the recording disclosure only when recording is enabled AND a disclosure is set", () => {
+  it("never speaks a recording disclosure — the AI leg is transcribed, not audio-recorded (recording pulled for launch)", () => {
+    // Even with recording fields set on the business, the greeting must not announce
+    // recording: human-leg audio recording is disabled and the AI leg isn't recorded.
     const withBoth = makeFlowContext({ business: makeBusiness({ recordingEnabled: true, recordingDisclosure: "This call may be recorded." }) });
-    expect(greetingPrompt(withBoth)).toContain("This call may be recorded.");
-
-    const disabledButSet = makeFlowContext({ business: makeBusiness({ recordingEnabled: false, recordingDisclosure: "This call may be recorded." }) });
-    expect(disabledButSet && greetingPrompt(disabledButSet)).not.toContain("This call may be recorded.");
+    expect(greetingPrompt(withBoth)).not.toContain("This call may be recorded.");
+    expect(greetingPrompt(withBoth)).not.toContain("recorded");
 
     const enabledButUnset = makeFlowContext({ business: makeBusiness({ recordingEnabled: true, recordingDisclosure: null }) });
     expect(greetingPrompt(enabledButUnset)).not.toContain("null");

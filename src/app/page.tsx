@@ -60,7 +60,7 @@ const PAINS = [
 ];
 
 const FIX = [
-  { t: "Answered live in ~20 seconds", d: "On the same call, before it goes cold.", icon: "M6.5 10.7c1.45 2.85 3.85 5.25 6.7 6.7l2.2-2.2c.3-.3.75-.4 1.15-.26 1.05.35 2.18.55 3.45.55.62 0 1.1.48 1.1 1.1v3.25c0 .62-.48 1.1-1.1 1.1C10.62 20.94 3.05 13.38 3.05 4c0-.62.48-1.1 1.1-1.1H7.4c.62 0 1.1.48 1.1 1.1 0 1.25.18 2.4.55 3.45.14.4.04.84-.26 1.14l-2.3 2.1Z" },
+  { t: "Answered live in ~15 seconds", d: "On the same call, before it goes cold.", icon: "M6.5 10.7c1.45 2.85 3.85 5.25 6.7 6.7l2.2-2.2c.3-.3.75-.4 1.15-.26 1.05.35 2.18.55 3.45.55.62 0 1.1.48 1.1 1.1v3.25c0 .62-.48 1.1-1.1 1.1C10.62 20.94 3.05 13.38 3.05 4c0-.62.48-1.1 1.1-1.1H7.4c.62 0 1.1.48 1.1 1.1 0 1.25.18 2.4.55 3.45.14.4.04.84-.26 1.14l-2.3 2.1Z" },
   { t: "Qualified on the same call", d: "It understands the problem and asks only what's missing.", icon: "M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" },
   { t: "Scored by urgency and value", d: "So the $9k emergency outranks the $150 tune-up.", icon: "M4 6h16M4 12h10M4 18h6" },
   { t: "Handed to you, ranked", d: "A callback-ready lead packet, highest value first.", icon: "M5 12h14M13 6l6 6-6 6" },
@@ -80,7 +80,7 @@ const TIMELINE = [
 ];
 
 const SMALL_FEATURES = [
-  { kind: "context" as const, t: "Every call has context", d: "Full transcript, captured fields, and the recording." },
+  { kind: "context" as const, t: "Every call has context", d: "Full transcript, captured fields, and an AI summary." },
   { kind: "pricing" as const, t: "Approved pricing only", d: "Any quote comes from rules you set, never invented." },
   { kind: "recap" as const, t: "Weekly recovery recap", d: "What was recovered and what it was worth, every week." },
 ];
@@ -341,7 +341,7 @@ export default function V4Page() {
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-landing-primary mb-2">Fits your phone setup</p>
                 <h3 className="font-cv-heading text-xl font-bold mb-1">Keep your number. Nothing to rip out.</h3>
-                <p className="text-[13.5px] text-[#667085] leading-relaxed max-w-[42ch]">Forward only your missed and after-hours calls. Answered calls never change.</p>
+                <p className="text-[13.5px] text-[#667085] leading-relaxed max-w-[42ch]">Your team always gets the first ring. Callverted only answers the calls that ring out or come in after hours.</p>
               </div>
               <div className="flex items-start">
                 {[

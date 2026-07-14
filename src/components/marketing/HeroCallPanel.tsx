@@ -156,7 +156,7 @@ function AnsweredBeat({ active }: { active: boolean }) {
           <span className="text-[13px] font-extrabold text-[#dbe4ff]">Answered by Callverted</span>
         </div>
         <p className="text-[13px] leading-relaxed text-white/60">
-          No one picked up in 20 seconds, so Callverted took the call before it went cold.
+          No one picked up in 15 seconds, so Callverted took the call before it went cold.
         </p>
       </div>
     </Beat>

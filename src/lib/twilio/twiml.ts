@@ -23,13 +23,14 @@ export function generateDialTwiml(opts: {
   recordingEnabled?: boolean;
   recordingStatusCallbackUrl?: string;
 }): string {
-  let recordAttrs = "";
-  if (opts.recordingEnabled) {
-    recordAttrs = ' record="record-from-answer"';
-    if (opts.recordingStatusCallbackUrl) {
-      recordAttrs += ` recordingStatusCallback="${escapeXml(opts.recordingStatusCallbackUrl)}" recordingStatusCallbackEvent="completed"`;
-    }
-  }
+  // Human-leg audio recording is DISABLED for launch. It only ever recorded the
+  // leg where a human answered, while the recording disclosure was only spoken on
+  // the AI leg — so a recorded call never carried a spoken consent notice (a
+  // two-party-consent risk). Re-enable this in a later release together with a
+  // disclosure played on THIS leg (and, ideally, transcription of the human
+  // portion). The `recordingEnabled` / `recordingStatusCallbackUrl` opts are
+  // intentionally ignored until then; keep them so callers don't need changes.
+  const recordAttrs = "";
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial timeout="${opts.timeoutSeconds}" action="${escapeXml(opts.actionUrl)}" answerOnBridge="true"${recordAttrs}>

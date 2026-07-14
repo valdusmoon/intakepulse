@@ -20,6 +20,16 @@ export const TIMEOUTS = {
   GOODBYE_DELAY: 1200,
 } as const;
 
+/**
+ * How long the business's own line rings before Callverted's AI takes over the
+ * call. Hard-coded product default (~3 rings) rather than a per-business setting;
+ * override per environment with CALL_RING_TIMEOUT_SECONDS. Kept comfortably below
+ * typical carrier voicemail pickup (~20–25s) so the caller's voicemail never
+ * "answers" the call and blocks the AI overflow. NOTE: marketing/settings copy
+ * that cites "~15 seconds" is kept in sync manually (static strings, not imports).
+ */
+export const CALL_RING_TIMEOUT_SECONDS = Number(process.env.CALL_RING_TIMEOUT_SECONDS) || 15;
+
 export const OPENAI_CONFIG = {
   VOICE: "alloy" as const,
 

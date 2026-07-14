@@ -48,13 +48,15 @@ export function greetingPrompt(ctx: FlowContext): string {
   const greeting =
     business.greetingMessage ||
     `Thanks for calling ${business.businessName}. I'm their automated intake assistant.`;
-  const disclosure =
-    business.recordingEnabled && business.recordingDisclosure ? ` ${business.recordingDisclosure}` : "";
 
+  // No recording disclosure: the AI leg is transcribed as text, not audio-recorded,
+  // so no "this call is being recorded" notice is warranted. (Human-leg audio
+  // recording is disabled for launch — see generateDialTwiml.)
+  //
   // Open broad instead of leading with a new/existing menu — the caller's own
   // description is run through extract_intake, which usually fills several
   // fields at once so the engine can skip straight past what they've told us.
-  return `${greeting}${disclosure} Briefly, what's going on?`;
+  return `${greeting} Briefly, what's going on?`;
 }
 
 /** Asked only when the opening description didn't make new-vs-existing clear. */
