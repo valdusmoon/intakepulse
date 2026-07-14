@@ -60,7 +60,7 @@ const DEMO_BUSINESS: BusinessCallData = {
   recordingEnabled: false,
   recordingDisclosure: null,
   callerNumber: DEMO_CALLER,
-  notificationPreferences: { newLead: false, qualifiedLead: false, smsNewLead: false, weeklyReport: false },
+  notificationPreferences: { newLead: false, qualifiedLead: false, smsNewLead: false, pushNewLead: false, weeklyReport: false },
   voiceName: "alloy",
   customServiceOptions: [],
 };

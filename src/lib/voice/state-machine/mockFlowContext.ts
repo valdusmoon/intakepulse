@@ -21,7 +21,7 @@ export function makeBusiness(overrides: Partial<BusinessCallData> = {}): Busines
     recordingEnabled: false,
     recordingDisclosure: null,
     callerNumber: "+15551234567",
-    notificationPreferences: { newLead: true, qualifiedLead: true, smsNewLead: false, weeklyReport: true },
+    notificationPreferences: { newLead: true, qualifiedLead: true, smsNewLead: false, pushNewLead: true, weeklyReport: true },
     voiceName: "alloy",
     customServiceOptions: [],
     ...overrides,

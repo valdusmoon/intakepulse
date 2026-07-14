@@ -11,6 +11,8 @@ import { updateCall } from "@/lib/db/queries/calls";
 import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
 import { assessLead } from "@/lib/leads/assess";
 import { sendLeadPacketEmail } from "@/lib/email/notifications";
+import { sendLeadPushNotification } from "@/lib/push/send";
+import { buildLeadPushPayload } from "@/lib/push/payload";
 import { updateCallWithTwiml } from "@/lib/twilio/client";
 import { generateTransferTwiml } from "@/lib/twilio/twiml";
 import { logger } from "@/lib/logger";
@@ -143,6 +145,20 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
       });
     } catch (err) {
       logger.error("Failed to send lead packet email for voice lead", { leadId: lead.id, error: String(err) });
+    }
+
+    // Push-primary operator alert (PWA/browser), same message as the web path.
+    if (business.notificationPreferences?.pushNewLead !== false) {
+      await sendLeadPushNotification(
+        business.id,
+        buildLeadPushPayload({
+          leadId: lead.id,
+          callerName: session.conversationContext.callerName ?? null,
+          urgencyScore: scores.urgencyScore,
+          estimatedValueLow: scores.estimatedValueLow,
+          estimatedValueHigh: scores.estimatedValueHigh,
+        }),
+      );
     }
   }
 

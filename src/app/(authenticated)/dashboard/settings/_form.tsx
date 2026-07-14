@@ -18,6 +18,7 @@ import {
   Icon,
   Badge,
 } from "@/components/dashboard/v2/primitives";
+import { PushDeviceToggle } from "@/components/push/PushDeviceToggle";
 
 const TABS = [
   { key: "call", label: "Call setup", icon: "phone_in_talk" },
@@ -573,6 +574,8 @@ function NotificationsPanel({ business }: { business: Business }) {
           </div>
           <Toggle checked={weeklyReport} onChange={setWeeklyReport} />
         </div>
+        {/* Per-device Web Push subscription (not part of the server-saved prefs). */}
+        <PushDeviceToggle />
         {error && <p className="text-sm text-cv-red">{error}</p>}
         <Button
           variant="primary"

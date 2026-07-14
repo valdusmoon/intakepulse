@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Sora, Inter, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -57,6 +57,14 @@ export const metadata: Metadata = {
   },
   description: "Callverted answers missed emergency service calls live, qualifies the job, estimates value, and turns unanswered calls into callback-ready leads.",
   applicationName: "Callverted",
+  manifest: "/manifest.webmanifest",
+  // iOS PWA: allow install-to-Home-Screen (required for Web Push to work on
+  // iPhone/iPad, 16.4+) and set the standalone app title + status bar.
+  appleWebApp: {
+    capable: true,
+    title: "Callverted",
+    statusBarStyle: "default",
+  },
   keywords: [
     "AI receptionist",
     "missed call recovery",
@@ -89,6 +97,10 @@ export const metadata: Metadata = {
     description: "Answer the emergency calls your team can't, qualify the job, and get a ranked lead in minutes.",
     images: ["/og-image.png"],
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2454d8",
 };
 
 const ORGANIZATION_JSONLD = {

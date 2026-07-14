@@ -15,6 +15,7 @@ import { priorityMeta, intentMeta, initials, timeAgoShort, fmtCents, fmtValueRan
 import { Card, CardHeader, CardTitle, CardBody, Badge, StatusPill, MetricCard, Trend, Icon, LinkButton } from "@/components/dashboard/v2/primitives";
 import { hasPaymentOnFile, getSetupStage } from "@/lib/subscription";
 import { ActivationChecklist } from "@/components/dashboard/ActivationChecklist";
+import { NotificationsPrompt } from "@/components/push/NotificationsPrompt";
 import { ChooseNumber } from "@/components/dashboard/ChooseNumber";
 import { ExampleLead } from "@/components/dashboard/ExampleLead";
 import { DashboardTour } from "@/components/dashboard/DashboardTour";
@@ -185,6 +186,9 @@ export default async function DashboardPage() {
           />
         </div>
       ) : null}
+
+      {/* Nudge to enable phone push alerts (self-hides once on / unsupported / dismissed). */}
+      <NotificationsPrompt />
 
       <section id="cv-tour-metrics" className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-4">
         <MetricCard

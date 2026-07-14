@@ -20,6 +20,9 @@ export const env = {
   // Stripe (public keys safe for browser)
   STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
   STRIPE_PRICE_ID: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || "",
+
+  // Web Push — VAPID public key, used in the browser to create push subscriptions.
+  VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "",
 } as const;
 
 // Server-only environment variables (never expose to browser)
@@ -71,6 +74,11 @@ export const serverEnv = {
   COMPANY_NAME: process.env.COMPANY_NAME || "Callverted",
   // Inbox that receives mailto: unsubscribe requests (List-Unsubscribe header).
   UNSUBSCRIBE_MAILBOX: process.env.UNSUBSCRIBE_MAILBOX || "unsubscribe@callverted.com",
+
+  // Web Push (PWA operator lead alerts). Private key signs push messages; subject
+  // is a mailto:/https: contact required by the push services (VAPID spec).
+  VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || "",
+  VAPID_SUBJECT: process.env.VAPID_SUBJECT || "mailto:hello@callverted.com",
 } as const;
 
 /**

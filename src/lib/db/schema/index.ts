@@ -9,4 +9,5 @@ export * from "./pricingRules";
 export * from "./providerWebhookEvents";
 export * from "./emailCaptures";
 export * from "./emailSuppressions";
+export * from "./pushSubscriptions";
 

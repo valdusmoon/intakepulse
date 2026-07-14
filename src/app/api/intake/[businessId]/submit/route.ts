@@ -13,6 +13,8 @@ import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
 import { assessLead } from "@/lib/leads/assess";
 import { sendLeadPacketEmail } from "@/lib/email/notifications";
+import { sendLeadPushNotification } from "@/lib/push/send";
+import { buildLeadPushPayload } from "@/lib/push/payload";
 import { logger } from "@/lib/logger";
 import type { Answers } from "@/lib/verticals/filterAnswers";
 
@@ -79,6 +81,21 @@ async function assessAndNotify(
       intakeAnswers: answers,
       questions: config.questions,
     });
+
+    // Push-primary operator alert (PWA/browser). Fire alongside the email; never
+    // throws, prunes dead subscriptions itself. Default-on unless turned off.
+    if (business.notificationPreferences?.pushNewLead !== false) {
+      await sendLeadPushNotification(
+        businessId,
+        buildLeadPushPayload({
+          leadId,
+          callerName: lead.callerName,
+          urgencyScore: scores.urgencyScore,
+          estimatedValueLow: scores.estimatedValueLow,
+          estimatedValueHigh: scores.estimatedValueHigh,
+        }),
+      );
+    }
   } catch (err) {
     logger.error("assessAndNotify failed", { leadId, error: String(err) });
   }

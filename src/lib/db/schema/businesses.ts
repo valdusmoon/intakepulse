@@ -4,6 +4,9 @@ export interface BusinessNotificationPreferences {
   newLead: boolean;
   qualifiedLead: boolean;
   smsNewLead: boolean;
+  // Web Push alert to the operator's installed PWA / browser on a new qualified
+  // lead. Push-primary (instant, free, no A2P); SMS stays as the fallback.
+  pushNewLead: boolean;
   weeklyReport: boolean;
 }
 
@@ -16,6 +19,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES: BusinessNotificationPreferences = {
   newLead: true,
   qualifiedLead: true,
   smsNewLead: false,
+  pushNewLead: true,
   weeklyReport: true,
 };
 
