@@ -5,6 +5,11 @@ import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { MarketingFooter } from "@/components/marketing/MarketingChrome";
 import { JsonLd, faqSchema } from "@/components/marketing/JsonLd";
 import { AuthAwareNavCta } from "@/components/marketing/AuthAwareNavCta";
+
+// Placeholder social proof — the case-study testimonials (invented names/quotes)
+// and the logo strip (invented logos) — is DISABLED until real, consented
+// customer proof is ready. Kept in code; flip to true to re-enable.
+const SHOW_SOCIAL_PROOF = false;
 import { ExtractionDemo } from "@/components/marketing/V4Interactive";
 import { HeroScenesProvider, HeroBackdrop, HeroSceneCard } from "@/components/marketing/HeroScenes";
 import { BookDemo } from "@/components/marketing/BookDemo";
@@ -126,7 +131,7 @@ export default function V4Page() {
           </Link>
           <div className="flex items-center gap-6 text-sm">
             <a href="#how" className="text-white/75 hover:text-white font-medium transition-colors hidden md:block">How it works</a>
-            <a href="#results" className="text-white/75 hover:text-white font-medium transition-colors hidden md:block">Results</a>
+            {SHOW_SOCIAL_PROOF && <a href="#results" className="text-white/75 hover:text-white font-medium transition-colors hidden md:block">Results</a>}
             <a href="#product" className="text-white/75 hover:text-white font-medium transition-colors hidden lg:block">Product</a>
             <a href="#pricing" className="text-white/75 hover:text-white font-medium transition-colors hidden sm:block">Pricing</a>
             <BookDemo className="font-medium text-white/75 hover:text-white transition-colors hidden md:block">Book a demo</BookDemo>
@@ -250,6 +255,8 @@ export default function V4Page() {
       </section>
 
       {/* ── Case studies — photo + stat + quote + tag ───────────────────── */}
+      {/* DISABLED: placeholder testimonials (invented names/quotes) — re-enable with real consented proof. */}
+      {SHOW_SOCIAL_PROOF && (
       <section id="results" className="px-6 py-20 sm:py-24 bg-white">
         <ScrollReveal className="max-w-5xl mx-auto">
           <div className="max-w-2xl mb-12">
@@ -275,6 +282,7 @@ export default function V4Page() {
           </div>
         </ScrollReveal>
       </section>
+      )}
 
       {/* ── Timeline ────────────────────────────────────────────────────── */}
       <section className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
@@ -426,8 +434,8 @@ export default function V4Page() {
         </ScrollReveal>
       </section>
 
-      {/* ── Logo strip (placeholder) ────────────────────────────────────── */}
-      <LogoMarquee />
+      {/* ── Logo strip — DISABLED: placeholder/invented logos. Re-enable with real consented logos. ── */}
+      {SHOW_SOCIAL_PROOF && <LogoMarquee />}
 
       {/* ── Built for your trade — funnel to /industries ────────────────── */}
       <section id="trades" className="px-6 py-20 sm:py-24 bg-white">
