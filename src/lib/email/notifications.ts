@@ -94,7 +94,7 @@ export async function sendSignupNotification({ businessName, ownerName, ownerEma
   try {
     await emailClient.send({
       to: NOTIFY_EMAIL,
-      subject: `New signup: ${businessName}`,
+      subject: `Callverted — New signup: ${businessName}`,
       html,
     });
   } catch (error) {
@@ -148,7 +148,7 @@ export async function sendDemoRequestNotification({ name, email, phone }: DemoRe
   try {
     await emailClient.send({
       to: NOTIFY_EMAIL,
-      subject: `Demo request: ${name}`,
+      subject: `Callverted — Demo request: ${name}`,
       html,
     });
   } catch (error) {
