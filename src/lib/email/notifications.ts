@@ -104,6 +104,58 @@ export async function sendSignupNotification({ businessName, ownerName, ownerEma
   }
 }
 
+// ─── Internal: demo / "have us reach out" request from the landing page ───────
+
+interface DemoRequestNotificationParams {
+  name: string;
+  email: string;
+  phone?: string | null;
+}
+
+export async function sendDemoRequestNotification({ name, email, phone }: DemoRequestNotificationParams) {
+  // Inbound demo request from the marketing site — the landing promises "a real
+  // person gets back to you, usually same day", so this alert is what makes that
+  // true. Make silence observable rather than dropping a warm prospect.
+  if (!NOTIFY_EMAIL) {
+    logger.warn("Demo request alert skipped: NOTIFY_EMAIL not set", { email });
+    return;
+  }
+
+  const now = new Date().toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" });
+
+  const html = emailWrapper(`
+    <tr><td style="padding:24px 24px 0 24px;">
+      <p style="margin:0 0 4px 0;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Demo request</p>
+      <h1 style="margin:0;font-size:22px;font-weight:700;color:#111827;">${name}</h1>
+    </td></tr>
+    <tr><td style="padding:20px 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+        ${[
+          ["Name", name],
+          ["Email", email],
+          ["Phone", phone || "—"],
+          ["Time", now],
+        ].map(([label, value], i) => `
+          <tr style="background:${i % 2 === 0 ? "#f9fafb" : "#ffffff"}">
+            <td style="padding:10px 14px;font-size:12px;font-weight:600;color:#6b7280;white-space:nowrap;">${label}</td>
+            <td style="padding:10px 14px;font-size:13px;color:#111827;">${value}</td>
+          </tr>`).join("")}
+      </table>
+      <p style="margin:16px 0 0 0;font-size:13px;color:#6b7280;">Reach out same day — they left their details from the landing page.</p>
+    </td></tr>
+  `);
+
+  try {
+    await emailClient.send({
+      to: NOTIFY_EMAIL,
+      subject: `Demo request: ${name}`,
+      html,
+    });
+  } catch (error) {
+    logger.error("Demo request alert failed to send", { email, error: String(error) });
+  }
+}
+
 // ─── Callverted: welcome email ───────────────────────────────────────────────
 
 interface WelcomeEmailParams {

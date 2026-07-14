@@ -9,8 +9,10 @@ import { useEffect, useState } from "react";
  * CTA, the corner chat bubble) without shared state.
  *
  * The modal offers two paths: book a call (Calendly) or leave an email/phone and
- * we reach out. The form is client-only here (shows a success state) — wire the
- * submit to /api/capture before launch to actually collect the lead.
+ * we reach out. The "reach out" form POSTs to /api/capture with source
+ * "demo_request" — that saves an email_captures row and fires a founder alert to
+ * NOTIFY_EMAIL so a real person actually follows up (it does NOT create a leads
+ * row; those are the operator's own callers, not marketing prospects).
  */
 
 const DEMO_URL = process.env.NEXT_PUBLIC_DEMO_BOOKING_URL ?? "https://calendly.com/nileh/demo";
@@ -28,10 +30,46 @@ export function BookDemo({
 }) {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  function close() {
+    setOpen(false);
+    // Reset so a reopened modal starts fresh (but keep it simple — leave the
+    // success state untouched if they reopen right after sending).
+    setError("");
+    setSubmitting(false);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          source: "demo_request",
+          context: { name, phone: phone || undefined },
+        }),
+      });
+      if (!res.ok) throw new Error("failed");
+      setSent(true);
+    } catch {
+      setError("Something went wrong. Please try again, or book a time above.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
@@ -49,11 +87,11 @@ export function BookDemo({
           aria-modal="true"
           aria-label={title}
         >
-          <div className="absolute inset-0 bg-[#0a0f1c]/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <div className="absolute inset-0 bg-[#0a0f1c]/60 backdrop-blur-sm" onClick={close} />
           <div className="relative w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl">
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={close}
               className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-[#98a2b3] hover:bg-[#f2f4f7] hover:text-[#152033] transition-colors"
               aria-label="Close"
             >
@@ -81,17 +119,15 @@ export function BookDemo({
                   <span className="h-px flex-1 bg-[#eef1f4]" />
                 </div>
 
-                <form
-                  onSubmit={(e) => { e.preventDefault(); setSent(true); }}
-                  className="space-y-2.5"
-                >
-                  <input required type="text" placeholder="Your name" className="w-full rounded-xl border border-[#d0d7e2] px-3.5 py-2.5 text-sm text-[#152033] placeholder:text-[#98a2b3] focus:border-landing-primary focus:outline-none" />
-                  <input required type="email" placeholder="Work email" className="w-full rounded-xl border border-[#d0d7e2] px-3.5 py-2.5 text-sm text-[#152033] placeholder:text-[#98a2b3] focus:border-landing-primary focus:outline-none" />
-                  <input type="tel" placeholder="Phone (optional)" className="w-full rounded-xl border border-[#d0d7e2] px-3.5 py-2.5 text-sm text-[#152033] placeholder:text-[#98a2b3] focus:border-landing-primary focus:outline-none" />
-                  <button type="submit" className="w-full rounded-xl bg-[#152033] text-white py-3 font-semibold text-sm hover:bg-[#0a0f1c] transition-colors">
-                    Have us reach out
+                <form onSubmit={handleSubmit} className="space-y-2.5">
+                  <input required type="text" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border border-[#d0d7e2] px-3.5 py-2.5 text-sm text-[#152033] placeholder:text-[#98a2b3] focus:border-landing-primary focus:outline-none" />
+                  <input required type="email" placeholder="Work email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-[#d0d7e2] px-3.5 py-2.5 text-sm text-[#152033] placeholder:text-[#98a2b3] focus:border-landing-primary focus:outline-none" />
+                  <input type="tel" placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-xl border border-[#d0d7e2] px-3.5 py-2.5 text-sm text-[#152033] placeholder:text-[#98a2b3] focus:border-landing-primary focus:outline-none" />
+                  <button type="submit" disabled={submitting} className="w-full rounded-xl bg-[#152033] text-white py-3 font-semibold text-sm hover:bg-[#0a0f1c] transition-colors disabled:opacity-60">
+                    {submitting ? "Sending…" : "Have us reach out"}
                   </button>
                 </form>
+                {error && <p className="mt-2 text-[12px] text-[#d92d20] text-center">{error}</p>}
                 <p className="mt-3 text-[11px] text-[#98a2b3] text-center">No spam. We only use this to help you get set up.</p>
               </>
             ) : (

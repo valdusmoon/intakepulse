@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 
 import { createEmailCapture } from "@/lib/db/queries/emailCaptures";
-import { sendMissedCallBreakdownEmail } from "@/lib/email/notifications";
+import { sendMissedCallBreakdownEmail, sendDemoRequestNotification } from "@/lib/email/notifications";
 import { logger } from "@/lib/logger";
 
 // Basic email shape check — the real gate is that a confirmation email has to
 // actually land, so we keep validation lightweight and let Resend be the judge.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const VALID_SOURCES = ["roi_calculator", "lead_magnet"] as const;
+const VALID_SOURCES = ["roi_calculator", "lead_magnet", "demo_request"] as const;
 type Source = (typeof VALID_SOURCES)[number];
 
 // Same limiter shape as the public intake route: Upstash sliding window when
@@ -80,18 +80,32 @@ export async function POST(req: NextRequest) {
     context: cleanContext,
   });
 
-  // Confirmation email is fire-and-forget — a send failure must never fail the
-  // capture. We only echo ROI numbers when they're present and numeric.
-  const toNum = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
-  void sendMissedCallBreakdownEmail({
-    toEmail: normalizedEmail,
-    missedCalls: toNum(cleanContext?.missedCalls),
-    jobValue: toNum(cleanContext?.jobValue),
-    closeRate: toNum(cleanContext?.closeRate),
-    atRisk: toNum(cleanContext?.atRisk),
-  }).catch((err) => {
-    logger.error("capture confirmation email failed", { email: normalizedEmail, error: String(err) });
-  });
+  // Follow-up email is fire-and-forget — a send failure must never fail the
+  // capture (the row is already saved).
+  const toStr = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+  if (captureSource === "demo_request") {
+    // A prospect left their details on the landing page and was told "a real
+    // person will get back to you" — alert the founder so that promise holds.
+    void sendDemoRequestNotification({
+      name: toStr(cleanContext?.name) ?? normalizedEmail,
+      email: normalizedEmail,
+      phone: toStr(cleanContext?.phone) ?? null,
+    }).catch((err) => {
+      logger.error("demo request alert failed", { email: normalizedEmail, error: String(err) });
+    });
+  } else {
+    // ROI calculator / lead magnet — echo the numbers back. Only when numeric.
+    const toNum = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+    void sendMissedCallBreakdownEmail({
+      toEmail: normalizedEmail,
+      missedCalls: toNum(cleanContext?.missedCalls),
+      jobValue: toNum(cleanContext?.jobValue),
+      closeRate: toNum(cleanContext?.closeRate),
+      atRisk: toNum(cleanContext?.atRisk),
+    }).catch((err) => {
+      logger.error("capture confirmation email failed", { email: normalizedEmail, error: String(err) });
+    });
+  }
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }
