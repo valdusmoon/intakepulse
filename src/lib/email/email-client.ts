@@ -1,6 +1,6 @@
 import { getSuppressedSet, isEmailSuppressed } from "@/lib/db/queries/emailSuppressions";
 import { unsubscribeHeaders, withMarketingFooter } from "@/lib/email/unsubscribe";
-import { resend, FROM_EMAIL } from "@/lib/resend";
+import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "@/lib/resend";
 
 const EMAIL_ENABLED = process.env.EMAIL_ENABLED === "true";
 
@@ -30,6 +30,7 @@ export const emailClient = {
 
     const result = await resend.emails.send({
       from: FROM_EMAIL,
+      replyTo: REPLY_TO_EMAIL,
       to: params.to,
       subject: params.subject,
       html: params.html,
@@ -55,7 +56,7 @@ export const emailClient = {
     for (let i = 0; i < emails.length; i += BATCH_SIZE) {
       const chunk = emails.slice(i, i + BATCH_SIZE);
       await resend.batch.send(
-        chunk.map((e) => ({ from: FROM_EMAIL, to: e.to, subject: e.subject, html: e.html }))
+        chunk.map((e) => ({ from: FROM_EMAIL, replyTo: REPLY_TO_EMAIL, to: e.to, subject: e.subject, html: e.html }))
       );
     }
   },
@@ -82,6 +83,7 @@ export const emailClient = {
 
     const result = await resend.emails.send({
       from: FROM_EMAIL,
+      replyTo: REPLY_TO_EMAIL,
       to: params.to,
       subject: params.subject,
       html,
@@ -118,6 +120,7 @@ export const emailClient = {
       await resend.batch.send(
         chunk.map((e) => ({
           from: FROM_EMAIL,
+          replyTo: REPLY_TO_EMAIL,
           to: e.to,
           subject: e.subject,
           html: withMarketingFooter(e.html, e.to),
