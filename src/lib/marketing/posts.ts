@@ -205,6 +205,43 @@ export const POSTS: Post[] = [
       { type: "p", text: "You can't answer the phone yourself at 2 a.m., and you shouldn't have to. The goal is simpler: make sure the water calls your team can't take are still answered, qualified, and handed back as a ranked lead, while the customer is still bailing water and still yours to win." },
     ],
   },
+  {
+    slug: "water-damage-restoration-leads",
+    title: "Water damage restoration: the job is won in the first hour",
+    metaTitle: "Water Damage Restoration Leads: Won in the First Hour | Callverted",
+    metaDescription:
+      "Restoration jobs are the highest-ticket emergency work in the trades, and they're awarded on the first call. Here's why a missed restoration call is rarely recoverable.",
+    date: "2026-07-15",
+    readMinutes: 4,
+    excerpt:
+      "Restoration is the highest-ticket emergency work in the trades, and the job is usually awarded before you've heard the voicemail. Here's why that call is rarely recoverable.",
+    image: "/blog/water-damage-restoration-leads.jpg",
+    imageAlt: "A glossy 3D water droplet and air-mover drying fan beside an amber clock and a phone showing a green checkmark.",
+    imagePrompt: "A glossy 3D scene: a large tactile teal water droplet floating beside a small rounded blue air-mover drying fan, a bright amber clock face with its hand sweeping, and a periwinkle smartphone with a glowing ring-notification, conveying a race against the clock to dry water damage, rendered cheerfully and premium.",
+    body: [
+      { type: "p", text: "Restoration is unusual in the trades: a single water loss can be worth more than a month of ordinary service work, the customer is at their most panicked, and the decision about who gets the job is often made in the first ten minutes. Not after three quotes. Not after a review comparison. On the first call that gets answered." },
+      { type: "h2", text: "The drying clock starts before you do" },
+      { type: "p", text: "Standard industry guidance, the EPA's included, is to dry and clean water-damaged materials within roughly 24 to 48 hours, because mold can begin growing in that window. Homeowners increasingly know this, and insurers certainly do. The clock doesn't start when you return the call in the morning. It started when the supply line let go." },
+      { type: "p", text: "That's why a restoration voicemail is worth so much less than a restoration call. Every hour of delay makes the loss worse, the scope harder to defend, and the homeowner more certain that they should be calling somebody else." },
+      { type: "h2", text: "Your leads arrive from three directions at once" },
+      { type: "p", text: "Unlike most trades, restoration work doesn't come from one predictable channel. It arrives from panicked homeowners who found you on a search, from plumbers and HVAC techs handing off a job they've just stopped the water on, and from adjusters and property managers working a claim. What those three have in common is that none of them wait. The plumber referring you has your competitor's number in the same contact list." },
+      { type: "ul", items: [
+        "Losses cluster at the worst hours: overnight freezes, weekend storms, holiday vacancies.",
+        "The biggest jobs, whole-floor losses and category-three water, are the ones least likely to arrive at 10 a.m. on a Tuesday.",
+        "A referral partner who gets voicemail twice stops referring. That's not one lost job, it's a lost channel.",
+      ]},
+      { type: "h2", text: "What good call handling looks like for restoration" },
+      { type: "p", text: "The bar is higher than just picking up. A restoration call has to be sized while it's happening, because the answers change whether you roll a truck tonight and what you put on it." },
+      { type: "ul", items: [
+        "Answers live, 24/7, since that's when losses actually happen.",
+        "Captures what scopes the job: water source, how long it's been standing, how many rooms and floors are affected, whether it's clean water or sewage, and whether the source is stopped.",
+        "Asks whether it's an insurance claim and who the carrier is, so the paperwork starts on the right foot.",
+        "Separates a genuine emergency from a request for an estimate next week, and flags it accordingly.",
+        "Can warm-transfer a real loss to your on-call lead instead of holding it until morning.",
+      ]},
+      { type: "p", text: "None of that requires you to personally answer the phone at 3 a.m. It requires that the calls your team can't take are still answered, still qualified, and handed back as a ranked lead with the scope already captured, while the water is still spreading and the job is still yours to win." },
+    ],
+  },
 ];
 
 export function getPost(slug: string): Post | undefined {
