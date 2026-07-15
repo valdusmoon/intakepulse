@@ -112,13 +112,6 @@ const TRADES = [
   { name: "Your trade", href: "/industries", img: "/industries/your-trade.jpg" },
 ];
 
-const DRIFT_CHIPS = [
-  { top: "Emergency water job", sub: "$6,400 · call in 10 min", pos: "left-[4%] top-[12%]", delay: "0s" },
-  { top: "Furnace replacement", sub: "Hot · $9,200 est.", pos: "right-[6%] top-[26%]", delay: "1.1s" },
-  { top: "Lead recovered", sub: "After-hours · qualified", pos: "left-[12%] bottom-[16%]", delay: "2.2s" },
-  { top: "Ranked #1 to call back", sub: "Insurance · 3 rooms", pos: "right-[10%] bottom-[10%]", delay: "0.6s" },
-];
-
 export default function V4Page() {
   return (
     <div className="min-h-screen bg-white text-[#152033]">
@@ -549,31 +542,20 @@ export default function V4Page() {
         </ScrollReveal>
       </section>
 
-      {/* ── Closing CTA — brand-blue gradient so it separates from the footer ── */}
-      <section className="relative overflow-hidden px-6 py-28 text-white" style={{ background: "linear-gradient(135deg, #2a5ae0 0%, #1c3fa8 55%, #16307e 100%)" }}>
-        <div className="pointer-events-none absolute inset-0 hidden sm:block" aria-hidden>
-          {DRIFT_CHIPS.map((c) => (
-            <div key={c.top} className={`absolute ${c.pos} cv-drift`} style={{ animationDelay: c.delay }}>
-              <div className="flex items-center gap-2.5 rounded-2xl bg-white/[0.12] backdrop-blur border border-white/15 px-3.5 py-2.5 shadow-lg">
-                <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#4ade80]/25 text-white">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5" /></svg>
-                </span>
-                <div className="text-left">
-                  <p className="text-[12px] font-bold leading-tight">{c.top}</p>
-                  <p className="text-[11px] text-white/70 leading-tight">{c.sub}</p>
-                </div>
+      {/* ── Closing CTA — brand-blue gradient card, constrained like the other blocks (not full-bleed) ── */}
+      <section className="px-6 py-20 sm:py-24 bg-white">
+        <ScrollReveal className="max-w-4xl mx-auto">
+          <div className="relative overflow-hidden rounded-3xl px-6 py-16 sm:py-20 text-white text-center shadow-[0_30px_60px_-24px_rgba(28,63,168,0.5)]" style={{ background: "linear-gradient(135deg, #2a5ae0 0%, #1c3fa8 55%, #16307e 100%)" }}>
+            <div className="relative max-w-xl mx-auto">
+              <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-4 leading-[1.05]">The next missed call doesn&apos;t have to be a lost job.</h2>
+              <p className="text-white/70 mb-8 text-[15px]">Give your team the first ring. Callverted catches, qualifies, and ranks the rest.</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/sign-up" className="font-semibold bg-white text-landing-primary px-8 py-3.5 rounded-xl hover:bg-[#f0f4ff] transition-colors shadow-lg">Start recovering leads</Link>
+                <BookDemo className="font-medium text-white border border-white/30 px-8 py-3.5 rounded-xl hover:bg-white/10 transition-colors">Book a 15-min demo</BookDemo>
               </div>
+              <p className="mt-5 text-[12.5px] text-white/60">14-day free trial · no contracts · a real person helps you launch</p>
             </div>
-          ))}
-        </div>
-        <ScrollReveal className="relative max-w-xl mx-auto text-center">
-          <h2 className="font-cv-heading text-4xl sm:text-5xl font-bold tracking-[-0.035em] mb-4 leading-[1.02]">The next missed call doesn&apos;t have to be a lost job.</h2>
-          <p className="text-white/70 mb-8 text-[15px]">Give your team the first ring. Callverted catches, qualifies, and ranks the rest.</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/sign-up" className="font-semibold bg-white text-landing-primary px-8 py-3.5 rounded-xl hover:bg-[#f0f4ff] transition-colors shadow-lg">Start recovering leads</Link>
-            <BookDemo className="font-medium text-white border border-white/30 px-8 py-3.5 rounded-xl hover:bg-white/10 transition-colors">Book a 15-min demo</BookDemo>
           </div>
-          <p className="mt-5 text-[12.5px] text-white/60">14-day free trial · no contracts · a real person helps you launch</p>
         </ScrollReveal>
       </section>
       <MarketingFooter />

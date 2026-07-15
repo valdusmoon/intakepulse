@@ -284,16 +284,6 @@ body {
   50% { box-shadow: 0 0 0 6px rgba(36, 84, 216, 0); }
 }
 
-/* Gently drifting notification chips (closing CTA). Pure CSS, no JS. */
-.cv-drift {
-  animation: cv-drift 6.5s ease-in-out infinite;
-}
-@keyframes cv-drift {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .cv-pulse-cta,
-  .cv-drift { animation: none; }
+  .cv-pulse-cta { animation: none; }
 }
