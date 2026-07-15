@@ -13,6 +13,7 @@ const SHOW_SOCIAL_PROOF = false;
 import { ExtractionDemo } from "@/components/marketing/V4Interactive";
 import { HeroScenesProvider, HeroBackdrop, HeroSceneCard } from "@/components/marketing/HeroScenes";
 import { BookDemo } from "@/components/marketing/BookDemo";
+import { LandingNavShell } from "@/components/marketing/LandingNavShell";
 import { MissedCallCalculator } from "@/components/marketing/MissedCallCalculator";
 import { FAQS } from "@/lib/marketing/faqs";
 
@@ -126,25 +127,20 @@ export default function V4Page() {
   return (
     <div className="min-h-screen bg-white text-[#152033]">
       {/* ── Nav ─────────────────────────────────────────────────────────── */}
-      <nav className="absolute top-0 inset-x-0 z-40 px-6 py-4">
-        {/* Scrim — the hero photo behind the nav changes brightness as the scene
-            carousel rotates, so the links need a guaranteed backdrop to stay legible. */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/45 via-black/20 to-transparent" aria-hidden />
-        <div className="relative max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <CallvertedLogo className="h-8 w-8" gradientId="v4logo" />
-            <span className="font-cv-heading text-lg font-bold tracking-tight text-white">Callverted</span>
-          </Link>
-          <div className="flex items-center gap-6 text-sm">
-            <a href="#how" className="text-white/90 hover:text-white font-medium transition-colors hidden md:block">How it works</a>
-            {SHOW_SOCIAL_PROOF && <a href="#results" className="text-white/90 hover:text-white font-medium transition-colors hidden md:block">Results</a>}
-            <a href="#product" className="text-white/90 hover:text-white font-medium transition-colors hidden lg:block">Product</a>
-            <a href="#pricing" className="text-white/90 hover:text-white font-medium transition-colors hidden sm:block">Pricing</a>
-            <BookDemo className="font-medium text-white/90 hover:text-white transition-colors hidden md:block">Book a demo</BookDemo>
-            <AuthAwareNavCta />
-          </div>
+      <LandingNavShell>
+        <Link href="/" className="flex items-center gap-2.5">
+          <CallvertedLogo className="h-8 w-8" gradientId="v4logo" />
+          <span className="font-cv-heading text-lg font-bold tracking-tight text-white">Callverted</span>
+        </Link>
+        <div className="flex items-center gap-6 text-sm">
+          <a href="#how" className="text-white/90 hover:text-white font-medium transition-colors hidden md:block">How it works</a>
+          {SHOW_SOCIAL_PROOF && <a href="#results" className="text-white/90 hover:text-white font-medium transition-colors hidden md:block">Results</a>}
+          <a href="#product" className="text-white/90 hover:text-white font-medium transition-colors hidden lg:block">Product</a>
+          <a href="#pricing" className="text-white/90 hover:text-white font-medium transition-colors hidden sm:block">Pricing</a>
+          <BookDemo className="font-medium text-white/90 hover:text-white transition-colors hidden md:block">Book a demo</BookDemo>
+          <AuthAwareNavCta />
         </div>
-      </nav>
+      </LandingNavShell>
 
       {/* ── Hero — animated scene carousel (call → intake → ranked lead) ──── */}
       <HeroScenesProvider tone="medium">
@@ -223,7 +219,7 @@ export default function V4Page() {
       </section>
 
       {/* ── How we fix it — mechanism (benefits + extraction demo) ──────── */}
-      <section id="how" className="px-6 py-20 sm:py-28 bg-[#f9fafb] border-y border-[#e3e7ed]">
+      <section id="how" className="scroll-mt-20 px-6 py-20 sm:py-28 bg-[#f9fafb] border-y border-[#e3e7ed]">
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-12 items-start mb-14">
             <div>
@@ -263,7 +259,7 @@ export default function V4Page() {
       {/* ── Case studies — photo + stat + quote + tag ───────────────────── */}
       {/* DISABLED: placeholder testimonials (invented names/quotes) — re-enable with real consented proof. */}
       {SHOW_SOCIAL_PROOF && (
-      <section id="results" className="px-6 py-20 sm:py-24 bg-white">
+      <section id="results" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-white">
         <ScrollReveal className="max-w-5xl mx-auto">
           <div className="max-w-2xl mb-12">
             <Eyebrow className="mb-3">Results</Eyebrow>
@@ -291,7 +287,7 @@ export default function V4Page() {
       )}
 
       {/* ── The product — real dashboard screenshot + supporting cards ──── */}
-      <section id="product" className="px-6 py-20 sm:py-28 bg-white">
+      <section id="product" className="scroll-mt-20 px-6 py-20 sm:py-28 bg-white">
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="max-w-2xl mb-10">
             <Eyebrow className="mb-3">The product</Eyebrow>
@@ -424,7 +420,7 @@ export default function V4Page() {
       {SHOW_SOCIAL_PROOF && <LogoMarquee />}
 
       {/* ── Built for your trade — funnel to /industries ────────────────── */}
-      <section id="trades" className="px-6 py-20 sm:py-24 bg-white">
+      <section id="trades" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-white">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal className="text-center max-w-2xl mx-auto mb-12">
             <Eyebrow className="mb-3">Built for your trade</Eyebrow>
@@ -496,7 +492,7 @@ export default function V4Page() {
       </section>
 
       {/* ── Pricing ─────────────────────────────────────────────────────── */}
-      <section id="pricing" className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
+      <section id="pricing" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
         <ScrollReveal className="max-w-md mx-auto text-center">
           <Eyebrow className="mb-3">Pricing</Eyebrow>
           <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-6">One flat rate. The whole service.</h2>

@@ -24,7 +24,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
 
 export function MarketingNav() {
   return (
-    <nav className="border-b border-white/10 bg-landing-ink px-6 py-4 text-white">
+    <nav className="sticky top-0 z-40 border-b border-white/10 bg-landing-ink px-6 py-4 text-white">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
           <CallvertedLogo className="h-8 w-8" gradientId="cvLogoSubNav" />
