@@ -112,6 +112,15 @@ const TRADES = [
   { name: "Your trade", href: "/industries", img: "/industries/your-trade.jpg" },
 ];
 
+// Closing-CTA lead-alert chips — styled like the operator's push notifications
+// (not testimonials, so no faces). `cls` positions each within the right column;
+// the faded, partly-clipped ones sit behind the prominent middle one for depth.
+const CTA_ALERTS = [
+  { title: "New lead · $9,200", sub: "Furnace replacement · after-hours", cls: "top-2 right-[-16%] opacity-60", delay: "1.1s" },
+  { title: "New lead · $6,400", sub: "Emergency water · call back in 10 min", cls: "top-[40%] right-[4%]", delay: "0s" },
+  { title: "Ranked #1 to call back", sub: "Insurance claim · 3 rooms", cls: "bottom-3 right-[-10%] opacity-80", delay: "0.6s" },
+];
+
 export default function V4Page() {
   return (
     <div className="min-h-screen bg-white text-[#152033]">
@@ -542,18 +551,35 @@ export default function V4Page() {
         </ScrollReveal>
       </section>
 
-      {/* ── Closing CTA — brand-blue gradient card, constrained like the other blocks (not full-bleed) ── */}
+      {/* ── Closing CTA — brand-blue gradient card, copy left + drifting lead-alert chips right ── */}
       <section className="px-6 py-20 sm:py-24 bg-white">
-        <ScrollReveal className="max-w-4xl mx-auto">
-          <div className="relative overflow-hidden rounded-3xl px-6 py-16 sm:py-20 text-white text-center shadow-[0_30px_60px_-24px_rgba(28,63,168,0.5)]" style={{ background: "linear-gradient(135deg, #2a5ae0 0%, #1c3fa8 55%, #16307e 100%)" }}>
-            <div className="relative max-w-xl mx-auto">
-              <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-4 leading-[1.05]">The next missed call doesn&apos;t have to be a lost job.</h2>
-              <p className="text-white/70 mb-8 text-[15px]">Give your team the first ring. Callverted catches, qualifies, and ranks the rest.</p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link href="/sign-up" className="font-semibold bg-white text-landing-primary px-8 py-3.5 rounded-xl hover:bg-[#f0f4ff] transition-colors shadow-lg">Start recovering leads</Link>
-                <BookDemo className="font-medium text-white border border-white/30 px-8 py-3.5 rounded-xl hover:bg-white/10 transition-colors">Book a 15-min demo</BookDemo>
+        <ScrollReveal className="max-w-6xl mx-auto">
+          <div className="relative overflow-hidden rounded-3xl px-8 sm:px-12 py-14 sm:py-16 text-white shadow-[0_30px_60px_-24px_rgba(28,63,168,0.5)]" style={{ background: "linear-gradient(135deg, #2a5ae0 0%, #1c3fa8 55%, #16307e 100%)" }}>
+            <div className="grid items-center gap-10 lg:grid-cols-2">
+              <div className="relative z-10 max-w-md">
+                <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-4 leading-[1.05]">The next missed call doesn&apos;t have to be a lost job.</h2>
+                <p className="text-white/70 mb-8 text-[15px]">Give your team the first ring. Callverted catches, qualifies, and ranks the rest.</p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link href="/sign-up" className="text-center font-semibold bg-white text-landing-primary px-8 py-3.5 rounded-xl hover:bg-[#f0f4ff] transition-colors shadow-lg">Start recovering leads</Link>
+                  <BookDemo className="text-center font-medium text-white border border-white/30 px-8 py-3.5 rounded-xl hover:bg-white/10 transition-colors">Book a 15-min demo</BookDemo>
+                </div>
+                <p className="mt-5 text-[12.5px] text-white/60">14-day free trial · no contracts · a real person helps you launch</p>
               </div>
-              <p className="mt-5 text-[12.5px] text-white/60">14-day free trial · no contracts · a real person helps you launch</p>
+              <div className="relative hidden lg:block h-[300px]" aria-hidden>
+                {CTA_ALERTS.map((a) => (
+                  <div key={a.title} className={`absolute cv-float ${a.cls}`} style={{ animationDelay: a.delay }}>
+                    <div className="flex items-center gap-3 rounded-2xl bg-white/[0.14] backdrop-blur border border-white/20 px-4 py-3 shadow-lg w-[250px]">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/20">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" /></svg>
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-bold leading-tight truncate">{a.title}</p>
+                        <p className="text-[11px] text-white/70 leading-tight truncate">{a.sub}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </ScrollReveal>
