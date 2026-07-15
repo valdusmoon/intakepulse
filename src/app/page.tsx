@@ -116,9 +116,9 @@ const TRADES = [
 // (not testimonials, so no faces). `cls` positions each within the right column;
 // the faded, partly-clipped ones sit behind the prominent middle one for depth.
 const CTA_ALERTS = [
-  { title: "New lead · $9,200", sub: "Furnace replacement · after-hours", cls: "top-2 right-[-16%] opacity-60", delay: "1.1s" },
-  { title: "New lead · $6,400", sub: "Emergency water · call back in 10 min", cls: "top-[40%] right-[4%]", delay: "0s" },
-  { title: "Ranked #1 to call back", sub: "Insurance claim · 3 rooms", cls: "bottom-3 right-[-10%] opacity-80", delay: "0.6s" },
+  { title: "New lead · $9,200", sub: "Furnace replacement · after-hours", cls: "top-2 right-[-10%] opacity-55", delay: "1.1s" },
+  { title: "New lead · $6,400", sub: "Emergency water · call back in 10 min", cls: "top-[40%] left-0", delay: "0s" },
+  { title: "Ranked #1 to call back", sub: "Insurance claim · 3 rooms", cls: "bottom-3 left-[26%] opacity-80", delay: "0.6s" },
 ];
 
 export default function V4Page() {
@@ -555,7 +555,7 @@ export default function V4Page() {
       <section className="px-6 py-20 sm:py-24 bg-white">
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="relative overflow-hidden rounded-3xl px-8 sm:px-12 py-14 sm:py-16 text-white shadow-[0_30px_60px_-24px_rgba(28,63,168,0.5)]" style={{ background: "linear-gradient(135deg, #2a5ae0 0%, #1c3fa8 55%, #16307e 100%)" }}>
-            <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,430px)_1fr]">
               <div className="relative z-10 max-w-md">
                 <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-4 leading-[1.05]">The next missed call doesn&apos;t have to be a lost job.</h2>
                 <p className="text-white/70 mb-8 text-[15px]">Give your team the first ring. Callverted catches, qualifies, and ranks the rest.</p>
