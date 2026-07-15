@@ -44,10 +44,10 @@ export const FAQS: Faq[] = [
   },
   {
     q: "How do I find out about a new lead?",
-    a: "Instantly. However the lead reaches you — a phone call, your intake link, or the website widget — Callverted sends a push notification to your phone and an email with the scored lead, and it's waiting in your dashboard with the full transcript.",
+    a: "Instantly. Whether it comes from a phone call, your intake link, or the website widget, Callverted sends a push notification to your phone and an email with the scored lead. It's waiting in your dashboard with the full transcript.",
   },
   {
     q: "Do you record my calls?",
-    a: "Every call Callverted handles is saved as a written transcript in your dashboard, so you can read exactly what the caller said and how the job was qualified — no audio recordings to store or manage.",
+    a: "Every call Callverted handles is saved as a written transcript in your dashboard, so you can read exactly what the caller said and how the job was qualified. No audio recordings to store or manage.",
   },
 ];

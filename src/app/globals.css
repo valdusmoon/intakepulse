@@ -284,16 +284,6 @@ body {
   50% { box-shadow: 0 0 0 6px rgba(36, 84, 216, 0); }
 }
 
-/* Gently floating lead-alert chips (closing CTA). Pure CSS, no JS. */
-.cv-float {
-  animation: cv-float 6.5s ease-in-out infinite;
-}
-@keyframes cv-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .cv-pulse-cta,
-  .cv-float { animation: none; }
+  .cv-pulse-cta { animation: none; }
 }

@@ -44,17 +44,17 @@ const FACTS = [
 const PAINS = [
   {
     img: "/pain/busy.jpg", title: "Your crew can't stop mid-job.",
-    body: "Hands full on a job means the phone rings out. That call was a booked job walking away.",
+    body: "Hands full on a job means the phone rings out. That's a booked job walking away.",
     chip: { kind: "call" as const, top: "Incoming call", sub: "Missed — on a job" },
   },
   {
     img: "/pain/afterhours.jpg", title: "After hours, it's just voicemail.",
-    body: "Nights and weekends are exactly when the big emergencies call, and no one's there to pick up.",
+    body: "Nights and weekends are when the big emergencies call, and no one's there.",
     chip: { kind: "missed" as const, top: "Missed call", sub: "11:47 PM · no voicemail" },
   },
   {
     img: "/pain/nextcompany.jpg", title: "The caller won't wait.",
-    body: "Most never leave a message. They just dial down the list until someone finally answers.",
+    body: "Most never leave a message. They dial down the list until someone answers.",
     chip: { kind: "next" as const, top: "Calling the next company…", sub: "Your lead, gone" },
   },
 ];
@@ -73,12 +73,6 @@ const CASES = [
   { img: "/casestudy/blueline.jpg", tag: "Plumbing", stat: "Weekend voicemails became a ranked list", business: "BlueLine Plumbing", quote: "Monday morning I just call the money jobs back first. Setup took twenty minutes.", who: "Carlos M.", role: "Owner" },
 ];
 
-const TIMELINE = [
-  { when: "Day 1", title: "Publish your Callverted number", body: "It rings your team first and catches the misses. About 30 minutes, once." },
-  { when: "Day 2", title: "It starts catching calls", body: "Every miss becomes a live conversation, qualified and scored." },
-  { when: "Ongoing", title: "You just call back", body: "Ranked leads, highest value first. It runs itself from here." },
-];
-
 const SMALL_FEATURES = [
   { kind: "context" as const, t: "Every call has context", d: "Full transcript, captured fields, and an AI summary." },
   { kind: "pricing" as const, t: "Approved pricing only", d: "Any quote comes from rules you set, never invented." },
@@ -88,10 +82,8 @@ const SMALL_FEATURES = [
 const COMPARE_COLS = ["Voicemail", "Missed-call text-back", "AI receptionist", "Callverted"];
 const COMPARE_ROWS: { dim: string; vals: (boolean | string)[] }[] = [
   { dim: "Answers the call live", vals: [false, false, true, true] },
-  { dim: "Captures the details", vals: ["If they leave one", "If they reply", true, true] },
-  { dim: "Trade-specific intake", vals: [false, false, "Generic", "Tuned to you"] },
+  { dim: "Trade-specific intake", vals: [false, "Limited", "Generic", "Tuned to you"] },
   { dim: "Scores urgency + value", vals: [false, false, false, true] },
-  { dim: "Tells you who to call first", vals: [false, false, false, true] },
   { dim: "Optimizes for", vals: ["Nothing", "A text thread", "Call handling", "Recovered revenue"] },
 ];
 
@@ -112,13 +104,22 @@ const TRADES = [
   { name: "Your trade", href: "/industries", img: "/industries/your-trade.jpg" },
 ];
 
-// Closing-CTA lead-alert chips — styled like the operator's push notifications
-// (not testimonials, so no faces). `cls` positions each within the right column;
-// the faded, partly-clipped ones sit behind the prominent middle one for depth.
-const CTA_ALERTS = [
-  { title: "New lead · $9,200", sub: "Furnace replacement · after-hours", cls: "top-2 right-[-10%] opacity-55", delay: "1.1s" },
-  { title: "New lead · $6,400", sub: "Emergency water · call back in 10 min", cls: "top-[40%] left-0", delay: "0s" },
-  { title: "Ranked #1 to call back", sub: "Insurance claim · 3 rooms", cls: "bottom-3 left-[26%] opacity-80", delay: "0.6s" },
+// Closing-CTA lead-alert chips — the operator's push notifications as sample data,
+// positioned to mimic the Review-Harvest reference: `front` chips are prominent
+// with an avatar (one bleeds off the right edge, clipped by overflow-hidden), `bg`
+// chips sit behind, blurred + faded for depth (no avatar). All read "New lead · $X".
+// Avatars are fictional, locally hosted (gpt-image-1, scripts/gen-cta-avatars.ts) —
+// no runtime API call, no real-person likeness.
+const CTA_ALERTS: { tier: "front" | "bg"; cls: string; text: string; img?: string }[] = [
+  // blurred background chips (depth only)
+  { tier: "bg", text: "New lead · $2,100", cls: "top-[9%] right-[40%]" },
+  { tier: "bg", text: "New lead · $8,900", cls: "bottom-[8%] right-[34%]" },
+  // one prominent chip flows off the right edge (clipped)
+  { tier: "front", text: "New lead · $11,800", img: "/avatars/lead-1.jpg", cls: "top-[1%] right-[-16%]" },
+  // three fully-visible prominent chips, staggered, different prices
+  { tier: "front", text: "New lead · $9,200", img: "/avatars/lead-2.jpg", cls: "top-[25%] right-[6%]" },
+  { tier: "front", text: "New lead · $6,400", img: "/avatars/lead-3.jpg", cls: "top-[50%] right-[26%]" },
+  { tier: "front", text: "New lead · $3,750", img: "/avatars/lead-4.jpg", cls: "bottom-[3%] right-[10%]" },
 ];
 
 export default function V4Page() {
@@ -126,17 +127,20 @@ export default function V4Page() {
     <div className="min-h-screen bg-white text-[#152033]">
       {/* ── Nav ─────────────────────────────────────────────────────────── */}
       <nav className="absolute top-0 inset-x-0 z-40 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        {/* Scrim — the hero photo behind the nav changes brightness as the scene
+            carousel rotates, so the links need a guaranteed backdrop to stay legible. */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/45 via-black/20 to-transparent" aria-hidden />
+        <div className="relative max-w-6xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <CallvertedLogo className="h-8 w-8" gradientId="v4logo" />
             <span className="font-cv-heading text-lg font-bold tracking-tight text-white">Callverted</span>
           </Link>
           <div className="flex items-center gap-6 text-sm">
-            <a href="#how" className="text-white/75 hover:text-white font-medium transition-colors hidden md:block">How it works</a>
-            {SHOW_SOCIAL_PROOF && <a href="#results" className="text-white/75 hover:text-white font-medium transition-colors hidden md:block">Results</a>}
-            <a href="#product" className="text-white/75 hover:text-white font-medium transition-colors hidden lg:block">Product</a>
-            <a href="#pricing" className="text-white/75 hover:text-white font-medium transition-colors hidden sm:block">Pricing</a>
-            <BookDemo className="font-medium text-white/75 hover:text-white transition-colors hidden md:block">Book a demo</BookDemo>
+            <a href="#how" className="text-white/90 hover:text-white font-medium transition-colors hidden md:block">How it works</a>
+            {SHOW_SOCIAL_PROOF && <a href="#results" className="text-white/90 hover:text-white font-medium transition-colors hidden md:block">Results</a>}
+            <a href="#product" className="text-white/90 hover:text-white font-medium transition-colors hidden lg:block">Product</a>
+            <a href="#pricing" className="text-white/90 hover:text-white font-medium transition-colors hidden sm:block">Pricing</a>
+            <BookDemo className="font-medium text-white/90 hover:text-white transition-colors hidden md:block">Book a demo</BookDemo>
             <AuthAwareNavCta />
           </div>
         </div>
@@ -155,7 +159,7 @@ export default function V4Page() {
                 Stop losing jobs to voicemail.
               </h1>
               <p className="text-lg text-white/70 mb-8 max-w-lg leading-relaxed">
-                Emergency calls, after-hours, overflow — your team rings first. If nobody picks up, Callverted answers the same call, qualifies the job, and hands you a ranked, callback-ready lead before the customer moves on.
+                Emergency calls, after-hours, overflow — your team rings first. If nobody picks up, Callverted answers the same call, qualifies the job, and hands you a ranked, callback-ready lead before they call someone else.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <Link href="/sign-up" className="text-center font-semibold bg-landing-primary text-white px-7 py-3.5 rounded-xl hover:bg-blue-600 transition-colors shadow-[0_12px_34px_-8px_rgba(36,84,216,0.55)]">Start recovering leads</Link>
@@ -286,28 +290,6 @@ export default function V4Page() {
       </section>
       )}
 
-      {/* ── Timeline ────────────────────────────────────────────────────── */}
-      <section className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
-        <ScrollReveal className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[0.85fr_1.15fr] gap-12 items-center">
-          <div>
-            <Eyebrow className="mb-3">Set it and forget it</Eyebrow>
-            <h2 className="font-cv-heading text-3xl sm:text-[42px] font-bold tracking-[-0.035em] leading-[1.03] mb-5">Up and running in a morning.</h2>
-            <p className="text-[15px] text-[#667085] mb-6 max-w-sm">One setup, then it works in the background, no app to babysit.</p>
-            <RevenueChart />
-          </div>
-          <ol className="relative border-l-2 border-[#e6ebf2] pl-8 space-y-8">
-            {TIMELINE.map((t) => (
-              <li key={t.when} className="relative">
-                <span className="absolute -left-[41px] grid h-6 w-6 place-items-center rounded-full bg-landing-primary text-white text-[9px] font-bold ring-4 ring-[#f9fafb]">●</span>
-                <span className="inline-block rounded-full bg-[#eef3ff] text-landing-primary text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 mb-2">{t.when}</span>
-                <h3 className="font-cv-heading text-lg font-bold mb-1">{t.title}</h3>
-                <p className="text-[14px] text-[#667085] leading-relaxed max-w-md">{t.body}</p>
-              </li>
-            ))}
-          </ol>
-        </ScrollReveal>
-      </section>
-
       {/* ── The product — real dashboard screenshot + supporting cards ──── */}
       <section id="product" className="px-6 py-20 sm:py-28 bg-white">
         <ScrollReveal className="max-w-6xl mx-auto">
@@ -343,7 +325,7 @@ export default function V4Page() {
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-landing-primary mb-2">Fits your phone setup</p>
                 <h3 className="font-cv-heading text-xl font-bold mb-1">Keep your phones and your team.</h3>
-                <p className="text-[13.5px] text-[#667085] leading-relaxed max-w-[42ch]">You publish one Callverted number. It rings your team first — Callverted only answers the calls that ring out or come in after hours.</p>
+                <p className="text-[13.5px] text-[#667085] leading-relaxed max-w-[42ch]">You publish one Callverted number. It rings your team first, and Callverted only answers the calls that ring out or come in after hours.</p>
               </div>
               <div className="flex items-start">
                 {[
@@ -397,6 +379,7 @@ export default function V4Page() {
             <p className="text-[#667085] text-[15px] leading-relaxed max-w-md">
               Drag the sliders to your own call volume and job size. It&apos;s meant to make the cost of silence concrete, not to promise every missed call becomes a job.
             </p>
+            <div className="mt-7"><RevenueChart /></div>
           </div>
           <div className="border border-white/10 bg-landing-ink rounded-[24px] p-6 sm:p-7 shadow-[0_40px_90px_-40px_rgba(16,24,40,0.5)]">
             <MissedCallCalculator />
@@ -474,7 +457,7 @@ export default function V4Page() {
           <div>
             <Eyebrow className="mb-3">You&apos;re not on your own</Eyebrow>
             <h2 className="font-cv-heading text-3xl sm:text-[42px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">Set up by a person, not a portal.</h2>
-            <p className="text-[15px] text-[#667085] leading-relaxed mb-8 max-w-lg">Callverted is hands-on. We help you get it running, tune it to how your trade gets called, and stay reachable, no offshore call center, no support maze.</p>
+            <p className="text-[15px] text-[#667085] leading-relaxed mb-8 max-w-lg">We get you live, tune it to how your trade gets called, and stay reachable. No offshore call center, no support maze.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
               {TRUST.map((t) => (
                 <div key={t.t} className="flex gap-3">
@@ -538,7 +521,7 @@ export default function V4Page() {
         <ScrollReveal className="max-w-2xl mx-auto">
           <div className="text-center mb-8"><Eyebrow className="mb-3">FAQ</Eyebrow><h2 className="font-cv-heading text-2xl sm:text-3xl font-bold tracking-[-0.035em]">Questions owners ask first</h2></div>
           <div className="rounded-2xl border border-[#e3e7ed] bg-white overflow-hidden">
-            {FAQS.map((faq, i) => (
+            {FAQS.slice(0, 6).map((faq, i) => (
               <details key={faq.q} className={`group ${i > 0 ? "border-t border-[#e3e7ed]" : ""} [&_summary::-webkit-details-marker]:hidden`}>
                 <summary className="flex items-center justify-between gap-4 cursor-pointer list-none text-sm font-bold px-5 py-4.5">
                   {faq.q}
@@ -551,41 +534,44 @@ export default function V4Page() {
         </ScrollReveal>
       </section>
 
-      {/* ── Closing CTA — brand-blue gradient card, copy left + drifting lead-alert chips right ── */}
+      {/* ── Closing CTA — gradient card: copy left, live lead-alert chips right ── */}
       <section className="px-6 py-20 sm:py-24 bg-white">
         <ScrollReveal className="max-w-6xl mx-auto">
-          <div className="relative overflow-hidden rounded-3xl px-8 sm:px-12 py-14 sm:py-16 text-white shadow-[0_30px_60px_-24px_rgba(28,63,168,0.5)]" style={{ background: "linear-gradient(135deg, #2a5ae0 0%, #1c3fa8 55%, #16307e 100%)" }}>
-            <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,430px)_1fr]">
-              <div className="relative z-10 max-w-md">
+          <div className="relative overflow-hidden rounded-3xl px-8 sm:px-10 py-14 sm:py-16 text-white shadow-[0_30px_60px_-24px_rgba(28,63,168,0.5)]" style={{ background: "linear-gradient(135deg, #2a5ae0 0%, #1c3fa8 55%, #16307e 100%)" }}>
+            <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,470px)_1fr]">
+              <div className="relative z-10 max-w-lg mx-auto lg:mx-0 text-center lg:text-left">
                 <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-4 leading-[1.05]">The next missed call doesn&apos;t have to be a lost job.</h2>
                 <p className="text-white/70 mb-8 text-[15px]">Give your team the first ring. Callverted catches, qualifies, and ranks the rest.</p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Link href="/sign-up" className="text-center font-semibold bg-white text-landing-primary px-8 py-3.5 rounded-xl hover:bg-[#f0f4ff] transition-colors shadow-lg">Start recovering leads</Link>
-                  <BookDemo className="text-center font-medium text-white border border-white/30 px-8 py-3.5 rounded-xl hover:bg-white/10 transition-colors">Book a 15-min demo</BookDemo>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+                  <Link href="/sign-up" className="text-center font-semibold bg-white text-landing-primary px-6 py-3.5 rounded-xl hover:bg-[#f0f4ff] transition-colors shadow-lg whitespace-nowrap">Start recovering leads</Link>
+                  <BookDemo className="text-center font-semibold text-white bg-white/10 border border-white/40 px-6 py-3.5 rounded-xl hover:bg-white/20 transition-colors whitespace-nowrap">Book a 15-min demo</BookDemo>
                 </div>
                 <p className="mt-5 text-[12.5px] text-white/60">14-day free trial · no contracts · a real person helps you launch</p>
               </div>
-              <div className="relative hidden lg:block h-[300px]" aria-hidden>
-                {CTA_ALERTS.map((a) => (
-                  <div key={a.title} className={`absolute cv-float ${a.cls}`} style={{ animationDelay: a.delay }}>
-                    <div className="flex items-center gap-3 rounded-2xl bg-white/[0.14] backdrop-blur border border-white/20 px-4 py-3 shadow-lg w-[250px]">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/20">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" /></svg>
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-bold leading-tight truncate">{a.title}</p>
-                        <p className="text-[11px] text-white/70 leading-tight truncate">{a.sub}</p>
+              <div className="relative hidden lg:block h-[360px]" aria-hidden>
+                {CTA_ALERTS.map((a, i) => {
+                  const front = a.tier === "front";
+                  return (
+                    <div key={i} className={`absolute ${a.cls} ${front ? "z-10" : "z-0 opacity-45 blur-[3px]"}`}>
+                      <div className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 ${front ? "bg-white/[0.17] border border-white/25 shadow-[0_18px_36px_-16px_rgba(0,0,0,0.55)]" : "bg-white/[0.10] border border-white/10"}`}>
+                        {front && a.img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={a.img} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/30" />
+                        ) : (
+                          <span className="h-9 w-9 shrink-0 rounded-full bg-white/25" />
+                        )}
+                        <span className="text-[15px] font-semibold whitespace-nowrap">{a.text}</span>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
         </ScrollReveal>
       </section>
       <MarketingFooter />
-      <JsonLd data={faqSchema(FAQS)} />
+      <JsonLd data={faqSchema(FAQS.slice(0, 6))} />
 
       {/* ── Corner CTA — opens the book-a-demo / lead-capture modal ─────── */}
       <BookDemo
