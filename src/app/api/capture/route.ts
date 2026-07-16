@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { headers } from "next/headers";
 
 import { createEmailCapture } from "@/lib/db/queries/emailCaptures";
@@ -80,38 +80,41 @@ export async function POST(req: NextRequest) {
     context: cleanContext,
   });
 
-  // Follow-up email is fire-and-forget — a send failure must never fail the
-  // capture (the row is already saved).
+  // Follow-up email must never fail the capture (the row is already saved), and
+  // must not make the caller wait for a Resend round-trip. `after()` runs it once
+  // the response is sent AND keeps the serverless function alive until it settles
+  // — plain `void send()` would be frozen at response time and never run in prod.
   const toStr = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
   if (captureSource === "demo_request") {
     // A prospect left their details on the landing page and was told "a real
     // person will get back to you" — alert the founder so that promise holds.
-    void sendDemoRequestNotification({
-      name: toStr(cleanContext?.name) ?? normalizedEmail,
-      email: normalizedEmail,
-      phone: toStr(cleanContext?.phone) ?? null,
-    }).catch((err) => {
-      logger.error("demo request alert failed", { email: normalizedEmail, error: String(err) });
+    after(async () => {
+      try {
+        await sendDemoRequestNotification({
+          name: toStr(cleanContext?.name) ?? normalizedEmail,
+          email: normalizedEmail,
+          phone: toStr(cleanContext?.phone) ?? null,
+        });
+      } catch (err) {
+        logger.error("demo request alert failed", { email: normalizedEmail, error: String(err) });
+      }
     });
   } else {
     // ROI calculator / lead magnet — echo the numbers back. Only when numeric.
     const toNum = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
-    // TEMPORARY: awaited (not fire-and-forget) so any send failure surfaces in the
-    // Vercel logs while we diagnose why prod sends nothing. Restore fire-and-forget
-    // (or move to `after()`/waitUntil) once the root cause is confirmed.
-    try {
-      logger.info("capture: sending ROI breakdown", { email: normalizedEmail });
-      const res = await sendMissedCallBreakdownEmail({
-        toEmail: normalizedEmail,
-        missedCalls: toNum(cleanContext?.missedCalls),
-        jobValue: toNum(cleanContext?.jobValue),
-        closeRate: toNum(cleanContext?.closeRate),
-        atRisk: toNum(cleanContext?.atRisk),
-      });
-      logger.info("capture: ROI breakdown sent", { email: normalizedEmail, result: JSON.stringify(res) });
-    } catch (err) {
-      logger.error("capture confirmation email failed", { email: normalizedEmail, error: String(err) });
-    }
+    after(async () => {
+      try {
+        await sendMissedCallBreakdownEmail({
+          toEmail: normalizedEmail,
+          missedCalls: toNum(cleanContext?.missedCalls),
+          jobValue: toNum(cleanContext?.jobValue),
+          closeRate: toNum(cleanContext?.closeRate),
+          atRisk: toNum(cleanContext?.atRisk),
+        });
+      } catch (err) {
+        logger.error("capture confirmation email failed", { email: normalizedEmail, error: String(err) });
+      }
+    });
   }
 
   return NextResponse.json({ ok: true }, { status: 200 });

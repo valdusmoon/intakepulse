@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { createBusiness, getBusinessByClerkId, updateBusiness } from "@/lib/db/queries/businesses";
 import { createPricingRulesBulk } from "@/lib/db/queries/pricingRules";
 import { sendSignupNotification, sendWelcomeEmail } from "@/lib/email/notifications";
@@ -112,8 +112,20 @@ export async function POST(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://callverted.com";
   const dashboardUrl = `${appUrl}/dashboard`;
 
-  void sendSignupNotification({ businessName, ownerName, ownerEmail: ownerEmail ?? "", ownerPhone: normalizedPhone ?? "" });
-  void sendWelcomeEmail({ ownerName, ownerEmail: ownerEmail ?? "", businessName, dashboardUrl });
+  // Post-response via `after()` (not bare `void`, which Vercel freezes before it
+  // runs) so the founder alert and the owner's welcome email actually send in prod.
+  after(async () => {
+    try {
+      await sendSignupNotification({ businessName, ownerName, ownerEmail: ownerEmail ?? "", ownerPhone: normalizedPhone ?? "" });
+    } catch (err) {
+      logger.error("signup notification failed", { businessName, error: String(err) });
+    }
+    try {
+      await sendWelcomeEmail({ ownerName, ownerEmail: ownerEmail ?? "", businessName, dashboardUrl });
+    } catch (err) {
+      logger.error("welcome email failed", { ownerEmail, error: String(err) });
+    }
+  });
 
   return NextResponse.json(business, { status: 201 });
 }

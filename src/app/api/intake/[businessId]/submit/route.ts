@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { headers } from "next/headers";
 import { getBusinessById } from "@/lib/db/queries/businesses";
 import {
@@ -168,7 +168,11 @@ export async function POST(
   if (lead) {
     lead = await updateLead(lead.id, intakePayload);
     // Cancel any pending follow-up — they engaged, no need to nudge
-    void cancelFollowupsForLead(lead!.id, "intake_completed");
+    after(() =>
+      cancelFollowupsForLead(lead!.id, "intake_completed").catch((err) =>
+        logger.error("cancelFollowupsForLead failed", { leadId: lead!.id, error: String(err) })
+      )
+    );
   } else {
     const validSources = ["voice_overflow", "website_widget", "direct_intake", "email", "manual"] as const;
     const leadSource = validSources.includes(source) ? source : "direct_intake";
@@ -179,8 +183,12 @@ export async function POST(
     });
   }
 
-  // Score + AI assess + email owner — fire and forget, form responds instantly
-  void assessAndNotify(lead!.id, businessId, answers ?? {});
+  // Score + AI assess + email/push the owner. Runs after the response so the
+  // form still returns instantly, but via `after()` (not bare `void`) so Vercel
+  // keeps the function alive until it finishes — otherwise the lead alert, the
+  // core product promise, silently never fires in prod. assessAndNotify catches
+  // its own errors internally.
+  after(() => assessAndNotify(lead!.id, businessId, answers ?? {}));
 
   return NextResponse.json({ leadId: lead!.id }, { status: 200 });
 }

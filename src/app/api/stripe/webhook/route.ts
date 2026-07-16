@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import Stripe from "stripe";
 import { eq } from "drizzle-orm";
 
@@ -160,14 +160,18 @@ export async function POST(req: NextRequest) {
           }).where(eq(businesses.id, company.id));
           console.log(`Payment failed for company ${company.id}, status set to past_due`);
 
-          // Dunning email — fire-and-forget. Only reaches a real recipient once
-          // Stripe is live (payment is mocked today, so this event never fires).
-          void sendDunningEmail({
-            ownerEmail: company.ownerEmail,
-            ownerName: company.ownerName,
-            businessName: company.businessName,
-            billingUrl: `${APP_URL}/dashboard/billing`,
-          }).catch(() => {});
+          // Dunning email — post-response via `after()` so the webhook can ack
+          // Stripe immediately while the send still runs (bare `void` would be
+          // frozen before it fires). Only reaches a real recipient once Stripe is live.
+          const c = company;
+          after(() =>
+            sendDunningEmail({
+              ownerEmail: c.ownerEmail,
+              ownerName: c.ownerName,
+              businessName: c.businessName,
+              billingUrl: `${APP_URL}/dashboard/billing`,
+            }).catch(() => {})
+          );
         } else {
           console.error(`invoice.payment_failed: no company found for invoice ${invoice.id}`);
         }
@@ -189,17 +193,21 @@ export async function POST(req: NextRequest) {
         }
 
         if (company) {
-          // Receipt email — fire-and-forget. Only reaches a real recipient once
-          // Stripe is live (payment is mocked today, so this event never fires).
+          // Receipt email — post-response via `after()` so the webhook acks Stripe
+          // immediately while the send still runs (bare `void` would be frozen
+          // before it fires). Only reaches a real recipient once Stripe is live.
           const periodEndUnix = invoice.lines?.data?.[0]?.period?.end as number | undefined;
-          void sendReceiptEmail({
-            ownerEmail: company.ownerEmail,
-            ownerName: company.ownerName,
-            businessName: company.businessName,
-            amountCents: Number(invoice.amount_paid ?? 0),
-            periodEnd: periodEndUnix ? new Date(periodEndUnix * 1000) : (company.currentPeriodEnd ?? null),
-            billingUrl: `${APP_URL}/dashboard/billing`,
-          }).catch(() => {});
+          const c = company;
+          after(() =>
+            sendReceiptEmail({
+              ownerEmail: c.ownerEmail,
+              ownerName: c.ownerName,
+              businessName: c.businessName,
+              amountCents: Number(invoice.amount_paid ?? 0),
+              periodEnd: periodEndUnix ? new Date(periodEndUnix * 1000) : (c.currentPeriodEnd ?? null),
+              billingUrl: `${APP_URL}/dashboard/billing`,
+            }).catch(() => {})
+          );
         } else {
           console.error(`invoice.payment_succeeded: no company found for invoice ${invoice.id}`);
         }
