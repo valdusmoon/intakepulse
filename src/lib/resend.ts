@@ -11,18 +11,17 @@ export const resend = new Resend(resendApiKey);
 export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
 /**
- * Where replies to our mail land. FROM_EMAIL sends from the send.callverted.com
- * subdomain, and that subdomain's only MX points at Resend's bounce handler —
- * no mailbox, nobody reading it. Without an explicit reply-to, a customer who
- * hits reply on a lead alert is talking to a black hole. Route them to the real
- * inbox instead: hello@callverted.com is delivered by Cloudflare Email Routing
- * on the root domain.
+ * Where replies to our mail land. FROM_EMAIL is an unmonitored sender, so
+ * without an explicit reply-to a customer hitting reply on a lead alert would
+ * be writing to nobody. Point them at an inbox a human actually reads; that
+ * inbox is delivered by Cloudflare Email Routing, which is receive-only and
+ * entirely separate from Resend's sending path.
  *
- * Why we send from a subdomain rather than the root: reputation isolation only.
- * Spam complaints against automated mail burn send.callverted.com instead of
- * callverted.com, so they can never degrade deliverability for human mail sent
- * from the root. It is NOT an SPF constraint — Resend never asks for a root SPF
- * record (it uses a custom MAIL FROM subdomain), so verifying the root would
- * have left Cloudflare Email Routing's SPF untouched and worked fine too.
+ * Note we send from the ROOT domain (callverted.com), not a subdomain. Resend
+ * never asks for a root SPF record — it puts SPF/MX on its own MAIL FROM
+ * subdomain (send.callverted.com) and DKIM at resend._domainkey — so the root's
+ * Cloudflare Email Routing SPF is untouched and inbound mail keeps working. The
+ * tradeoff accepted here is reputation: automated mail shares callverted.com's
+ * sending reputation with human mail rather than isolating it on a subdomain.
  */
 export const REPLY_TO_EMAIL = process.env.RESEND_REPLY_TO || "hello@callverted.com";
