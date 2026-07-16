@@ -150,9 +150,14 @@ export function MissedCallCalculator() {
       </div>
 
       {status === "sent" ? (
-        <p className="mt-4 text-center text-sm font-medium text-landing-primary-glow">
-          Sent — check your inbox.
-        </p>
+        <div className="mt-4 text-center">
+          <p className="text-sm font-medium text-landing-primary-glow">
+            Sent. Check your inbox.
+          </p>
+          <p className="mt-1 text-xs text-white/50">
+            Not there in a minute? Check your spam or promotions folder.
+          </p>
+        </div>
       ) : (
         <form onSubmit={handleCapture} className="mt-5">
           <label htmlFor="roi-email" className="block text-xs text-white/50 mb-2">
