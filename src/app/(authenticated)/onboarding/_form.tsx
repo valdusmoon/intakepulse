@@ -277,15 +277,23 @@ function Step3Done({ router }: { router: ReturnType<typeof useRouter> }) {
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
-export function OnboardingForm() {
+export function OnboardingForm({
+  initialEmail = "",
+  initialName = "",
+}: {
+  // Seeded from the Clerk session (server-side) so a visitor who signed in with
+  // Google or email doesn't have to retype the address Clerk already verified.
+  initialEmail?: string;
+  initialName?: string;
+} = {}) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState("");
   const [form, setForm] = useState<FormData>({
     businessName: "",
-    ownerName: "",
-    ownerEmail: "",
+    ownerName: initialName,
+    ownerEmail: initialEmail,
     ownerPhone: "",
     serviceArea: "",
     vertical: "restoration",
