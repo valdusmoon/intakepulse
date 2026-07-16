@@ -96,15 +96,22 @@ export async function POST(req: NextRequest) {
   } else {
     // ROI calculator / lead magnet — echo the numbers back. Only when numeric.
     const toNum = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
-    void sendMissedCallBreakdownEmail({
-      toEmail: normalizedEmail,
-      missedCalls: toNum(cleanContext?.missedCalls),
-      jobValue: toNum(cleanContext?.jobValue),
-      closeRate: toNum(cleanContext?.closeRate),
-      atRisk: toNum(cleanContext?.atRisk),
-    }).catch((err) => {
+    // TEMPORARY: awaited (not fire-and-forget) so any send failure surfaces in the
+    // Vercel logs while we diagnose why prod sends nothing. Restore fire-and-forget
+    // (or move to `after()`/waitUntil) once the root cause is confirmed.
+    try {
+      logger.info("capture: sending ROI breakdown", { email: normalizedEmail });
+      const res = await sendMissedCallBreakdownEmail({
+        toEmail: normalizedEmail,
+        missedCalls: toNum(cleanContext?.missedCalls),
+        jobValue: toNum(cleanContext?.jobValue),
+        closeRate: toNum(cleanContext?.closeRate),
+        atRisk: toNum(cleanContext?.atRisk),
+      });
+      logger.info("capture: ROI breakdown sent", { email: normalizedEmail, result: JSON.stringify(res) });
+    } catch (err) {
       logger.error("capture confirmation email failed", { email: normalizedEmail, error: String(err) });
-    });
+    }
   }
 
   return NextResponse.json({ ok: true }, { status: 200 });
