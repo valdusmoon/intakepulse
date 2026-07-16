@@ -1450,6 +1450,10 @@ export async function sendMissedCallBreakdownEmail({
       ? `Your missed calls: ${fmt(atRisk!)} at risk every month`
       : "Your missed-call breakdown from Callverted",
     html,
+    // They just clicked "email me this report" — deliver it even if they'd
+    // previously unsubscribed. Their unsubscribe still stands for the drip; this
+    // is the one-off content they actively requested.
+    skipSuppression: true,
   });
 }
 

@@ -9,6 +9,12 @@ interface SendParams {
   subject: string;
   html: string;
   attachments?: Array<{ filename: string; content: Buffer }>;
+  // sendMarketing only: bypass the unsubscribe suppression list for content the
+  // recipient explicitly requested right now (e.g. the "email me this report"
+  // button). We still add the unsubscribe footer + headers so they can opt out of
+  // any follow-up, and we do NOT resubscribe them — a prior unsubscribe from the
+  // drip is preserved; this just honors a one-off request they actively made.
+  skipSuppression?: boolean;
 }
 
 interface BatchSendParams {
@@ -68,7 +74,7 @@ export const emailClient = {
   // headers. Never route transactional mail (receipts, lead packets, dunning)
   // through here; those must always deliver.
   async sendMarketing(params: SendParams) {
-    if (await isEmailSuppressed(params.to)) {
+    if (!params.skipSuppression && (await isEmailSuppressed(params.to))) {
       console.log(`📧 [SUPPRESSED] Skipping marketing send to unsubscribed ${params.to}`);
       return { id: `suppressed_${params.to}`, suppressed: true };
     }
