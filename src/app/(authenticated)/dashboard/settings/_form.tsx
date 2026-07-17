@@ -19,8 +19,7 @@ import {
   Badge,
 } from "@/components/dashboard/v2/primitives";
 import { PushDeviceToggle } from "@/components/push/PushDeviceToggle";
-import { PlanChoiceModal } from "@/components/dashboard/PlanChoiceModal";
-import type { Plan } from "@/lib/pricing";
+import { type Plan, MONTHLY_PRICE, ANNUAL_PRICE, ANNUAL_MONTHLY_EQUIV, ANNUAL_SAVINGS } from "@/lib/pricing";
 
 const TABS = [
   { key: "call", label: "Call setup", icon: "phone_in_talk" },
@@ -579,7 +578,6 @@ function NotificationsPanel({ business }: { business: Business }) {
 
 // ─── Billing ────────────────────────────────────────────────────────────────
 
-const PLAN_PRICE = 149;
 const PLAN_FEATURES = [
   "AI voice overflow — answers and qualifies calls your team can't get to",
   "Public lead intake form — shareable link and website embed",
@@ -611,7 +609,7 @@ const CANCEL_REASONS = [
 function BillingPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
   const [billing, setBilling] = useState<CompanyBilling | null>(null);
   const [paused, setPaused] = useState(false);
   const [pausing, setPausing] = useState(false);
@@ -679,7 +677,6 @@ function BillingPanel() {
     } catch (err) {
       console.error("Checkout error:", err);
       setIsProcessing(false);
-      setShowPlanModal(false);
     }
   }
 
@@ -727,10 +724,42 @@ function BillingPanel() {
         <Badge color={isActive ? "green" : isTrialing ? "blue" : "gray"}>{isActive ? "Active" : isTrialing ? "Trial" : "No subscription"}</Badge>
       </CardHeader>
       <CardBody className="flex flex-col gap-4">
-        <div>
-          <span className="font-cv-heading text-[28px] font-bold">${PLAN_PRICE}</span>
-          <span className="text-cv-muted text-[13px]"> / month</span>
+        {/* Billing cycle toggle — show both plans up front (mirrors the landing page). */}
+        <div className="inline-flex self-start rounded-full border border-cv-border bg-cv-surface-subtle p-1 text-[13px] font-semibold">
+          <button
+            type="button"
+            onClick={() => setSelectedPlan("monthly")}
+            className={`rounded-full px-4 py-1.5 transition-colors ${selectedPlan === "monthly" ? "bg-white text-cv-primary-dark shadow-cv-sm" : "text-cv-muted"}`}
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedPlan("annual")}
+            className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 transition-colors ${selectedPlan === "annual" ? "bg-white text-cv-primary-dark shadow-cv-sm" : "text-cv-muted"}`}
+          >
+            Annual
+            <span className="rounded-full bg-cv-primary-soft px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-cv-primary">
+              Best value
+            </span>
+          </button>
         </div>
+
+        {selectedPlan === "annual" ? (
+          <div>
+            <span className="font-cv-heading text-[28px] font-bold">${ANNUAL_MONTHLY_EQUIV}</span>
+            <span className="text-cv-muted text-[13px]"> / month</span>
+            <p className="text-[12px] text-cv-muted mt-1">
+              Billed annually at ${ANNUAL_PRICE.toLocaleString()}. Save ${ANNUAL_SAVINGS} a year vs monthly.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <span className="font-cv-heading text-[28px] font-bold">${MONTHLY_PRICE}</span>
+            <span className="text-cv-muted text-[13px]"> / month</span>
+            <p className="text-[12px] text-cv-muted mt-1">Cancel anytime. No contract.</p>
+          </div>
+        )}
         <ul className="flex flex-col gap-2">
           {PLAN_FEATURES.map((f) => (
             <li key={f} className="flex items-start gap-2 text-[13px] text-cv-muted">
@@ -745,8 +774,8 @@ function BillingPanel() {
         {isCanceledButActive && <Badge color="amber">Canceled — access until {formatDate(billing?.canceledAt ?? null)}</Badge>}
 
         {!hasSubscription ? (
-          <Button variant="primary" size="lg" disabled={isProcessing} onClick={() => setShowPlanModal(true)}>
-            {isProcessing ? "Processing…" : "Start 14-Day Free Trial"}
+          <Button variant="primary" size="lg" disabled={isProcessing} onClick={() => handleStartTrial(selectedPlan)}>
+            {isProcessing ? "Processing…" : `Start 14-Day Free Trial — ${selectedPlan === "annual" ? "Annual" : "Monthly"}`}
           </Button>
         ) : (
           <Button disabled={isProcessing} onClick={handleManageSubscription}>
@@ -785,13 +814,6 @@ function BillingPanel() {
           </button>
         )}
       </CardBody>
-
-      <PlanChoiceModal
-        open={showPlanModal}
-        onClose={() => setShowPlanModal(false)}
-        onConfirm={handleStartTrial}
-        processing={isProcessing}
-      />
 
       {showCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
