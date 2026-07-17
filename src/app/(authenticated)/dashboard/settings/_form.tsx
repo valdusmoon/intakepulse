@@ -609,7 +609,10 @@ const CANCEL_REASONS = [
 function BillingPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
+  // Default to monthly so the first price shown is $149, not $1,499/yr — annual
+  // stays one toggle away as the "Best value" option, but we don't lead with the
+  // bigger number and risk scaring a cold user off.
+  const [selectedPlan, setSelectedPlan] = useState<Plan>("monthly");
   const [billing, setBilling] = useState<CompanyBilling | null>(null);
   const [paused, setPaused] = useState(false);
   const [pausing, setPausing] = useState(false);
