@@ -32,7 +32,9 @@ function targetStage(daysSinceCreated: number): ActivationNudgeStage | null {
 }
 
 /**
- * Welcome -> activation nudges — fires daily at 16:30 UTC. Scans recently-created
+ * Welcome -> activation nudges — fires daily at 17:30 UTC (never before 9am Pacific
+ * in any US timezone: winter 9:30am PT / 12:30pm ET, summer 10:30am PT / 1:30pm ET).
+ * Scans recently-created
  * businesses that are still stalled (no card / no live number / no first lead)
  * and sends day-1, day-3, day-7 nudges. The one-shot welcome email is owned by
  * /api/business; this series is driven purely from the scan. Idempotent via
@@ -42,7 +44,7 @@ export const activationNudges = inngest.createFunction(
   {
     id: "activation-nudges",
     name: "Activation Nudge Emails",
-    triggers: [{ cron: "30 16 * * *" }],
+    triggers: [{ cron: "30 17 * * *" }], // daily 17:30 UTC (>= 9am Pacific year-round)
   },
   async () => {
     const businesses = await getAllBusinesses();

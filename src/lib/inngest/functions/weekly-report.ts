@@ -5,7 +5,10 @@ import { sendWeeklyReportEmail } from "@/lib/email/notifications";
 import { logger } from "@/lib/logger";
 
 /**
- * Weekly summary email — fires every Monday at 16:00 UTC (12pm ET, 9am PT).
+ * Weekly summary email — fires every Monday at 17:00 UTC. Chosen so the send is
+ * never before 9am Pacific in any US timezone year-round (winter 9am PT / 12pm ET,
+ * summer 10am PT / 1pm ET). Fixed UTC, so the local wall-clock shifts one hour
+ * across DST but always stays >= 9am Pacific.
  * Sends each business owner a digest of the past 7 days.
  * Skips businesses with no leads that week and those missing an owner email.
  */
@@ -13,7 +16,7 @@ export const weeklyReport = inngest.createFunction(
   {
     id: "weekly-report",
     name: "Weekly Report Email",
-    triggers: [{ cron: "0 16 * * 1" }], // every Monday 16:00 UTC
+    triggers: [{ cron: "0 17 * * 1" }], // every Monday 17:00 UTC (>= 9am Pacific year-round)
   },
   async () => {
     const businesses = await getAllBusinesses();
