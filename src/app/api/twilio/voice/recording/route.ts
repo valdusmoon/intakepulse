@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { verifyTwilioWebhook } from "@/lib/twilio/webhook";
-import { getCallByTwilioSid, updateCall } from "@/lib/db/queries/calls";
+import { getCallByTwilioSid } from "@/lib/db/queries/calls";
 import { recordProcessedEvent } from "@/lib/db/queries/providerWebhookEvents";
+import { inngest } from "@/lib/inngest/client";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -43,14 +44,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  if (!recordingUrl) {
+    logger.warn("recording callback: no RecordingUrl", { callSid, recordingSid });
+    return NextResponse.json({ ok: true });
+  }
+
   const call = await getCallByTwilioSid(callSid);
   if (!call) {
     logger.warn("recording callback: no call record found", { callSid });
     return NextResponse.json({ ok: true });
   }
 
-  await updateCall(call.id, { recordingUrl });
-  logger.info("Recording stored", { callSid, callId: call.id });
+  // Kick off the async post-call pipeline (download → Whisper → extract → lead →
+  // delete audio). Return the 200 fast; Twilio only needs the acknowledgement.
+  //
+  // Runner A (ACTIVE) — durable, retryable Inngest job.
+  await inngest.send({
+    name: "call/human-recording.completed",
+    data: { callId: call.id, businessId: call.businessId, recordingSid, recordingUrl },
+  });
 
+  // Runner B (COMMENTED OUT) — inline via Next `after()`. Simpler (no Inngest),
+  // but NO retries: a transient Whisper/OpenAI failure silently drops this call's
+  // transcript + lead. To swap, comment out the inngest.send above and uncomment
+  // the import + call below (imports go at the top of the file):
+  //   import { after } from "next/server";
+  //   import { processHumanCall } from "@/lib/leads/process-human-call";
+  //   after(() => processHumanCall({ callId: call.id, businessId: call.businessId, recordingSid, recordingUrl }));
+
+  logger.info("recording: enqueued human-call processing", { callSid, callId: call.id, recordingSid });
   return NextResponse.json({ ok: true });
 }

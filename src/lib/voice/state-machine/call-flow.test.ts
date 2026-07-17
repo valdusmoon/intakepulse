@@ -54,15 +54,19 @@ describe("greetingPrompt", () => {
     expect(greetingPrompt(ctx)).toContain("Welcome to Acme!");
   });
 
-  it("never speaks a recording disclosure — the AI leg is transcribed, not audio-recorded (recording pulled for launch)", () => {
-    // Even with recording fields set on the business, the greeting must not announce
-    // recording: human-leg audio recording is disabled and the AI leg isn't recorded.
+  it("speaks the recording disclosure when recording is enabled with a disclosure set", () => {
     const withBoth = makeFlowContext({ business: makeBusiness({ recordingEnabled: true, recordingDisclosure: "This call may be recorded." }) });
-    expect(greetingPrompt(withBoth)).not.toContain("This call may be recorded.");
-    expect(greetingPrompt(withBoth)).not.toContain("recorded");
+    expect(greetingPrompt(withBoth)).toContain("This call may be recorded.");
+  });
 
+  it("never speaks a disclosure when recording is disabled or the disclosure is unset", () => {
+    const off = makeFlowContext({ business: makeBusiness({ recordingEnabled: false, recordingDisclosure: "This call may be recorded." }) });
+    expect(greetingPrompt(off)).not.toContain("This call may be recorded.");
+
+    // Enabled but no disclosure text: must never leak an empty/null value into speech.
     const enabledButUnset = makeFlowContext({ business: makeBusiness({ recordingEnabled: true, recordingDisclosure: null }) });
     expect(greetingPrompt(enabledButUnset)).not.toContain("null");
+    expect(greetingPrompt(enabledButUnset)).toContain("Briefly, what's going on?");
   });
 
   it("always identifies itself as an automated assistant, regardless of recording settings", () => {

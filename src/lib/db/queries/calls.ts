@@ -15,6 +15,13 @@ export async function getCallByLeadId(leadId: string) {
   return call ?? null;
 }
 
+export async function getCallById(id: string) {
+  const call = await db.query.calls.findFirst({
+    where: eq(calls.id, id),
+  });
+  return call ?? null;
+}
+
 export async function getCallByTwilioSid(twilioCallSid: string) {
   const call = await db.query.calls.findFirst({
     where: eq(calls.twilioCallSid, twilioCallSid),

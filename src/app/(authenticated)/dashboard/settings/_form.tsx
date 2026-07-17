@@ -111,6 +111,8 @@ const VOICES = [
   { value: "marin", label: "Marin — recommended, highest quality" },
 ];
 
+const DEFAULT_DISCLOSURE = "This call may be recorded and transcribed for quality and training purposes.";
+
 function CallSetupPanel({ business }: { business: Business }) {
   const [forwardingNumber, setForwardingNumber] = useState(business.forwardingNumber ?? "");
   const [overflowMode, setOverflowMode] = useState(business.overflowMode);
@@ -120,8 +122,9 @@ function CallSetupPanel({ business }: { business: Business }) {
   const [voiceName, setVoiceName] = useState(business.voiceName);
   const [urgentTransferNumber, setUrgentTransferNumber] = useState(business.urgentTransferNumber ?? "");
   const [aiInstructions, setAiInstructions] = useState(business.aiInstructions ?? "");
-  // Call recording (audio) is pulled for launch — see generateDialTwiml. The
-  // schema columns remain so it can be re-added later; no UI/save for now.
+  const [recordingEnabled, setRecordingEnabled] = useState(business.recordingEnabled);
+  const [recordingDisclosure, setRecordingDisclosure] = useState(business.recordingDisclosure ?? "");
+  const [recError, setRecError] = useState("");
   const experience = useSave();
 
   return (
@@ -218,19 +221,60 @@ function CallSetupPanel({ business }: { business: Business }) {
             <TextArea value={aiInstructions} onChange={(e) => setAiInstructions(e.target.value)} placeholder="Any business-specific notes the AI should know when answering calls." />
           </FormGroup>
 
-          {experience.error && <p className="text-sm text-cv-red">{experience.error}</p>}
+          <div className="rounded-xl border border-cv-border p-4 flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <strong className="block text-[13px]">Record &amp; transcribe calls</strong>
+                <span className="block text-[11px] text-cv-muted mt-0.5">
+                  Capture a transcript + AI summary of every inbound call — the ones your team answers and the ones Callverted recovers — and turn real opportunities into scored leads. Audio is transcribed, then deleted; only the transcript is kept.
+                </span>
+              </div>
+              <Toggle
+                checked={recordingEnabled}
+                onChange={(v) => {
+                  setRecordingEnabled(v);
+                  setRecError("");
+                  if (v && !recordingDisclosure.trim()) setRecordingDisclosure(DEFAULT_DISCLOSURE);
+                }}
+              />
+            </div>
+            {recordingEnabled && (
+              <FormGroup
+                label="Spoken disclosure (required)"
+                help="Played to the caller before recording — on both the team-answered line and the AI line. Some states require all-party consent; you're responsible for wording that's compliant where you operate."
+              >
+                <TextArea
+                  value={recordingDisclosure}
+                  onChange={(e) => {
+                    setRecordingDisclosure(e.target.value);
+                    if (e.target.value.trim()) setRecError("");
+                  }}
+                  placeholder={DEFAULT_DISCLOSURE}
+                />
+              </FormGroup>
+            )}
+          </div>
+
+          {(experience.error || recError) && <p className="text-sm text-cv-red">{recError || experience.error}</p>}
           <Button
             variant="primary"
             className="self-end"
             disabled={experience.loading}
-            onClick={() =>
+            onClick={() => {
+              if (recordingEnabled && !recordingDisclosure.trim()) {
+                setRecError("Add a spoken disclosure to turn on call recording.");
+                return;
+              }
+              setRecError("");
               experience.save({
                 greetingMessage: greetingMessage || null,
                 voiceName,
                 urgentTransferNumber: urgentTransferNumber || null,
                 aiInstructions: aiInstructions || null,
-              })
-            }
+                recordingEnabled,
+                recordingDisclosure: recordingDisclosure.trim() || null,
+              });
+            }}
           >
             {experience.loading ? "Saving…" : experience.saved ? "Saved ✓" : "Save caller experience"}
           </Button>

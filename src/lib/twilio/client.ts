@@ -98,6 +98,17 @@ export async function releaseNumber(sid: string): Promise<void> {
 }
 
 /**
+ * Delete a call recording from Twilio. We transcribe the human-answered leg and
+ * then delete the audio — Callverted keeps the transcript, never the recording.
+ * Best-effort: a failure here must not lose the already-created lead (the caller
+ * handles/logs it), and a nightly sweep can catch any stragglers later.
+ */
+export async function deleteRecording(recordingSid: string): Promise<void> {
+  const client = getClient();
+  await client.recordings(recordingSid).remove();
+}
+
+/**
  * Escape a string for safe inclusion in TwiML XML.
  */
 export function escapeXml(unsafe: string): string {

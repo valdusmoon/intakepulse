@@ -96,11 +96,16 @@ export async function POST(req: Request) {
 
     const statusUrl = `${env.APP_URL}/api/twilio/voice/status`;
     const recordingStatusCallbackUrl = `${env.APP_URL}/api/twilio/voice/recording`;
+    // Record the human-answered leg only when recording is enabled AND a disclosure
+    // is set — the disclosure is then spoken before the team is dialed. Never record
+    // without a spoken notice.
+    const recordHumanLeg = business.recordingEnabled && !!business.recordingDisclosure;
     return xml(generateDialTwiml({
       forwardingNumber: business.forwardingNumber!,
       timeoutSeconds: CALL_RING_TIMEOUT_SECONDS,
       actionUrl: statusUrl,
-      recordingEnabled: business.recordingEnabled,
+      disclosure: recordHumanLeg ? business.recordingDisclosure : null,
+      recordHumanLeg,
       recordingStatusCallbackUrl,
     }));
   } catch (error) {

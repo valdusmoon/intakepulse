@@ -20,20 +20,32 @@ export function generateDialTwiml(opts: {
   forwardingNumber: string;
   timeoutSeconds: number;
   actionUrl: string;
-  recordingEnabled?: boolean;
+  /** Spoken before the team is dialed so the caller hears the recording notice
+   *  before the human leg is captured — the two-party-consent point. */
+  disclosure?: string | null;
+  /** Record the human-answered leg. Only honored when a disclosure is present:
+   *  we never record without a spoken notice. */
+  recordHumanLeg?: boolean;
   recordingStatusCallbackUrl?: string;
 }): string {
-  // Human-leg audio recording is DISABLED for launch. It only ever recorded the
-  // leg where a human answered, while the recording disclosure was only spoken on
-  // the AI leg — so a recorded call never carried a spoken consent notice (a
-  // two-party-consent risk). Re-enable this in a later release together with a
-  // disclosure played on THIS leg (and, ideally, transcription of the human
-  // portion). The `recordingEnabled` / `recordingStatusCallbackUrl` opts are
-  // intentionally ignored until then; keep them so callers don't need changes.
-  const recordAttrs = "";
+  // Record the human leg only with a spoken disclosure + a callback to receive it.
+  // `record-from-answer-dual` captures just the answered conversation (both
+  // channels), skipping ringback/voicemail. Completed recordings POST to
+  // recordingStatusCallbackUrl, which kicks off transcription (then the audio is
+  // deleted — see the recording webhook / process-human-call).
+  const willRecord = !!opts.recordHumanLeg && !!opts.disclosure && !!opts.recordingStatusCallbackUrl;
+  const recordAttrs = willRecord
+    ? ` record="record-from-answer-dual" recordingStatusCallback="${escapeXml(opts.recordingStatusCallbackUrl!)}" recordingStatusCallbackEvent="completed"`
+    : "";
+  // Speak the disclosure whenever one is passed (coupled with recording by the
+  // caller). This answers the inbound leg, so the caller hears the notice, then
+  // ringback while the team is dialed (answerOnBridge stays true).
+  const sayDisclosure = opts.disclosure
+    ? `  <Say voice="Polly.Joanna">${escapeXml(opts.disclosure)}</Say>\n`
+    : "";
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial timeout="${opts.timeoutSeconds}" action="${escapeXml(opts.actionUrl)}" answerOnBridge="true"${recordAttrs}>
+${sayDisclosure}  <Dial timeout="${opts.timeoutSeconds}" action="${escapeXml(opts.actionUrl)}" answerOnBridge="true"${recordAttrs}>
     <Number>${escapeXml(opts.forwardingNumber)}</Number>
   </Dial>
 </Response>`;

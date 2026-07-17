@@ -30,7 +30,8 @@ const PRIORITIES = [
 
 const SOURCES = [
   { value: "", label: "All sources" },
-  { value: "voice_overflow", label: "Voice" },
+  { value: "voice_overflow", label: "Recovered (AI)" },
+  { value: "voice_human", label: "Team answered" },
   { value: "website_widget", label: "Widget" },
   { value: "direct_intake", label: "Direct intake" },
   { value: "manual", label: "Manual" },
@@ -38,6 +39,7 @@ const SOURCES = [
 
 const SOURCE_ICON: Record<string, string> = {
   voice_overflow: "call",
+  voice_human: "support_agent",
   website_widget: "widgets",
   direct_intake: "description",
   manual: "edit_note",

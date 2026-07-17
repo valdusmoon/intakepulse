@@ -32,7 +32,8 @@ export function statusMeta(leadStatus: string): { label: string; color: BadgeCol
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  voice_overflow: "Voice overflow",
+  voice_overflow: "Recovered by AI",
+  voice_human: "Answered by team",
   website_widget: "Website widget",
   direct_intake: "Direct intake",
   manual: "Manual entry",
@@ -46,6 +47,7 @@ export function sourceLabel(source: string): string {
 
 const SOURCE_SWATCHES: Record<string, string> = {
   voice_overflow: "#2454d8",
+  voice_human: "#12b76a",
   website_widget: "#6941c6",
   direct_intake: "#667085",
   manual: "#98a2b3",
