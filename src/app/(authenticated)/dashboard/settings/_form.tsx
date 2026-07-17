@@ -19,6 +19,8 @@ import {
   Badge,
 } from "@/components/dashboard/v2/primitives";
 import { PushDeviceToggle } from "@/components/push/PushDeviceToggle";
+import { PlanChoiceModal } from "@/components/dashboard/PlanChoiceModal";
+import type { Plan } from "@/lib/pricing";
 
 const TABS = [
   { key: "call", label: "Call setup", icon: "phone_in_talk" },
@@ -609,6 +611,7 @@ const CANCEL_REASONS = [
 function BillingPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
   const [billing, setBilling] = useState<CompanyBilling | null>(null);
   const [paused, setPaused] = useState(false);
   const [pausing, setPausing] = useState(false);
@@ -662,16 +665,21 @@ function BillingPanel() {
     }
   }
 
-  async function handleStartTrial() {
+  async function handleStartTrial(plan: Plan) {
     setIsProcessing(true);
     try {
-      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create checkout session");
       window.location.href = data.url;
     } catch (err) {
       console.error("Checkout error:", err);
       setIsProcessing(false);
+      setShowPlanModal(false);
     }
   }
 
@@ -737,8 +745,8 @@ function BillingPanel() {
         {isCanceledButActive && <Badge color="amber">Canceled — access until {formatDate(billing?.canceledAt ?? null)}</Badge>}
 
         {!hasSubscription ? (
-          <Button variant="primary" size="lg" disabled={isProcessing} onClick={handleStartTrial}>
-            {isProcessing ? "Processing…" : `Start 14-Day Free Trial, $${PLAN_PRICE}/mo after`}
+          <Button variant="primary" size="lg" disabled={isProcessing} onClick={() => setShowPlanModal(true)}>
+            {isProcessing ? "Processing…" : "Start 14-Day Free Trial"}
           </Button>
         ) : (
           <Button disabled={isProcessing} onClick={handleManageSubscription}>
@@ -777,6 +785,13 @@ function BillingPanel() {
           </button>
         )}
       </CardBody>
+
+      <PlanChoiceModal
+        open={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        onConfirm={handleStartTrial}
+        processing={isProcessing}
+      />
 
       {showCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">

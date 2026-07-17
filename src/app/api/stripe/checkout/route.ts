@@ -11,21 +11,33 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const defaultPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
-    if (!defaultPriceId) {
+    const monthlyPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
+    const annualPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ANNUAL;
+    if (!monthlyPriceId) {
       return NextResponse.json({ error: "NEXT_PUBLIC_STRIPE_PRICE_ID is not configured" }, { status: 500 });
     }
 
-    // Accept optional priceId from body — must match the configured default (future: allow list)
-    let requestedPriceId = defaultPriceId;
+    // Plan selection: same product, two prices (monthly / annual). We map a
+    // "plan" from the body to an env-configured price id rather than trusting a
+    // raw price id from the client. Also still honor an explicit priceId if it
+    // matches one of the two allowed ids (back-compat). Defaults to monthly.
+    let requestedPriceId = monthlyPriceId;
     try {
       const body = await req.json();
-      if (body.priceId && body.priceId !== defaultPriceId) {
-        return NextResponse.json({ error: "Invalid price" }, { status: 400 });
+      if (body.plan === "annual") {
+        if (!annualPriceId) {
+          return NextResponse.json({ error: "Annual plan is not configured" }, { status: 500 });
+        }
+        requestedPriceId = annualPriceId;
+      } else if (body.priceId) {
+        const allowed = [monthlyPriceId, annualPriceId].filter(Boolean);
+        if (!allowed.includes(body.priceId)) {
+          return NextResponse.json({ error: "Invalid price" }, { status: 400 });
+        }
+        requestedPriceId = body.priceId;
       }
-      if (body.priceId) requestedPriceId = body.priceId;
     } catch {
-      // No body or invalid JSON — use default price
+      // No body or invalid JSON — use monthly default
     }
 
     const [business] = await db.select().from(businesses).where(eq(businesses.clerkUserId, userId)).limit(1);

@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardBody, Icon } from "@/components/dashboard/v2/primitives";
+import { PlanChoiceModal } from "@/components/dashboard/PlanChoiceModal";
+import type { Plan } from "@/lib/pricing";
 import type { SetupStage } from "@/lib/subscription";
 
 function fmtNumber(e164: string | null) {
@@ -54,26 +56,32 @@ export function ActivationChecklist({
   const [showGoLive, setShowGoLive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
   const [goingLive, setGoingLive] = useState(false);
   const [goLiveError, setGoLiveError] = useState("");
 
   const needsPayment = setupStage === "needs_payment";
 
-  // Go live = start the real subscription. Creates a Stripe Checkout session
-  // (trial mode, $149/mo) and hands off to Stripe's hosted card page; the webhook
-  // is authoritative and sets subscriptionStatus/trialing on return. The Twilio
-  // number is chosen afterward, on the dashboard (live area-code search).
-  async function startGoLive() {
+  // Go live = start the real subscription for the chosen plan. Creates a Stripe
+  // Checkout session (14-day trial) and hands off to Stripe's hosted card page;
+  // the webhook is authoritative and sets subscriptionStatus/trialing on return.
+  // The Twilio number is chosen afterward, on the dashboard (live area-code search).
+  async function startGoLive(plan: Plan) {
     setGoingLive(true);
     setGoLiveError("");
     try {
-      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.url) throw new Error(data.error || "failed");
       window.location.href = data.url; // hand off to Stripe Checkout
     } catch (e) {
       setGoLiveError(e instanceof Error && e.message !== "failed" ? e.message : "Couldn't start checkout. Please try again.");
       setGoingLive(false);
+      setShowPlanModal(false);
     }
   }
 
@@ -130,6 +138,12 @@ export function ActivationChecklist({
 
   return (
     <>
+      <PlanChoiceModal
+        open={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        onConfirm={startGoLive}
+        processing={goingLive}
+      />
       <Card className="mb-4">
         <CardHeader>
           <div>
@@ -162,9 +176,8 @@ export function ActivationChecklist({
           {needsPayment ? (
             <button
               type="button"
-              onClick={startGoLive}
-              disabled={goingLive}
-              className={`${rowBase} border-cv-primary bg-cv-surface-blue hover:bg-cv-primary-soft disabled:opacity-70`}
+              onClick={() => setShowPlanModal(true)}
+              className={`${rowBase} border-cv-primary bg-cv-surface-blue hover:bg-cv-primary-soft`}
             >
               {bullet(false, 2)}
               <div className="min-w-0 flex-1">
@@ -175,11 +188,7 @@ export function ActivationChecklist({
                     : "Add a card to get your live number and start capturing real calls. No charge for 14 days."}
                 </p>
               </div>
-              {goingLive ? (
-                <span className="text-xs font-bold text-cv-primary shrink-0">Starting…</span>
-              ) : (
-                <Icon name="arrow_forward" className="!text-[18px] text-cv-primary shrink-0" />
-              )}
+              <Icon name="arrow_forward" className="!text-[18px] text-cv-primary shrink-0" />
             </button>
           ) : (
             <button type="button" onClick={() => setShowGoLive(true)} className={`${rowBase} ${rowState(numberPublished)}`}>

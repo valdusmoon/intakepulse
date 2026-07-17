@@ -15,6 +15,7 @@ import { HeroScenesProvider, HeroBackdrop, HeroSceneCard } from "@/components/ma
 import { BookDemo } from "@/components/marketing/BookDemo";
 import { LandingNavShell } from "@/components/marketing/LandingNavShell";
 import { MissedCallCalculator } from "@/components/marketing/MissedCallCalculator";
+import { PricingCard } from "@/components/marketing/PricingCard";
 import { FAQS } from "@/lib/marketing/faqs";
 
 /**
@@ -495,20 +496,8 @@ export default function V4Page() {
       <section id="pricing" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
         <ScrollReveal className="max-w-md mx-auto text-center">
           <Eyebrow className="mb-3">Pricing</Eyebrow>
-          <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-6">One flat rate. The whole service.</h2>
-          <div className="rounded-3xl border border-[#e3e7ed] bg-white p-8 shadow-[0_24px_60px_-30px_rgba(16,24,40,.3)] text-left">
-            <p className="font-cv-heading text-5xl font-black tracking-tight">$149<span className="text-base font-semibold text-[#98a2b3] ml-1">/mo</span></p>
-            <p className="text-[13px] text-[#667085] mt-2">Everything included. No per-lead fees, no contracts.</p>
-            <ul className="mt-6 space-y-2.5">
-              {["24/7 live answering on missed calls", "Trade-specific qualification + scoring", "Ranked leads with value estimates", "Website widget + intake link", "Weekly performance recap"].map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm text-[#475467]">
-                  <svg className="w-4 h-4 shrink-0 mt-0.5 text-landing-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <Link href="/sign-up" className="mt-7 block text-center font-semibold bg-landing-primary text-white py-3 rounded-xl hover:bg-blue-600 transition-colors text-sm">Start 14-day free trial</Link>
-          </div>
+          <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-6">One plan. The whole service.</h2>
+          <PricingCard />
         </ScrollReveal>
       </section>
 
