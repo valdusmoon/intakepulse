@@ -71,6 +71,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       serviceArea={business.serviceArea}
       vertical={business.vertical}
       isVoiceLive={isVoiceLive}
+      callvertedNumber={business.twilioPhoneNumber}
       newLeadsCount={newLeadsCount}
       recentNewLeads={recentNewLeads}
       bannerState={bannerState}

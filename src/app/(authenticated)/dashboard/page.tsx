@@ -17,6 +17,7 @@ import { hasPaymentOnFile, getSetupStage } from "@/lib/subscription";
 import { ActivationChecklist } from "@/components/dashboard/ActivationChecklist";
 import { NotificationsPrompt } from "@/components/push/NotificationsPrompt";
 import { ChooseNumber } from "@/components/dashboard/ChooseNumber";
+import { GoLiveProgress } from "@/components/dashboard/GoLiveProgress";
 import { ExampleLead } from "@/components/dashboard/ExampleLead";
 import { DashboardTour } from "@/components/dashboard/DashboardTour";
 import { CheckoutReturnGate } from "@/components/dashboard/CheckoutReturnGate";
@@ -179,6 +180,10 @@ export default async function DashboardPage({
           </LinkButton>
         </div>
       </div>
+
+      {(setupStage === "provisioning" || setupStage === "needs_publish") && (
+        <GoLiveProgress stage={setupStage} />
+      )}
 
       {setupStage === "provisioning" ? (
         <div id="cv-tour-activation">

@@ -79,7 +79,6 @@ export function ChooseNumber({ assistedUrl }: { assistedUrl: string | null }) {
           <CardTitle>Choose your live number</CardTitle>
           <p className="text-[11px] text-cv-muted mt-1">Pick a local number near your service area. This becomes the line you publish.</p>
         </div>
-        <span className="font-cv-mono text-xs font-bold text-cv-primary">Last step</span>
       </CardHeader>
       <CardBody className="flex flex-col gap-3">
         <div className="flex gap-2">

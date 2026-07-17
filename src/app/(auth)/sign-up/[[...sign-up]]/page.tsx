@@ -1,9 +1,6 @@
 import { SignUp } from "@clerk/nextjs";
 
 export default function SignUpPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <SignUp />
-    </div>
-  );
+  // Positioning/branding is handled by the (auth) layout's split-panel.
+  return <SignUp />;
 }

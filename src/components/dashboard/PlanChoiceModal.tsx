@@ -22,13 +22,18 @@ export function PlanChoiceModal({
   onClose,
   onConfirm,
   processing,
+  defaultPlan = "monthly",
 }: {
   open: boolean;
   onClose: () => void;
   onConfirm: (plan: Plan) => void;
   processing: boolean;
+  // Which plan is preselected. Defaults to monthly so a cold user isn't shown a
+  // $1,499/yr line in Stripe before they've seen the product. Annual stays the
+  // badged "Best value" option, and an annual-specific CTA can pass "annual".
+  defaultPlan?: Plan;
 }) {
-  const [plan, setPlan] = useState<Plan>("annual");
+  const [plan, setPlan] = useState<Plan>(defaultPlan);
   if (!open) return null;
 
   const Option = ({ value, title, price, sub, badge }: { value: Plan; title: string; price: string; sub: string; badge?: string }) => {

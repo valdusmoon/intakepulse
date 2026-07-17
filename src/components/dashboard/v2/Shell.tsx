@@ -42,6 +42,11 @@ const VERTICAL_ICONS: Record<string, string> = {
   electrical: "electrical_services",
 };
 
+function formatUsPhone(e164: string) {
+  const m = e164.match(/^\+1(\d{3})(\d{3})(\d{4})$/);
+  return m ? `(${m[1]}) ${m[2]}-${m[3]}` : e164;
+}
+
 export interface RecentLead {
   id: string;
   callerName: string | null;
@@ -54,6 +59,9 @@ interface Props {
   serviceArea: string | null;
   vertical: string;
   isVoiceLive: boolean;
+  /** The provisioned Callverted (Twilio) number, or null before go-live. Shown
+   * in the sidebar card so the operator always knows the number to give out. */
+  callvertedNumber: string | null;
   newLeadsCount: number;
   recentNewLeads: RecentLead[];
   bannerState: BannerState;
@@ -65,6 +73,7 @@ export function DashboardShell({
   serviceArea,
   vertical,
   isVoiceLive,
+  callvertedNumber,
   newLeadsCount,
   recentNewLeads,
   bannerState,
@@ -101,6 +110,12 @@ export function DashboardShell({
             <small className="block text-cv-muted text-[11px] truncate">
               {serviceArea ?? "Service area not set"} · {isVoiceLive ? "Live" : "Not live"}
             </small>
+            {callvertedNumber && (
+              <small className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-cv-primary-dark">
+                <Icon name="call" className="!text-[13px] shrink-0" />
+                <span className="truncate">{formatUsPhone(callvertedNumber)}</span>
+              </small>
+            )}
           </div>
         </div>
 

@@ -85,6 +85,9 @@ export function PricingCard() {
       <p className="mt-3 text-center text-[12px] text-[#98a2b3]">
         {isAnnual ? "14 days free, then billed yearly. Cancel anytime in trial." : "14 days free, then $149/mo. Cancel anytime."}
       </p>
+      <p className="mt-2 text-center text-[12px] text-[#98a2b3]">
+        No card needed to test the call flow first.
+      </p>
     </div>
   );
 }

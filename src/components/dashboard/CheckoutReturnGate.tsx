@@ -29,9 +29,9 @@ export function CheckoutReturnGate() {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/90 backdrop-blur-sm p-4">
       <div className="max-w-sm text-center">
         <div className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-[3px] border-cv-border border-t-cv-primary" />
-        <h2 className="font-cv-heading text-xl font-bold text-cv-ink">Setting up your subscription…</h2>
+        <h2 className="font-cv-heading text-xl font-bold text-cv-ink">Starting your free trial…</h2>
         <p className="mt-2 text-sm text-cv-muted">
-          One moment while we confirm your payment and get your account ready. No charge for 14 days.
+          One moment while we confirm your payment. Next, you&apos;ll pick your Callverted number. No charge for 14 days.
         </p>
         {slow && (
           <p className="mt-4 text-xs text-cv-muted">

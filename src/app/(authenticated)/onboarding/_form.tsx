@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowLeft, Check, Wind, Droplets, Wrench, Zap, Hammer, MoreHorizontal } from "lucide-react";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { validateAndNormalizeEmail } from "@/lib/utils/email-validation";
-import { Field, Icon } from "@/components/dashboard/v2/primitives";
+import { Field } from "@/components/dashboard/v2/primitives";
+import { CallvertedLogo } from "@/components/CallvertedLogo";
 import { PlanChoiceModal } from "@/components/dashboard/PlanChoiceModal";
 import type { Plan } from "@/lib/pricing";
 
@@ -250,24 +251,41 @@ function Step3Done({ router, onGoLive }: { router: ReturnType<typeof useRouter>;
       <div className="w-16 h-16 rounded-full bg-cv-green-soft flex items-center justify-center mx-auto mb-6">
         <Check className="w-8 h-8 text-cv-green" />
       </div>
-      <h1 className="font-cv-heading text-2xl font-bold text-cv-ink mb-2">You&apos;re set up!</h1>
-      <p className="text-sm text-cv-muted mb-8 max-w-sm mx-auto">
-        Add a card to get your live number and start capturing every missed call. No charge for 14 days — cancel
-        anytime. You&apos;ll pick your number right after.
+      <h1 className="font-cv-heading text-2xl font-bold text-cv-ink mb-2">You&apos;re set up. Test Callverted before going live.</h1>
+      <p className="text-sm text-cv-muted mb-4 max-w-sm mx-auto">
+        Run a test call with no card or phone number needed. You&apos;ll hear what callers experience and see the ranked
+        lead packet your team would receive.
       </p>
+      <div className="mb-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-semibold text-cv-muted">
+        <span>No card needed</span>
+        <span className="text-cv-border-strong">·</span>
+        <span>No phone number needed</span>
+        <span className="text-cv-border-strong">·</span>
+        <span>Takes about 60 seconds</span>
+      </div>
 
-      <button
-        onClick={onGoLive}
-        className="w-full flex items-center justify-center gap-2 bg-cv-primary text-white font-bold py-3 rounded-xl hover:bg-cv-primary-dark transition-colors"
-      >
-        Go live now <ArrowRight className="w-4 h-4" />
-      </button>
-
+      {/* Primary: the free test call is the strongest pre-card proof (Model B); let them feel the value first. */}
       <button
         onClick={() => router.push("/dashboard/test-call")}
-        className="mt-3 block w-full text-sm font-semibold text-cv-primary hover:underline"
+        className="w-full flex items-center justify-center gap-2 bg-cv-primary text-white font-bold py-3 rounded-xl hover:bg-cv-primary-dark transition-colors"
       >
-        or try a quick test call first
+        Run a test call <ArrowRight className="w-4 h-4" />
+      </button>
+
+      {/* Secondary: straight to payment for anyone already sold. */}
+      <button
+        onClick={onGoLive}
+        className="mt-3 w-full flex items-center justify-center gap-2 border border-cv-border text-cv-ink font-bold py-3 rounded-xl hover:bg-cv-surface-subtle transition-colors"
+      >
+        Go live now
+      </button>
+
+      {/* Tertiary: the plain skip, for anyone who wants to look around first. */}
+      <button
+        onClick={() => router.push("/dashboard")}
+        className="mt-3 block w-full text-sm font-semibold text-cv-muted hover:underline"
+      >
+        Explore dashboard
       </button>
 
       {assistedUrl && (
@@ -373,9 +391,7 @@ export function OnboardingForm({
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-10">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-[9px] grid place-items-center text-white bg-gradient-to-br from-cv-primary to-cv-primary-dark">
-              <Icon name="phone_in_talk" className="!text-base" />
-            </div>
+            <CallvertedLogo className="w-8 h-8 rounded-[9px] shadow-cv-sm" gradientId="cvLogoOnboarding" />
             <span className="font-cv-heading text-lg font-bold text-cv-primary-dark">Callverted</span>
           </div>
         </div>

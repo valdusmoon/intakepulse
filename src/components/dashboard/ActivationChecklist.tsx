@@ -150,7 +150,7 @@ export function ActivationChecklist({
             <CardTitle>Finish setting up</CardTitle>
             <p className="text-[11px] text-cv-muted mt-1">
               {needsPayment
-                ? "You're in setup mode — test freely, then add a card to go live"
+                ? "You're in setup mode. Test free with no card or phone number, then add a card to go live."
                 : "A couple of steps and you are capturing every call"}
             </p>
           </div>
@@ -162,10 +162,12 @@ export function ActivationChecklist({
             {bullet(hasTestCall, 1)}
             <div className="min-w-0 flex-1">
               <p className={`text-sm font-bold ${hasTestCall ? "text-cv-muted line-through" : "text-cv-ink"}`}>
-                Make your first test call
+                Run a test call and see your lead packet
               </p>
               {!hasTestCall && (
-                <p className="text-xs text-cv-muted mt-0.5">Hear the AI answer and watch it qualify a lead in real time.</p>
+                <p className="text-xs text-cv-muted mt-0.5">
+                  Hear the AI answer and see the exact lead packet you&apos;d receive. No card or phone number needed.
+                </p>
               )}
             </div>
             {!hasTestCall && <Icon name="arrow_forward" className="!text-[18px] text-cv-primary shrink-0" />}
@@ -297,6 +299,20 @@ export function ActivationChecklist({
               </p>
             </div>
 
+            {/* Confirm routing: a real call is the only true test that forwarding
+                + overflow are wired right, before the number goes on your ads. */}
+            <div className="mt-4 rounded-xl border border-cv-border bg-cv-surface-subtle px-3.5 py-3">
+              <p className="text-sm font-bold text-cv-ink flex items-center gap-1.5">
+                <Icon name="phone_in_talk" className="!text-[18px] text-cv-primary" />
+                Confirm it works
+              </p>
+              <p className="mt-1 text-xs text-cv-muted">
+                Call your Callverted number once from another phone. It should ring your line first, then hand off to
+                Callverted if you don&apos;t pick up. That confirms forwarding and overflow are set correctly before you
+                list it everywhere.
+              </p>
+            </div>
+
             {assistedUrl && (
               <a
                 href={assistedUrl}
@@ -323,7 +339,7 @@ export function ActivationChecklist({
                 disabled={saving}
                 className="flex-1 rounded-xl bg-cv-primary px-4 py-3 text-sm font-bold text-white hover:bg-cv-primary-dark disabled:opacity-60 transition-colors"
               >
-                {saving ? "Saving..." : "I've listed my number"}
+                {saving ? "Saving..." : "Mark my line live"}
               </button>
             </div>
           </div>
