@@ -19,6 +19,7 @@ import { NotificationsPrompt } from "@/components/push/NotificationsPrompt";
 import { ChooseNumber } from "@/components/dashboard/ChooseNumber";
 import { ExampleLead } from "@/components/dashboard/ExampleLead";
 import { DashboardTour } from "@/components/dashboard/DashboardTour";
+import { CheckoutReturnGate } from "@/components/dashboard/CheckoutReturnGate";
 
 function fmtDuration(seconds: number) {
   if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -34,9 +35,15 @@ function greeting() {
   return "Good evening";
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
+
+  const justPaid = (await searchParams).checkout_success === "true";
 
   const business = await getBusinessByClerkId(userId);
   if (!business) redirect("/onboarding");
@@ -65,7 +72,9 @@ export default async function DashboardPage() {
   // "Add payment & go live" CTA, but an established account with leads isn't nagged.
   const showActivation = metrics.totalLeads === 0;
   const showChecklist = showActivation || setupStage === "needs_payment";
-  const hasTestCall = recentCalls.length > 0;
+  // "Made a test call" is true from a completed test call (which persists no
+  // call row, only this flag) OR any real call record.
+  const hasTestCall = recentCalls.length > 0 || Boolean(business.testCallCompletedAt);
 
   // Conversion snapshot is time-boxed (last snapshotWindowDays) so it tracks
   // current performance rather than a frozen all-time ratio.
@@ -127,6 +136,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="font-cv-body text-cv-ink">
+      {justPaid && setupStage === "needs_payment" && <CheckoutReturnGate />}
       <div className="flex flex-wrap gap-2.5 mb-[18px]">
         {setupStage === "needs_payment" ? (
           <StatusPill color="amber" dot>

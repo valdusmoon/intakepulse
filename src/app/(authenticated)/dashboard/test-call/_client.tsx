@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Icon } from "@/components/dashboard/v2/primitives";
+import { PlanChoiceModal } from "@/components/dashboard/PlanChoiceModal";
+import type { Plan } from "@/lib/pricing";
 import type { LeadPacket } from "@/lib/voice/lead-packet";
 
 interface Line {
@@ -85,6 +87,27 @@ export function TestCallClient({ businessName }: { businessName: string }) {
   const [error, setError] = useState<string | null>(null);
   const [showDialer, setShowDialer] = useState(false);
   const [dialed, setDialed] = useState("");
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [goingLive, setGoingLive] = useState(false);
+
+  // Go live straight from the test-call aha (peak conviction). Same Stripe
+  // Checkout as everywhere else; returns to /dashboard for number selection.
+  async function startGoLive(plan: Plan) {
+    setGoingLive(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) throw new Error(data.error || "failed");
+      window.location.href = data.url;
+    } catch {
+      setGoingLive(false);
+      setShowPlanModal(false);
+    }
+  }
 
   // Opaque conversation state handed back by the server each turn and passed
   // straight back on the next one — nothing is kept server-side between requests.
@@ -320,10 +343,23 @@ export function TestCallClient({ businessName }: { businessName: string }) {
               {/* Composer */}
               <div className="border-t border-cv-border px-5 py-3.5 relative">
                 {ended ? (
-                  <Button variant="primary" onClick={startCall} disabled={loading} className="w-full">
-                    <Icon name="replay" />
-                    Start another test call
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    {preview && (
+                      <>
+                        <p className="text-center text-xs text-cv-muted">
+                          That&apos;s the lead that lands in your phone on every missed call. Go live to start catching them.
+                        </p>
+                        <Button variant="primary" onClick={() => setShowPlanModal(true)} className="w-full">
+                          <Icon name="bolt" />
+                          Go live now — 14 days free
+                        </Button>
+                      </>
+                    )}
+                    <Button variant={preview ? "default" : "primary"} onClick={startCall} disabled={loading} className="w-full">
+                      <Icon name="replay" />
+                      Start another test call
+                    </Button>
+                  </div>
                 ) : (
                   <>
                     {showDialer && (
@@ -393,6 +429,13 @@ export function TestCallClient({ businessName }: { businessName: string }) {
       </Card>
 
       <CallInspector state={state} answers={answers} meta={meta} />
+
+      <PlanChoiceModal
+        open={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        onConfirm={startGoLive}
+        processing={goingLive}
+      />
     </div>
   );
 }

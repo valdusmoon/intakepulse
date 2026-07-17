@@ -6,6 +6,8 @@ import { ArrowRight, ArrowLeft, Check, Wind, Droplets, Wrench, Zap, Hammer, More
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { validateAndNormalizeEmail } from "@/lib/utils/email-validation";
 import { Field, Icon } from "@/components/dashboard/v2/primitives";
+import { PlanChoiceModal } from "@/components/dashboard/PlanChoiceModal";
+import type { Plan } from "@/lib/pricing";
 
 interface FormData {
   businessName: string;
@@ -241,7 +243,7 @@ function Step2({
 // Model B: no card yet. They land in "Setup mode" — explore, run a test call,
 // then add payment to provision the live number and go live.
 
-function Step3Done({ router }: { router: ReturnType<typeof useRouter> }) {
+function Step3Done({ router, onGoLive }: { router: ReturnType<typeof useRouter>; onGoLive: () => void }) {
   const assistedUrl = process.env.NEXT_PUBLIC_ASSISTED_ONBOARDING_URL;
   return (
     <div className="text-center">
@@ -250,15 +252,22 @@ function Step3Done({ router }: { router: ReturnType<typeof useRouter> }) {
       </div>
       <h1 className="font-cv-heading text-2xl font-bold text-cv-ink mb-2">You&apos;re set up!</h1>
       <p className="text-sm text-cv-muted mb-8 max-w-sm mx-auto">
-        Explore your dashboard and run a test call to hear the AI qualify a lead. When you&apos;re ready, add a card to
-        get your live number and start capturing real calls — no charge until you go live.
+        Add a card to get your live number and start capturing every missed call. No charge for 14 days — cancel
+        anytime. You&apos;ll pick your number right after.
       </p>
 
       <button
-        onClick={() => router.push("/dashboard")}
+        onClick={onGoLive}
         className="w-full flex items-center justify-center gap-2 bg-cv-primary text-white font-bold py-3 rounded-xl hover:bg-cv-primary-dark transition-colors"
       >
-        Go to dashboard <ArrowRight className="w-4 h-4" />
+        Go live now <ArrowRight className="w-4 h-4" />
+      </button>
+
+      <button
+        onClick={() => router.push("/dashboard/test-call")}
+        className="mt-3 block w-full text-sm font-semibold text-cv-primary hover:underline"
+      >
+        or try a quick test call first
       </button>
 
       {assistedUrl && (
@@ -266,7 +275,7 @@ function Step3Done({ router }: { router: ReturnType<typeof useRouter> }) {
           href={assistedUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-block text-sm font-semibold text-cv-primary hover:underline"
+          className="mt-4 inline-block text-sm font-semibold text-cv-muted hover:underline"
         >
           Rather have us set it up with you? Book a 15 min call
         </a>
@@ -290,6 +299,8 @@ export function OnboardingForm({
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState("");
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [goingLive, setGoingLive] = useState(false);
   const [form, setForm] = useState<FormData>({
     businessName: "",
     ownerName: initialName,
@@ -337,6 +348,26 @@ export function OnboardingForm({
     }
   }
 
+  // Express go-live straight from onboarding: same Stripe Checkout the dashboard
+  // uses (14-day trial). After paying, Stripe returns to /dashboard where the
+  // number-selection step takes over — number choice never lives in this wizard.
+  async function startGoLive(plan: Plan) {
+    setGoingLive(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) throw new Error(data.error || "failed");
+      window.location.href = data.url;
+    } catch {
+      setGoingLive(false);
+      setShowPlanModal(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-cv-bg font-cv-body text-cv-ink flex items-start justify-center pt-12 px-4 pb-16">
       <div className="w-full max-w-md">
@@ -363,9 +394,16 @@ export function OnboardingForm({
               finishError={finishError}
             />
           )}
-          {step === 3 && <Step3Done router={router} />}
+          {step === 3 && <Step3Done router={router} onGoLive={() => setShowPlanModal(true)} />}
         </div>
       </div>
+
+      <PlanChoiceModal
+        open={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        onConfirm={startGoLive}
+        processing={goingLive}
+      />
     </div>
   );
 }

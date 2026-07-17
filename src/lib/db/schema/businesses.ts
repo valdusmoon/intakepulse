@@ -82,6 +82,12 @@ export const businesses = pgTable("businesses", {
   // self-confirms it. Drives the "Get your line live" activation-checklist step.
   numberPublished: boolean("number_published").notNull().default(false),
 
+  // Activation: set the first time the owner completes a test call (reaches the
+  // scored lead-packet preview). Test calls persist no lead/call row by design,
+  // so this is the only signal that the "Make your first test call" step is done
+  // — without it that step could only ever check off on a real inbound call.
+  testCallCompletedAt: timestamp("test_call_completed_at"),
+
   notificationPreferences: jsonb("notification_preferences")
     .$type<BusinessNotificationPreferences>()
     .notNull()

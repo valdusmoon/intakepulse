@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import crypto from "crypto";
-import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
+import { getBusinessByClerkId, updateBusiness } from "@/lib/db/queries/businesses";
 import { buildFlowContext, createSession, initializeOpenAIForTest, loadBusinessCallData } from "@/lib/voice/call-manager";
 import { buildLeadPacket } from "@/lib/voice/lead-packet";
 import { OpenAIHandlerService } from "@/lib/voice/openai-handler.service";
@@ -113,6 +113,20 @@ export async function POST(req: NextRequest) {
   }
 
   const ended = ctx.session.state === "end";
+
+  // First completed test call = the "Make your first test call" activation step
+  // is done. Test calls persist no lead/call row, so this flag is the only signal
+  // for that checklist step. Written post-response so it never adds call latency.
+  if (ended && !business.testCallCompletedAt) {
+    after(async () => {
+      try {
+        await updateBusiness(business.id, { testCallCompletedAt: new Date() });
+      } catch (err) {
+        logger.error("failed to set testCallCompletedAt", { businessId: business.id, error: String(err) });
+      }
+    });
+  }
+
   // handleTranscript's very first action is pushing the caller's own message
   // into the transcript — skip it in what we return, since the client already
   // has its own copy from what it just sent (it isn't waiting to be told).
