@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "../index";
 import { leads } from "../schema/leads";
 import { calls } from "../schema/calls";
@@ -21,8 +21,12 @@ export async function getHomeMetrics(businessId: string) {
       wonRevenueThisMonth: sql<number>`coalesce(sum(coalesce(${leads.confirmedValue}, (${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2)) filter (where ${leads.leadStatus} = 'converted' and ${leads.convertedAt} >= ${startOfThisMonth.toISOString()}), 0)`,
       wonRevenueLastMonth: sql<number>`coalesce(sum(coalesce(${leads.confirmedValue}, (${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2)) filter (where ${leads.leadStatus} = 'converted' and ${leads.convertedAt} >= ${startOfLastMonth.toISOString()} and ${leads.convertedAt} < ${startOfThisMonth.toISOString()}), 0)`,
 
-      urgentAwaitingCallback: sql<number>`count(*) filter (where ${leads.leadStatus} = 'new' and ${leads.urgencyScore} >= 7)`,
-      oldestUrgentWaitSeconds: sql<number>`coalesce(extract(epoch from (now() - min(${leads.createdAt}) filter (where ${leads.leadStatus} = 'new' and ${leads.urgencyScore} >= 7))), 0)`,
+      // "Awaiting callback" = captured but not yet contacted. Assessment auto-promotes
+      // a scored lead 'new' -> 'qualified' in the same write that sets the scores, so a
+      // 'new' lead never has an urgencyScore — the count must include 'qualified' or it's
+      // always 0. Manual 'new' leads have null urgency and simply don't match >= 7.
+      urgentAwaitingCallback: sql<number>`count(*) filter (where ${leads.leadStatus} in ('new','qualified') and ${leads.urgencyScore} >= 7)`,
+      oldestUrgentWaitSeconds: sql<number>`coalesce(extract(epoch from (now() - min(${leads.createdAt}) filter (where ${leads.leadStatus} in ('new','qualified') and ${leads.urgencyScore} >= 7))), 0)`,
 
       avgCallbackSecondsThisMonth: sql<number | null>`avg(extract(epoch from (${leads.contactedAt} - ${leads.createdAt}))) filter (where ${leads.contactedAt} is not null and ${leads.contactedAt} >= ${startOfThisMonth.toISOString()})`,
       avgCallbackSecondsLastMonth: sql<number | null>`avg(extract(epoch from (${leads.contactedAt} - ${leads.createdAt}))) filter (where ${leads.contactedAt} is not null and ${leads.contactedAt} >= ${startOfLastMonth.toISOString()} and ${leads.contactedAt} < ${startOfThisMonth.toISOString()})`,
@@ -79,14 +83,17 @@ export async function getSourceBreakdown(businessId: string) {
   }));
 }
 
-// The "call first" queue on the dashboard home — only leads still awaiting action
-// ('new'), ranked by the composite priorityScore (a lead drops off this widget once
-// it's marked contacted/booked/etc). Falls back to -1 so unscored leads sort last.
+// The "call first" queue on the dashboard home — leads still awaiting action, ranked by
+// the composite priorityScore. Statuses are 'new' (manual/unassessed) and 'qualified'
+// (AI-scored, not yet contacted): assessment flips a lead 'new' -> 'qualified' in the same
+// write that sets its scores, so filtering only 'new' would surface nothing but unscored
+// leads. A lead drops off once it's marked contacted/booked/etc. Falls back to -1 so any
+// unscored 'new' lead sorts last.
 export async function getPriorityQueue(businessId: string, limit = 4) {
   return db
     .select()
     .from(leads)
-    .where(and(eq(leads.businessId, businessId), eq(leads.leadStatus, "new"), isNull(leads.deletedAt)))
+    .where(and(eq(leads.businessId, businessId), inArray(leads.leadStatus, ["new", "qualified"]), isNull(leads.deletedAt)))
     .orderBy(desc(sql`coalesce(${leads.priorityScore}, -1)`), leads.createdAt)
     .limit(limit);
 }

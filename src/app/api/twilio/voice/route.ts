@@ -4,7 +4,7 @@ import { verifyTwilioWebhook } from "@/lib/twilio/webhook";
 import { generateDialTwiml, generateErrorTwiml, generateStreamTwiml } from "@/lib/twilio/twiml";
 import { createStreamToken } from "@/lib/twilio/stream-token";
 import { getBusinessByTwilioNumber } from "@/lib/db/queries/businesses";
-import { createCall } from "@/lib/db/queries/calls";
+import { createCall, updateCall } from "@/lib/db/queries/calls";
 import { normalizePhone } from "@/lib/utils/phone-validation";
 import { hasPaymentOnFile } from "@/lib/subscription";
 import { CALL_RING_TIMEOUT_SECONDS } from "@/lib/voice/config/constants";
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 
     const normalizedFrom = normalizePhone(callerNumber) ?? callerNumber;
 
-    await createCall({
+    const call = await createCall({
       businessId: business.id,
       twilioCallSid: callSid,
       callerPhone: normalizedFrom,
@@ -91,6 +91,11 @@ export async function POST(req: Request) {
     const shouldRingBusinessFirst = business.overflowMode !== "ai_immediate" && !!business.forwardingNumber;
 
     if (!shouldRingBusinessFirst) {
+      // Mark the AI as handling this call up front. aiHandled is the single "the AI took
+      // this call" signal across both entry paths (here for ai_immediate / no-forwarding,
+      // and the Dial-status overflow branch); the "Caller completion" metric divides by it,
+      // so it must be set here too or immediate-AI businesses show a permanently blank rate.
+      await updateCall(call.id, { aiHandled: true, overflowStartedAt: new Date() });
       return await handOffToAi(callSid, business.id);
     }
 

@@ -15,7 +15,6 @@ const OUTCOMES = [
   { value: "ai_captured", label: "Captured by Callverted" },
   { value: "transferred", label: "Transferred to team" },
   { value: "abandoned", label: "Caller abandoned" },
-  { value: "error", label: "Error / transfer failed" },
 ];
 
 const OUTCOME_META: Record<string, { label: string; icon: string; iconClass: string; sub: string }> = {
@@ -24,7 +23,6 @@ const OUTCOME_META: Record<string, { label: string; icon: string; iconClass: str
   ai_captured: { label: "Captured by Callverted", icon: "support_agent", iconClass: "bg-cv-primary-soft text-cv-primary", sub: "No answer — AI took over" },
   transferred: { label: "Transferred to team", icon: "phone_forwarded", iconClass: "bg-cv-green-soft text-cv-green", sub: "Caller asked for a person — bridged live" },
   abandoned: { label: "Caller abandoned", icon: "phone_missed", iconClass: "bg-cv-gray-soft text-[#667085]", sub: "Hung up before completing" },
-  error: { label: "Error", icon: "error", iconClass: "bg-cv-red-soft text-cv-red", sub: "Transfer failed" },
 };
 
 function fmtDuration(seconds: number | null) {
@@ -103,7 +101,7 @@ export default async function CallsPage({
         <MetricCard
           label="Caller completion"
           value={metrics.callerCompletionRate != null ? `${metrics.callerCompletionRate}%` : "—"}
-          note="Finished enough intake to create a lead"
+          note="AI-handled calls that captured a lead or reached your team"
         />
       </section>
 

@@ -12,7 +12,7 @@ export const leads = pgTable("leads", {
   callerEmail: text("caller_email"),
 
   // How this lead entered the system
-  source: text("source").notNull().default("direct_intake"), // 'voice_overflow' | 'website_widget' | 'direct_intake' | 'email' | 'manual'
+  source: text("source").notNull().default("direct_intake"), // 'voice_overflow' | 'voice_human' | 'website_widget' | 'direct_intake' | 'email' | 'manual'
 
   // Telephony state (only relevant for voice_overflow source)
   callStatus: text("call_status"), // 'initiated' | 'ringing' | 'answered' | 'missed'

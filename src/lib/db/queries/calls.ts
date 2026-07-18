@@ -73,24 +73,25 @@ export async function getCallMetrics(businessId: string) {
       inboundTotal: sql<number>`count(*)`,
       answeredByTeam: sql<number>`count(*) filter (where ${calls.outcome} = 'business_answered')`,
       overflowCaptured: sql<number>`count(*) filter (where ${calls.outcome} = 'ai_captured')`,
-      overflowStarted: sql<number>`count(*) filter (where ${calls.overflowStartedAt} is not null)`,
-      leadCreated: sql<number>`count(*) filter (where ${calls.leadId} is not null)`,
-      transferred: sql<number>`count(*) filter (where ${calls.outcome} = 'transferred')`,
+      // Denominator + numerator are BOTH scoped to AI-handled calls. aiHandled is set on
+      // every call the AI takes (overflow after no-answer, and immediate-AI). Scoping the
+      // numerator here is what keeps the rate <= 100%: a team-answered call that later gets
+      // a leadId attached (voice_human capture) has aiHandled=false and is correctly excluded.
+      aiHandledTotal: sql<number>`count(*) filter (where ${calls.aiHandled})`,
+      // Resolved = the AI either captured a lead or warm-transferred the caller to a human.
+      // These outcomes are mutually exclusive on a single call, so no double-counting.
+      aiResolved: sql<number>`count(*) filter (where ${calls.aiHandled} and (${calls.leadId} is not null or ${calls.outcome} = 'transferred'))`,
     })
     .from(calls)
     .where(eq(calls.businessId, businessId));
 
   const n = (v: unknown) => Number(v ?? 0);
-  const overflowStarted = n(row.overflowStarted);
-  // A successful warm transfer resolves the call just as well as a captured
-  // lead — a human is already handling the caller live — so it counts toward
-  // completion too, even though it never creates a lead row.
-  const resolved = n(row.leadCreated) + n(row.transferred);
+  const aiHandledTotal = n(row.aiHandledTotal);
 
   return {
     inboundTotal: n(row.inboundTotal),
     answeredByTeam: n(row.answeredByTeam),
     overflowCaptured: n(row.overflowCaptured),
-    callerCompletionRate: overflowStarted > 0 ? Math.round((resolved / overflowStarted) * 100) : null,
+    callerCompletionRate: aiHandledTotal > 0 ? Math.round((n(row.aiResolved) / aiHandledTotal) * 100) : null,
   };
 }

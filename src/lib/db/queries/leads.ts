@@ -45,7 +45,10 @@ export async function getLeadsByBusiness(
   // Tier thresholds mirror PRIORITY_TIERS in scoring.ts (Hot >= 65, Warm 40-64, Cool < 40).
   if (priority === "hot") filters.push(sql`${leads.priorityScore} >= 65`);
   if (priority === "warm") filters.push(sql`${leads.priorityScore} >= 40 and ${leads.priorityScore} < 65`);
-  if (priority === "cool") filters.push(sql`(${leads.priorityScore} < 40 or ${leads.priorityScore} is null)`);
+  // Cool = genuinely scored-and-low. A null priorityScore is "Unscored" (a manual lead that
+  // never ran assessment), a distinct state shown under "All", not folded into Cool — this
+  // matches the tierMeta(null) -> "Unscored" badge so the filter and the badge agree.
+  if (priority === "cool") filters.push(sql`${leads.priorityScore} < 40`);
   if (search) {
     filters.push(
       or(
@@ -94,20 +97,25 @@ export async function getLeadStatsForPeriod(businessId: string, since: Date) {
       total: sql<number>`count(*)`,
       missedCalls: sql<number>`count(*) filter (where ${leads.source} = 'voice_overflow')`,
       intakeCompleted: sql<number>`count(*) filter (where ${leads.intakeStatus} = 'completed')`,
+      // Denominator for the completion rate: only leads where intake actually ran. Manual,
+      // email, and short-path voice-human leads legitimately stay 'not_started' and never
+      // run Q&A, so counting them in the denominator understates the true completion rate.
+      intakeEligible: sql<number>`count(*) filter (where ${leads.intakeStatus} <> 'not_started')`,
       converted: sql<number>`count(*) filter (where ${leads.leadStatus} = 'converted')`,
-      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.leadStatus} in ('qualified', 'converted')), 0)`,
+      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.leadStatus} in ('qualified', 'contacted', 'booked', 'estimate_sent', 'converted')), 0)`,
     })
     .from(leads)
     .where(and(eq(leads.businessId, businessId), sql`${leads.createdAt} >= ${since.toISOString()}`, isNull(leads.deletedAt)));
 
   const total = Number(row.total);
   const intakeCompleted = Number(row.intakeCompleted);
+  const intakeEligible = Number(row.intakeEligible);
   return {
     total,
     missedCalls: Number(row.missedCalls),
     converted: Number(row.converted),
     estimatedRevenue: Number(row.estimatedRevenue),
-    intakeCompletionRate: total > 0 ? Math.round((intakeCompleted / total) * 100) : null,
+    intakeCompletionRate: intakeEligible > 0 ? Math.round((intakeCompleted / intakeEligible) * 100) : null,
   };
 }
 
@@ -119,8 +127,12 @@ export async function getLeadStatsBetween(businessId: string, since: Date, until
       total: sql<number>`count(*)`,
       missedCalls: sql<number>`count(*) filter (where ${leads.source} = 'voice_overflow')`,
       intakeCompleted: sql<number>`count(*) filter (where ${leads.intakeStatus} = 'completed')`,
+      // Denominator for the completion rate: only leads where intake actually ran. Manual,
+      // email, and short-path voice-human leads legitimately stay 'not_started' and never
+      // run Q&A, so counting them in the denominator understates the true completion rate.
+      intakeEligible: sql<number>`count(*) filter (where ${leads.intakeStatus} <> 'not_started')`,
       converted: sql<number>`count(*) filter (where ${leads.leadStatus} = 'converted')`,
-      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.leadStatus} in ('qualified', 'converted')), 0)`,
+      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.leadStatus} in ('qualified', 'contacted', 'booked', 'estimate_sent', 'converted')), 0)`,
     })
     .from(leads)
     .where(
@@ -134,12 +146,13 @@ export async function getLeadStatsBetween(businessId: string, since: Date, until
 
   const total = Number(row.total);
   const intakeCompleted = Number(row.intakeCompleted);
+  const intakeEligible = Number(row.intakeEligible);
   return {
     total,
     missedCalls: Number(row.missedCalls),
     converted: Number(row.converted),
     estimatedRevenue: Number(row.estimatedRevenue),
-    intakeCompletionRate: total > 0 ? Math.round((intakeCompleted / total) * 100) : null,
+    intakeCompletionRate: intakeEligible > 0 ? Math.round((intakeCompleted / intakeEligible) * 100) : null,
   };
 }
 
@@ -152,16 +165,21 @@ export async function getLeadStats(businessId: string) {
       totalThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${startOfMonth.toISOString()})`,
       missedCallsThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${startOfMonth.toISOString()} and ${leads.source} = 'voice_overflow')`,
       intakeCompleted: sql<number>`count(*) filter (where ${leads.intakeStatus} = 'completed')`,
+      // Denominator for the completion rate: only leads where intake actually ran. Manual,
+      // email, and short-path voice-human leads legitimately stay 'not_started' and never
+      // run Q&A, so counting them in the denominator understates the true completion rate.
+      intakeEligible: sql<number>`count(*) filter (where ${leads.intakeStatus} <> 'not_started')`,
       converted: sql<number>`count(*) filter (where ${leads.leadStatus} = 'converted')`,
       // Use midpoint of low/high range for a conservative pipeline estimate
-      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.leadStatus} in ('qualified', 'converted')), 0)`,
+      estimatedRevenue: sql<number>`coalesce(sum((${leads.estimatedValueLow} + ${leads.estimatedValueHigh}) / 2) filter (where ${leads.leadStatus} in ('qualified', 'contacted', 'booked', 'estimate_sent', 'converted')), 0)`,
     })
     .from(leads)
     .where(eq(leads.businessId, businessId));
 
   const total = Number(row.totalThisMonth);
   const intakeCompleted = Number(row.intakeCompleted);
-  const intakeCompletionRate = total > 0 ? Math.round((intakeCompleted / total) * 100) : null;
+  const intakeEligible = Number(row.intakeEligible);
+  const intakeCompletionRate = intakeEligible > 0 ? Math.round((intakeCompleted / intakeEligible) * 100) : null;
 
   return {
     totalThisMonth: total,

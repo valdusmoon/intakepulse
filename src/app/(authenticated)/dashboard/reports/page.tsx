@@ -40,12 +40,17 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   ];
   const maxFunnel = Math.max(1, funnel.captured);
   const biggestDropoff = (() => {
+    // Only consider stages that actually have volume feeding them — an empty later stage
+    // (e.g. nothing qualified yet) would otherwise report 0% and be picked as the "biggest
+    // opportunity" purely because it has no data, which is misleading on low-volume accounts.
     const gaps = [
-      { label: "leads to qualified", pct: funnel.captured > 0 ? Math.round((funnel.qualified / funnel.captured) * 100) : 0 },
-      { label: "qualify to contact", pct: funnel.qualified > 0 ? Math.round((funnel.contacted / funnel.qualified) * 100) : 0 },
-      { label: "contact to won", pct: funnel.contacted > 0 ? Math.round((funnel.won / funnel.contacted) * 100) : 0 },
-    ];
-    return gaps.reduce((worst, g) => (g.pct < worst.pct ? g : worst));
+      { label: "leads to qualified", denom: funnel.captured, num: funnel.qualified },
+      { label: "qualify to contact", denom: funnel.qualified, num: funnel.contacted },
+      { label: "contact to won", denom: funnel.contacted, num: funnel.won },
+    ]
+      .filter((g) => g.denom > 0)
+      .map((g) => ({ label: g.label, pct: Math.round((g.num / g.denom) * 100) }));
+    return gaps.length ? gaps.reduce((worst, g) => (g.pct < worst.pct ? g : worst)) : null;
   })();
   const wonRevenue = channels.reduce((sum, c) => sum + c.revenue, 0);
 
@@ -69,7 +74,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           note={funnel.captured > 0 ? `${Math.round((funnel.qualified / funnel.captured) * 100)}% of captured leads` : undefined}
         />
         <MetricCard label="Jobs won" value={funnel.won} note={funnel.qualified > 0 ? `${Math.round((funnel.won / funnel.qualified) * 100)}% of qualified opportunities` : undefined} />
-        <MetricCard label="Confirmed won revenue" value={fmtCents(wonRevenue) ?? "$0"} note="Reported by your team" valueColor="var(--color-cv-primary-dark)" />
+        <MetricCard label="Won revenue" value={fmtCents(wonRevenue) ?? "$0"} note="Confirmed where reported, else estimated" valueColor="var(--color-cv-primary-dark)" />
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr] gap-4">
@@ -102,7 +107,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 .filter((_, i) => i % Math.ceil(series.length / 6) === 0)
                 .map((d) => (
                   <span key={d.day} className="flex-1 text-center">
-                    {new Date(d.day).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    {new Date(`${d.day}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                   </span>
                 ))}
             </div>
@@ -130,9 +135,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <span>{step.value}</span>
               </div>
             ))}
-            <p className="text-[11px] text-cv-muted text-center mt-1">
-              Biggest opportunity: improve {biggestDropoff.label} completion from {biggestDropoff.pct}%.
-            </p>
+            {biggestDropoff && (
+              <p className="text-[11px] text-cv-muted text-center mt-1">
+                Biggest opportunity: improve {biggestDropoff.label} completion from {biggestDropoff.pct}%.
+              </p>
+            )}
           </CardBody>
         </Card>
       </section>

@@ -23,7 +23,7 @@ export const calls = pgTable("calls", {
 
   status: text("status").notNull().default("initiated"), // 'initiated' | 'ringing' | 'answered' | 'missed' | 'voicemail'
 
-  // 'in_progress' | 'business_answered' | 'ai_captured' | 'abandoned' | 'error'
+  // 'in_progress' | 'business_answered' | 'ai_captured' | 'transferred' | 'abandoned'
   outcome: text("outcome").notNull().default("in_progress"),
   // True once the AI overflow receptionist took over this call
   aiHandled: boolean("ai_handled").notNull().default(false),

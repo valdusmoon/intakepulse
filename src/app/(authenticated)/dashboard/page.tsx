@@ -95,7 +95,16 @@ export default async function DashboardPage({
         icon: "paid",
         iconClass: "bg-cv-green-soft text-cv-green",
         title: "Lead marked won",
-        body: `${fmtCents(lead.confirmedValue ?? lead.estimatedValueHigh) ?? "Revenue"} recorded for ${name}.`,
+        body: `${
+          fmtCents(
+            // Match the KPI card's midpoint estimate when no confirmed value is on file,
+            // rather than the top-of-range high end (which read as an inflated "recorded" figure).
+            lead.confirmedValue ??
+              (lead.estimatedValueLow != null && lead.estimatedValueHigh != null
+                ? Math.round((lead.estimatedValueLow + lead.estimatedValueHigh) / 2)
+                : null)
+          ) ?? "Revenue"
+        } recorded for ${name}.`,
         time: lead.updatedAt,
       });
     } else if (lead.source === "website_widget" && lead.intakeStatus === "completed") {
