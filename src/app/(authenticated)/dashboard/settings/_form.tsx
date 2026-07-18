@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Business } from "@/lib/db/schema/businesses";
 import type { PricingRule, PricingType } from "@/lib/db/schema/pricingRules";
 import { labelForCategory, resolveServiceCategory, buildApprovedMessage } from "@/lib/verticals/pricingRuleHelpers";
+import { SUPPORTED_TIMEZONES } from "@/lib/utils/datetime";
 import {
   Card,
   CardHeader,
@@ -887,6 +888,7 @@ function BusinessProfilePanel({ business }: { business: Business }) {
   const [businessName, setBusinessName] = useState(business.businessName);
   const [ownerName, setOwnerName] = useState(business.ownerName);
   const [serviceArea, setServiceArea] = useState(business.serviceArea ?? "");
+  const [timezone, setTimezone] = useState(business.timezone);
   const { loading, saved, error, save } = useSave();
 
   return (
@@ -910,8 +912,14 @@ function BusinessProfilePanel({ business }: { business: Business }) {
           <FormGroup label="Owner name">
             <Field value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
           </FormGroup>
-          <FormGroup label="Timezone">
-            <Field value={business.timezone} readOnly />
+          <FormGroup label="Timezone" help="Call times, reports, and emails are shown in this zone.">
+            <Select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+              {SUPPORTED_TIMEZONES.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </Select>
           </FormGroup>
           <FormGroup label="Primary service area">
             <Field value={serviceArea} onChange={(e) => setServiceArea(e.target.value)} placeholder="Greater Chicago Area" />
@@ -922,7 +930,7 @@ function BusinessProfilePanel({ business }: { business: Business }) {
           variant="primary"
           className="self-end"
           disabled={loading}
-          onClick={() => save({ businessName, ownerName, serviceArea: serviceArea || null })}
+          onClick={() => save({ businessName, ownerName, serviceArea: serviceArea || null, timezone })}
         >
           {loading ? "Saving…" : saved ? "Saved ✓" : "Save profile"}
         </Button>

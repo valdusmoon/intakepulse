@@ -9,11 +9,12 @@ import { getCallByLeadId } from "@/lib/db/queries/calls";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { formatIntakeAnswers, deriveServiceLabel, isOffListService } from "@/lib/verticals/labels";
 import { tierMeta, highValueBadge, intentMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort } from "@/lib/leads/priority";
+import { formatInTimezone } from "@/lib/utils/datetime";
 import { Card, CardHeader, CardTitle, CardBody, Badge, Icon } from "@/components/dashboard/v2/primitives";
 import { LeadDetailClient } from "./_client";
 
-function fmtTime(date: Date | string) {
-  return new Date(date).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+function fmtTime(date: Date | string, tz: string) {
+  return formatInTimezone(date, tz, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 // Build a flat, time-sorted event list from available data
@@ -268,7 +269,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                       <div className="absolute -left-[19px] top-1 w-[9px] h-[9px] rounded-full bg-white border-2 border-cv-primary" />
                       <strong className="block text-[11px]">{e.label}</strong>
                       {e.sub && <span className="block mt-0.5 text-[10px] text-cv-muted truncate">{e.sub}</span>}
-                      <span className="block mt-0.5 text-[10px] text-cv-muted">{fmtTime(e.time)}</span>
+                      <span className="block mt-0.5 text-[10px] text-cv-muted">{fmtTime(e.time, business.timezone)}</span>
                     </div>
                   ))}
                 </div>

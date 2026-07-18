@@ -6,6 +6,7 @@ import { getCallsByBusiness, getCallMetrics } from "@/lib/db/queries/calls";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel } from "@/lib/verticals/labels";
 import { priorityMeta } from "@/lib/leads/priority";
+import { formatInTimezone, dateKeyInTimezone } from "@/lib/utils/datetime";
 import { Card, MetricCard, Icon } from "@/components/dashboard/v2/primitives";
 import { CallRow } from "./_call-row";
 
@@ -32,17 +33,15 @@ function fmtDuration(seconds: number | null) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function fmtDateTime(date: Date) {
-  const d = new Date(date);
-  const today = new Date();
-  const isToday = d.toDateString() === today.toDateString();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const isYesterday = d.toDateString() === yesterday.toDateString();
-  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  if (isToday) return `Today · ${time}`;
-  if (isYesterday) return `Yesterday · ${time}`;
-  return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${time}`;
+function fmtDateTime(date: Date, tz: string) {
+  const time = formatInTimezone(date, tz, { hour: "numeric", minute: "2-digit" });
+  const dayKey = dateKeyInTimezone(date, tz);
+  const now = new Date();
+  const todayKey = dateKeyInTimezone(now, tz);
+  const yesterdayKey = dateKeyInTimezone(new Date(now.getTime() - 24 * 60 * 60 * 1000), tz);
+  if (dayKey === todayKey) return `Today · ${time}`;
+  if (dayKey === yesterdayKey) return `Yesterday · ${time}`;
+  return `${formatInTimezone(date, tz, { month: "short", day: "numeric" })} · ${time}`;
 }
 
 export default async function CallsPage({
@@ -153,7 +152,7 @@ export default async function CallsPage({
                     <CallRow
                       key={call.id}
                       callerPhone={call.callerPhone}
-                      dateTime={fmtDateTime(call.createdAt)}
+                      dateTime={fmtDateTime(call.createdAt, business.timezone)}
                       outcomeMeta={meta}
                       service={service}
                       duration={fmtDuration(call.durationSeconds)}
