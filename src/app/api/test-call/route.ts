@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { getBusinessByClerkId, updateBusiness } from "@/lib/db/queries/businesses";
 import { buildFlowContext, createSession, initializeOpenAIForTest, loadBusinessCallData } from "@/lib/voice/call-manager";
 import { buildLeadPacket } from "@/lib/voice/lead-packet";
+import { formatIntakeAnswers } from "@/lib/verticals/labels";
 import { OpenAIHandlerService } from "@/lib/voice/openai-handler.service";
 import * as engine from "@/lib/voice/state-machine/engine";
 import type { FlowContext } from "@/lib/voice/state-machine/types";
@@ -138,6 +139,11 @@ export async function POST(req: NextRequest) {
     lines: cc.transcript.slice(linesFrom).map((t) => ({ role: t.role, message: t.message })),
     state: ctx.session.state,
     answers: cc.answers,
+    // Human-labeled Q&A ("What type of damage?" → "Fire or Smoke") — same shape
+    // the lead detail page uses, so the inspector/preview show real labels, not
+    // raw enum values.
+    answersFormatted: formatIntakeAnswers(ctx.verticalConfig.questions, cc.answers),
+    serviceRequested: cc.serviceRequested ?? null,
     ended,
     // Test calls are never persisted (no lead, no call row) — see engine.ts
     // finishCall, which skips captureLeadOnce for isTestCall sessions. Instead

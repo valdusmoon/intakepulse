@@ -34,7 +34,9 @@ export function buildLeadPacket(ctx: FlowContext): LeadPacket {
   const answers = cc.answers;
 
   const primaryQuestion = verticalConfig.questions[0];
-  const service = primaryQuestion?.options?.find((o) => o.value === answers[primaryQuestion.key])?.label ?? null;
+  const matchedService = primaryQuestion?.options?.find((o) => o.value === answers[primaryQuestion.key])?.label ?? null;
+  // Off-list service (no matched option) → show the caller's own words instead.
+  const service = matchedService ?? cc.serviceRequested ?? null;
   const urgencyQuestion = verticalConfig.questions.find((q) => q.key === "urgency");
   const urgency = urgencyQuestion?.options?.find((o) => o.value === answers.urgency)?.label ?? null;
 

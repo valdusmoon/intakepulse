@@ -28,6 +28,8 @@ interface TurnResponse {
   lines: Line[];
   state: string;
   answers: Record<string, string>;
+  answersFormatted: { key: string; label: string; value: string }[];
+  serviceRequested: string | null;
   // Test calls are never persisted, so there is no lead id. Instead the server
   // returns the ephemeral packet a real call would have produced, once ended.
   preview: LeadPacket | null;
@@ -77,7 +79,8 @@ export function TestCallClient({ businessName }: { businessName: string }) {
   const [started, setStarted] = useState(false);
   const [lines, setLines] = useState<Line[]>([]);
   const [state, setState] = useState<string | null>(null);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answersFmt, setAnswersFmt] = useState<{ key: string; label: string; value: string }[]>([]);
+  const [serviceRequested, setServiceRequested] = useState<string | null>(null);
   const [meta, setMeta] = useState<TurnMeta | null>(null);
   const [preview, setPreview] = useState<LeadPacket | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -140,7 +143,8 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setStarted(true);
     setLines((prev) => (appendLines ? [...prev, ...data.lines] : data.lines));
     setState(data.state);
-    setAnswers(data.answers);
+    setAnswersFmt(data.answersFormatted ?? []);
+    setServiceRequested(data.serviceRequested ?? null);
     setMeta(data.meta ?? null);
     setPreview(data.preview);
     setEnded(data.ended);
@@ -150,7 +154,8 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setLoading(true);
     setError(null);
     setLines([]);
-    setAnswers({});
+    setAnswersFmt([]);
+    setServiceRequested(null);
     setMeta(null);
     setPreview(null);
     setShowPreview(false);
@@ -428,7 +433,7 @@ export function TestCallClient({ businessName }: { businessName: string }) {
         </CardBody>
       </Card>
 
-      <CallInspector state={state} answers={answers} meta={meta} />
+      <CallInspector state={state} answersFmt={answersFmt} serviceRequested={serviceRequested} meta={meta} />
 
       <PlanChoiceModal
         open={showPlanModal}
@@ -558,11 +563,13 @@ function LeadPreview({ packet, onClose }: { packet: LeadPacket; onClose: () => v
 
 function CallInspector({
   state,
-  answers,
+  answersFmt,
+  serviceRequested,
   meta,
 }: {
   state: string | null;
-  answers: Record<string, string>;
+  answersFmt: { key: string; label: string; value: string }[];
+  serviceRequested: string | null;
   meta: TurnMeta | null;
 }) {
   const captured: { label: string; value: string }[] = [];
@@ -577,8 +584,6 @@ function CallInspector({
   if (meta?.priceMessage) captured.push({ label: "Estimate", value: meta.priceMessage });
   if (meta?.transferred) captured.push({ label: "Transfer", value: "Bridged to human" });
 
-  const answerEntries = Object.entries(answers);
-
   return (
     <Card>
       <CardHeader>
@@ -592,14 +597,20 @@ function CallInspector({
 
         <div>
           <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold mb-2">Qualifying answers</div>
-          {answerEntries.length === 0 ? (
+          {answersFmt.length === 0 && !serviceRequested ? (
             <div className="text-sm text-cv-muted">None yet</div>
           ) : (
-            <dl className="text-sm space-y-1.5">
-              {answerEntries.map(([key, value]) => (
-                <div key={key} className="flex justify-between gap-2">
-                  <dt className="text-cv-muted capitalize">{key.replace(/_/g, " ")}</dt>
-                  <dd className="font-semibold text-cv-ink text-right">{value}</dd>
+            <dl className="text-sm space-y-2">
+              {serviceRequested && !answersFmt.some((a) => a.key === "service_type") && (
+                <div>
+                  <dt className="text-[11px] text-cv-muted">Service requested</dt>
+                  <dd className="font-semibold text-cv-ink">{serviceRequested}</dd>
+                </div>
+              )}
+              {answersFmt.map((a) => (
+                <div key={a.key}>
+                  <dt className="text-[11px] text-cv-muted">{a.label}</dt>
+                  <dd className="font-semibold text-cv-ink">{a.value}</dd>
                 </div>
               ))}
             </dl>
