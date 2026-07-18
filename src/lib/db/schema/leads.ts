@@ -44,6 +44,11 @@ export const leads = pgTable("leads", {
   // list"), this free text is the only service record and no quote is given.
   serviceRequested: text("service_requested"),
 
+  // How far a voice intake actually got, for at-a-glance triage:
+  // 'complete' | 'partial' | 'message_only' | 'abandoned'. Voice path only —
+  // null for web/manual leads. Kept coarse on purpose (see deriveLeadCompletionStatus).
+  leadCompletionStatus: text("lead_completion_status"),
+
   // Intake answers stored as a single JSONB object keyed to vertical config question keys.
   // e.g. { service_type: "water", urgency: "emergency", time_since_issue: "today", has_coverage: "covered" }
   // Nullable — a lead exists before intake is completed (do not assume this is populated).

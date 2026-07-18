@@ -74,6 +74,15 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const formattedAnswers = formatIntakeAnswers(verticalConfig?.questions ?? [], lead.intakeAnswers);
   const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
   const offListService = isOffListService(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
+  // Coarse "how far the intake got" badge (voice leads only). "complete" shows
+  // nothing — a clean lead doesn't need a flag.
+  const completionBadge = (
+    {
+      partial: { label: "Partial intake", color: "amber" },
+      message_only: { label: "Message only", color: "blue" },
+      abandoned: { label: "Caller dropped", color: "gray" },
+    } as Record<string, { label: string; color: "amber" | "blue" | "gray" }>
+  )[lead.leadCompletionStatus ?? ""];
   const displayName = lead.callerName ?? lead.callerPhone;
   const valueRange = fmtValueRange(lead.estimatedValueLow, lead.estimatedValueHigh);
   const hasCallEvidence = Boolean(call);
@@ -90,6 +99,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="font-cv-heading text-[34px] leading-[1.15] tracking-tight">{displayName}</h1>
             <Badge color={priority.color}>{priority.label}</Badge>
+            {completionBadge && <Badge color={completionBadge.color}>{completionBadge.label}</Badge>}
             <Badge color={intent.color}>{intent.label}</Badge>
           </div>
           <p className="mt-[7px] text-cv-muted text-sm">

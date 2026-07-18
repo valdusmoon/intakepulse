@@ -100,6 +100,38 @@ export function deriveIntakeStatus(ctx: FlowContext): "not_started" | "started" 
   return allAnswered ? "completed" : "abandoned";
 }
 
+export type LeadCompletionStatus = "complete" | "partial" | "message_only" | "abandoned";
+
+/**
+ * A single, deliberately-coarse signal of how far a voice intake got, so the
+ * owner can triage at a glance ("solid lead vs scrap") without reading the
+ * transcript. Kept simple and in ONE place on purpose — easy to retune later.
+ * Voice path only; other channels leave it null.
+ */
+export function deriveLeadCompletionStatus(ctx: FlowContext): LeadCompletionStatus {
+  const cc = ctx.session.conversationContext;
+  const primaryKey = ctx.verticalConfig.questions[0]?.key;
+  const matchedService = !!primaryKey && primaryKey in cc.answers;
+  const hasService = matchedService || !!cc.serviceRequested;
+
+  // Existing customer / just leaving a message — not a new-job intake.
+  if (ctx.session.isNewCustomer === false) return "message_only";
+
+  // Caller dropped before giving us anything usable.
+  if (!hasService && !cc.zipCode && !cc.callerName) return "abandoned";
+
+  // Everything captured cleanly: a matched (quotable) service, a real urgency,
+  // a ZIP, and a name. Anything off-list, degraded, or skipped → partial.
+  const clean =
+    matchedService &&
+    !!cc.answers.urgency &&
+    cc.answers.urgency !== "unknown" &&
+    !!cc.zipCode &&
+    !cc.zipSkipped &&
+    !!cc.callerName;
+  return clean ? "complete" : "partial";
+}
+
 /**
  * Creates the lead and runs it through the SAME scoring pipeline the web
  * intake form uses (scoreLeadFromAnswers + assessLead) — voice answers are
@@ -118,6 +150,7 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
     source: session.isTestCall ? "voice_test" : "voice_overflow",
     callStatus: "missed",
     intakeStatus: deriveIntakeStatus(ctx),
+    leadCompletionStatus: deriveLeadCompletionStatus(ctx),
     intakeAnswers: answers,
     serviceRequested: session.conversationContext.serviceRequested ?? null,
     notes: session.conversationContext.reasonForCall ?? null,
