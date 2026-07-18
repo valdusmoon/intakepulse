@@ -31,7 +31,10 @@ export const TIMEOUTS = {
 export const CALL_RING_TIMEOUT_SECONDS = Number(process.env.CALL_RING_TIMEOUT_SECONDS) || 15;
 
 export const OPENAI_CONFIG = {
-  VOICE: "alloy" as const,
+  // Fixed product voice (per-business voice selection was removed). "marin" is a
+  // next-gen gpt-realtime voice — warmer/more natural than alloy, supported by
+  // the OPENAI_REALTIME_MODEL default (gpt-realtime-2.1-mini).
+  VOICE: "marin" as const,
 
   /** Lower for deterministic classification */
   TEMPERATURE: 0.4,
