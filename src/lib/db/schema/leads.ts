@@ -37,6 +37,13 @@ export const leads = pgTable("leads", {
   // AI's estimated range above. Settable any time, not just on conversion.
   confirmedValue: integer("confirmed_value"), // cents
 
+  // The service the caller actually asked for, in their own words — captured on
+  // every voice call (primary question is asked open-ended) and by the web form's
+  // "Other" option. When it maps to a configured service, that structured value
+  // also lands in intakeAnswers and drives scoring/quote; when it doesn't ("off
+  // list"), this free text is the only service record and no quote is given.
+  serviceRequested: text("service_requested"),
+
   // Intake answers stored as a single JSONB object keyed to vertical config question keys.
   // e.g. { service_type: "water", urgency: "emergency", time_since_issue: "today", has_coverage: "covered" }
   // Nullable — a lead exists before intake is completed (do not assume this is populated).

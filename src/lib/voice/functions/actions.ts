@@ -86,11 +86,17 @@ export function deriveIntakeStatus(ctx: FlowContext): "not_started" | "started" 
   if (!session.hasStartedQualification) return "not_started";
 
   const answers = session.conversationContext.answers;
+  const primaryKey = verticalConfig.questions[0]?.key;
+  const serviceCaptured = !!session.conversationContext.serviceRequested;
   const visible = getVisibleQuestions(verticalConfig.questions, answers);
   // voiceExtractOnly fields are never asked on a voice call, so a call is
   // "completed" once every *askable* visible question is answered — not gated on
-  // enrichment fields the caller may simply never have mentioned.
-  const allAnswered = visible.filter((q) => !q.voiceExtractOnly).every((q) => q.key in answers);
+  // enrichment fields the caller may simply never have mentioned. An off-list
+  // service counts as answered via serviceRequested (structured primary empty),
+  // so an off-list call is completed, not abandoned.
+  const allAnswered = visible
+    .filter((q) => !q.voiceExtractOnly)
+    .every((q) => q.key in answers || (q.key === primaryKey && serviceCaptured));
   return allAnswered ? "completed" : "abandoned";
 }
 
@@ -113,6 +119,7 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
     callStatus: "missed",
     intakeStatus: deriveIntakeStatus(ctx),
     intakeAnswers: answers,
+    serviceRequested: session.conversationContext.serviceRequested ?? null,
     notes: session.conversationContext.reasonForCall ?? null,
     smsConsent: false,
   });

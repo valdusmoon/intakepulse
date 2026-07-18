@@ -160,7 +160,7 @@ export default async function LeadsPage({
                   const p = priorityMeta(lead.urgencyScore);
                   const intent = intentMeta(lead.qualityScore);
                   const status = statusMeta(lead.leadStatus);
-                  const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers);
+                  const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
                   const reason = deriveReasonLine(verticalConfig, lead.intakeAnswers);
                   const value = fmtValueRange(lead.estimatedValueLow, lead.estimatedValueHigh);
                   return (

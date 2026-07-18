@@ -40,6 +40,19 @@ export function formatIntakeAnswers(
  */
 export function deriveServiceLabel(
   verticalConfig: Pick<VerticalConfig, "questions"> | null | undefined,
+  answers: Record<string, string | string[]> | null | undefined,
+  serviceRequested?: string | null
+): string | null {
+  // A matched configured service (structured primary answer) wins; otherwise fall
+  // back to the caller's own words — an "off-list" service the business doesn't
+  // have configured (so it never got a quote, but the request is still recorded).
+  const matched = matchedServiceLabel(verticalConfig, answers);
+  if (matched) return matched;
+  return serviceRequested?.trim() || null;
+}
+
+function matchedServiceLabel(
+  verticalConfig: Pick<VerticalConfig, "questions"> | null | undefined,
   answers: Record<string, string | string[]> | null | undefined
 ): string | null {
   if (!verticalConfig || !answers) return null;
@@ -47,8 +60,17 @@ export function deriveServiceLabel(
   if (!primary) return null;
   const raw = answers[primary.key];
   if (!raw) return null;
-  const label = Array.isArray(raw) ? raw.map((v) => getAnswerOptionLabel(primary, v)).join(", ") : getAnswerOptionLabel(primary, raw);
-  return label;
+  return Array.isArray(raw) ? raw.map((v) => getAnswerOptionLabel(primary, v)).join(", ") : getAnswerOptionLabel(primary, raw);
+}
+
+/** Whether a lead's service is off the business's configured list — i.e. we have
+ *  the caller's own words but no matched structured service (so no quote was given). */
+export function isOffListService(
+  verticalConfig: Pick<VerticalConfig, "questions"> | null | undefined,
+  answers: Record<string, string | string[]> | null | undefined,
+  serviceRequested?: string | null
+): boolean {
+  return !matchedServiceLabel(verticalConfig, answers) && !!serviceRequested?.trim();
 }
 
 /**

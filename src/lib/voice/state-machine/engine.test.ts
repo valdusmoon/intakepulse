@@ -191,3 +191,80 @@ describe("adaptive engine flow", () => {
     expect(ctx.session.state).toBe("confirmation");
   });
 });
+
+// The revamped flow: the service question is asked open-ended (voiceOpenAsk), an
+// off-list service is captured as free text instead of dead-ending, and only
+// urgency is asked after it (timing/coverage are voiceExtractOnly).
+const RESTORATION_V2: VerticalQuestion[] = [
+  { key: "service_type", label: "What service do you need?", type: "single_select", options: [{ value: "water", label: "Water" }, { value: "fire", label: "Fire or Smoke" }, { value: "mold", label: "Mold" }], required: true, voiceOpenAsk: true },
+  { key: "urgency", label: "How urgent is this?", type: "single_select", options: [{ value: "emergency", label: "Emergency" }, { value: "soon", label: "Soon" }, { value: "flexible", label: "Flexible" }], required: true },
+  { key: "time_since_issue", label: "When did it start?", type: "single_select", options: [{ value: "today", label: "Today" }], required: true, voiceExtractOnly: true },
+  { key: "has_coverage", label: "Insurance?", type: "single_select", options: [{ value: "yes", label: "Yes" }], required: true, voiceExtractOnly: true },
+];
+
+function ctxV2(): FlowContext {
+  return makeFlowContext({ verticalConfig: makeVerticalConfig(RESTORATION_V2), session: makeSession() });
+}
+
+function lastSpoken(ctx: FlowContext): string {
+  const t = [...ctx.session.conversationContext.transcript].reverse().find((e) => e.role === "assistant");
+  return t?.message ?? "";
+}
+
+describe("open-ended service ask + off-list capture", () => {
+  it("asks the service question open-ended, with no spoken menu", async () => {
+    const ctx = ctxV2();
+    const client = mockClient();
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "new" });
+    expect(ctx.session.state).toBe("qualification");
+    expect(ctx.session.currentQuestionKey).toBe("service_type");
+    const prompt = lastSpoken(ctx);
+    expect(prompt).not.toMatch(/press \d/i);
+    expect(prompt.toLowerCase()).toContain("just tell me");
+  });
+
+  it("captures an off-list service as free text instead of dead-ending to voicemail", async () => {
+    const ctx = ctxV2();
+    const client = mockClient();
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "new" });
+    expect(ctx.session.currentQuestionKey).toBe("service_type");
+
+    await engine.handleTranscript(ctx, client, "I need drywall repair after a leak");
+    await engine.handleToolCall(ctx, client, "classify_answer", { value: "unclear" }); // 1st miss → retry
+    expect(ctx.session.state).toBe("qualification");
+
+    await engine.handleTranscript(ctx, client, "drywall repair");
+    await engine.handleToolCall(ctx, client, "classify_answer", { value: "unclear" }); // exhausted → off-list
+
+    expect(ctx.session.conversationContext.serviceRequested).toBeTruthy();
+    expect(ctx.session.conversationContext.answers.service_type).toBeUndefined();
+    expect(ctx.session.state).not.toBe("fallback_voicemail");
+    expect(ctx.session.state).toBe("zip_code");
+  });
+
+  it("a matched spoken service is stored structurally AND as serviceRequested", async () => {
+    const ctx = ctxV2();
+    const client = mockClient();
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "new" });
+    await engine.handleTranscript(ctx, client, "water");
+    expect(ctx.session.conversationContext.answers.service_type).toBe("water");
+    expect(ctx.session.conversationContext.serviceRequested).toBe("water");
+    expect(ctx.session.state).toBe("zip_code");
+  });
+
+  it("after the service, only urgency is asked (timing/coverage are extract-only)", async () => {
+    const ctx = ctxV2();
+    const client = mockClient();
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "new", service_type: "water" });
+    expect(ctx.session.state).toBe("zip_code");
+    for (const d of "07030") await engine.handleDtmf(ctx, client, noopWs, d);
+    expect(ctx.session.state).toBe("qualification");
+    expect(ctx.session.currentQuestionKey).toBe("urgency");
+    await engine.handleTranscript(ctx, client, "emergency");
+    expect(ctx.session.state).toBe("name");
+  });
+});

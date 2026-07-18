@@ -289,6 +289,14 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
     return;
   }
 
+  // For the open-ended primary service question, capture the caller's own words
+  // as serviceRequested — this becomes the lead's service, and the off-list
+  // fallback if their answer maps to no configured option.
+  if (ctx.session.state === "qualification" && isPrimaryQuestion(ctx)) {
+    const raw = transcript.trim();
+    if (raw) ctx.session.conversationContext.serviceRequested = raw;
+  }
+
   const options = currentOptions(ctx);
   if (!options) return; // not currently awaiting an option-based answer (e.g. confirmation/end)
 
@@ -384,9 +392,14 @@ async function advance(ctx: FlowContext, client: RealtimeClient): Promise<void> 
   //    (cause, rooms_affected, ...) are captured from the opener if mentioned and
   //    fed to scoring, but never *asked* on the call — skip them here.
   const questions = ctx.verticalConfig.questions;
-  const visible = getVisibleQuestions(questions, cc.answers);
-  const firstUnanswered = visible.find((q) => !q.voiceExtractOnly && !(q.key in cc.answers));
   const primaryKey = questions[0]?.key;
+  const visible = getVisibleQuestions(questions, cc.answers);
+  // The primary service question counts as handled once it's answered OR we've
+  // captured an off-list service (serviceRequested) — so an unmatched service is
+  // never re-asked in a loop.
+  const isAnswered = (q: VerticalQuestion) =>
+    q.key in cc.answers || (q.key === primaryKey && !!cc.serviceRequested);
+  const firstUnanswered = visible.find((q) => !q.voiceExtractOnly && !isAnswered(q));
 
   // 3a. The primary "what's going on" question comes before ZIP (less transactional).
   if (firstUnanswered && firstUnanswered.key === primaryKey) {
@@ -664,6 +677,23 @@ async function handleStateFailure(ctx: FlowContext, client: RealtimeClient): Pro
     return;
   }
 
+  // The primary service question never dead-ends to voicemail: if it still didn't
+  // match a configured service after the retry, capture whatever the caller asked
+  // for as an off-list service (serviceRequested was set from their words in
+  // routeAnswer) and move on — no quote, but the lead is still taken.
+  if (ctx.session.state === "qualification" && isPrimaryQuestion(ctx)) {
+    const cc = ctx.session.conversationContext;
+    if (!cc.serviceRequested) {
+      const lastUser = [...cc.transcript].reverse().find((t) => t.role === "user");
+      if (lastUser?.message?.trim()) cc.serviceRequested = lastUser.message.trim();
+    }
+    ctx.session.hasStartedQualification = true;
+    ctx.session.currentQuestionKey = undefined;
+    resetAttempts(ctx, ctx.session.state);
+    await advance(ctx, client);
+    return;
+  }
+
   // Retries exhausted — one last attempt via the global-intent fallback classifier
   // before giving up to voicemail.
   ctx.session.responseActive = true;
@@ -691,6 +721,13 @@ function shouldAskCallbackPreference(ctx: FlowContext): boolean {
 function currentQuestion(ctx: FlowContext): VerticalQuestion | undefined {
   const key = ctx.session.currentQuestionKey;
   return key ? ctx.verticalConfig.questions.find((q) => q.key === key) : undefined;
+}
+
+/** True while the "qualification" state is asking the vertical's primary service
+ *  question (index 0) — the open-ended ask that can capture an off-list service. */
+function isPrimaryQuestion(ctx: FlowContext): boolean {
+  const primaryKey = ctx.verticalConfig.questions[0]?.key;
+  return !!primaryKey && ctx.session.currentQuestionKey === primaryKey;
 }
 
 function currentOptions(ctx: FlowContext): OptionLike[] | null {
@@ -731,7 +768,7 @@ function retryPromptText(ctx: FlowContext): string {
       return zipPrompt();
     case "qualification": {
       const q = currentQuestion(ctx);
-      return q ? qualificationPrompt(q) : "Could you say that again?";
+      return q ? qualificationPrompt(q, { retry: true }) : "Could you say that again?";
     }
     case "name":
       return "What's your name?";

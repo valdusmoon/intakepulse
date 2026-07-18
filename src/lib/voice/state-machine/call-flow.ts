@@ -36,8 +36,11 @@ export function questionOptions(question: VerticalQuestion): OptionLike[] {
   return (question.options ?? []).map((o) => ({ label: o.label, value: o.value }));
 }
 
-/** DTMF only offered for 2-3 option questions — a 4th+ option is speech-only. */
+/** DTMF only offered for 2-3 option questions — a 4th+ option is speech-only.
+ *  Open-ended (voiceOpenAsk) questions get no keypad at all: we never read a
+ *  numbered menu for them, so a "press 2" shortcut would be meaningless. */
 export function questionDtmfMap(question: VerticalQuestion): Record<string, string> | undefined {
+  if (question.voiceOpenAsk) return undefined;
   const opts = question.options ?? [];
   if (opts.length === 0 || opts.length > 3) return undefined;
   return Object.fromEntries(opts.map((o, i) => [String(i + 1), o.value]));
@@ -68,13 +71,26 @@ export function newOrExistingPrompt(): string {
   return "Is this a new issue, or an existing job? Press 1 for new, press 2 for existing, or just tell me.";
 }
 
-export function qualificationPrompt(question: VerticalQuestion): string {
-  const opts = questionOptions(question);
+export function qualificationPrompt(question: VerticalQuestion, opts?: { retry?: boolean }): string {
+  // Open-ended service ask — no spoken menu. On a retry, offer the configured
+  // services as examples (still "or describe it") so an off-list caller isn't
+  // funneled back into a menu.
+  if (question.voiceOpenAsk) {
+    if (opts?.retry) {
+      const examples = (question.options ?? []).map((o) => o.label.toLowerCase()).join(", ");
+      return examples
+        ? `${question.label} For example, ${examples} — or just describe what you need.`
+        : `${question.label} Just tell me in a few words.`;
+    }
+    return `${question.label} Just tell me in a few words.`;
+  }
+
+  const options = questionOptions(question);
   const dtmf = questionDtmfMap(question);
   if (!dtmf) {
     return `${question.label} You can just tell me.`;
   }
-  const digitPhrases = opts.map((o, i) => `press ${i + 1} for ${o.label.toLowerCase()}`).join(", ");
+  const digitPhrases = options.map((o, i) => `press ${i + 1} for ${o.label.toLowerCase()}`).join(", ");
   return `${question.label} ${digitPhrases}, or say your answer.`;
 }
 

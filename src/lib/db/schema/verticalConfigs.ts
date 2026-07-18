@@ -14,6 +14,11 @@ export interface VerticalQuestion {
   // voice call — asking them would just lengthen the call. The web intake form
   // still renders them (as optional). e.g. cause, rooms_affected.
   voiceExtractOnly?: boolean;
+  // Ask this question open-ended on a voice call (no spoken option menu / DTMF
+  // read-out). The caller's own words are classified against the options; if
+  // nothing matches, the raw phrase is captured as an off-list service. Set on
+  // each vertical's primary service question. Web/other channels ignore this.
+  voiceOpenAsk?: boolean;
 }
 
 // Scoring rule stored in the scoringRules JSONB array.

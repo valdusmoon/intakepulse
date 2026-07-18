@@ -129,7 +129,7 @@ export async function POST(
   }
 
   const body = await req.json();
-  const { leadId, callerName, callerPhone, callerEmail, answers, source } = body;
+  const { leadId, callerName, callerPhone, callerEmail, answers, source, serviceRequested } = body;
 
   if (!callerName?.trim()) {
     return NextResponse.json({ error: "Name is required." }, { status: 400 });
@@ -160,6 +160,10 @@ export async function POST(
     callerEmail: callerEmail?.trim() || null,
     smsConsent: true,
     intakeAnswers: answers ?? {},
+    // The caller's own words for their service — set by the form's "Other" option
+    // when they request something not on the configured list (off-list, no quote).
+    serviceRequested:
+      typeof serviceRequested === "string" && serviceRequested.trim() ? serviceRequested.trim() : null,
     // leadStatus is deliberately NOT set here — re-submitting intake for an
     // existing lead must never regress sales progress the business already made.
     intakeStatus: "completed" as const,

@@ -42,13 +42,13 @@ Be specific and actionable. This owner is deciding in the next 60 seconds whethe
 
 // ─── Universal follow-up questions ──────────────────────────────────────────────
 //
-// Every vertical asks exactly the same 3 questions after its menu question:
-// urgency, recency, and coverage. Normalizing these (instead of bespoke
-// per-vertical variants like "system age" / "home age" / "financing needed")
-// keeps every call short — 4 questions total, comfortably under 3 minutes —
-// and keeps the schema simple for an initial product. Trade-specific nuance
-// can come back later as opt-in extra questions once a vertical proves it's
-// worth the extra call time.
+// Every vertical shares the same three follow-ups: urgency, recency, coverage.
+// On a VOICE call only urgency is asked (it drives lead priority + callback
+// routing); recency and coverage are voiceExtractOnly — captured if the caller
+// volunteers them in their description, never asked aloud, to keep calls short.
+// The web intake form still renders all three. Normalizing them (instead of
+// bespoke per-vertical variants) keeps the schema simple; trade-specific nuance
+// can come back later as opt-in extra questions.
 
 export const URGENCY_QUESTION: VerticalQuestion = {
   key: "urgency",
@@ -72,6 +72,7 @@ export const TIME_SINCE_ISSUE_QUESTION: VerticalQuestion = {
     { value: "longer", label: "Longer ago" },
   ],
   required: true,
+  voiceExtractOnly: true,
 };
 
 export const HAS_COVERAGE_QUESTION: VerticalQuestion = {
@@ -84,6 +85,7 @@ export const HAS_COVERAGE_QUESTION: VerticalQuestion = {
     { value: "not_sure", label: "Not sure" },
   ],
   required: true,
+  voiceExtractOnly: true,
 };
 
 export const UNIVERSAL_FOLLOWUP_QUESTIONS: VerticalQuestion[] = [URGENCY_QUESTION, TIME_SINCE_ISSUE_QUESTION, HAS_COVERAGE_QUESTION];
@@ -98,9 +100,12 @@ export const UNIVERSAL_FOLLOWUP_SCORING_RULES: ScoringRule[] = [
   { answerKey: "has_coverage", answerValue: "not_sure", qualityBonus: 3 },
 ];
 
-/** Every vertical: [menu question, ...the 3 universal follow-ups]. */
+/** Every vertical: [primary service question (asked open-ended on voice),
+ *  ...the universal follow-ups]. voiceOpenAsk is set here so every vertical's
+ *  service question is asked without a spoken menu and can capture an off-list
+ *  service as free text. */
 export function buildQuestions(menuQuestion: VerticalQuestion): VerticalQuestion[] {
-  return [menuQuestion, ...UNIVERSAL_FOLLOWUP_QUESTIONS];
+  return [{ ...menuQuestion, voiceOpenAsk: true }, ...UNIVERSAL_FOLLOWUP_QUESTIONS];
 }
 
 /** Every vertical: [menu-specific value bonuses, ...the universal scoring rules]. */

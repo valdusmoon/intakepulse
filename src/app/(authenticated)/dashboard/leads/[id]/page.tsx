@@ -7,7 +7,7 @@ import { getAiAssessmentByLeadId } from "@/lib/db/queries/aiAssessments";
 import { getPendingFollowup } from "@/lib/db/queries/followups";
 import { getCallByLeadId } from "@/lib/db/queries/calls";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
-import { formatIntakeAnswers, deriveServiceLabel } from "@/lib/verticals/labels";
+import { formatIntakeAnswers, deriveServiceLabel, isOffListService } from "@/lib/verticals/labels";
 import { priorityMeta, intentMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort } from "@/lib/leads/priority";
 import { Card, CardHeader, CardTitle, CardBody, Badge, Icon } from "@/components/dashboard/v2/primitives";
 import { LeadDetailClient } from "./_client";
@@ -72,7 +72,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const intent = intentMeta(lead.qualityScore);
   const timeline = buildTimeline(call, lead);
   const formattedAnswers = formatIntakeAnswers(verticalConfig?.questions ?? [], lead.intakeAnswers);
-  const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers);
+  const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
+  const offListService = isOffListService(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
   const displayName = lead.callerName ?? lead.callerPhone;
   const valueRange = fmtValueRange(lead.estimatedValueLow, lead.estimatedValueHigh);
   const hasCallEvidence = Boolean(call);
@@ -155,6 +156,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 <div>
                   <span className="block text-[10px] uppercase tracking-wide font-extrabold text-cv-muted">Service</span>
                   <strong className="block mt-[5px] text-[13px]">{service ?? "Not yet captured"}</strong>
+                  {offListService && (
+                    <span className="mt-1 inline-block">
+                      <Badge color="amber">Off your service list · no quote given</Badge>
+                    </span>
+                  )}
                 </div>
                 <div>
                   <span className="block text-[10px] uppercase tracking-wide font-extrabold text-cv-muted">Source</span>

@@ -154,6 +154,12 @@ export interface ConversationContext {
   // team you're calling about?") or a message/frustrated caller ("what would you
   // like me to pass along?") — persisted to the lead's notes field.
   reasonForCall?: string;
+  // The caller's own words for the service they asked for (the primary question,
+  // asked open-ended). Set whether or not it matched a configured service. When
+  // it doesn't match, this is the ONLY record of the service ("off-list"): the
+  // structured answers[primaryKey] stays empty, so no quote is given, but the
+  // lead is still captured. Persisted to leads.serviceRequested.
+  serviceRequested?: string;
 }
 
 export interface TranscriptEntry {

@@ -23,6 +23,15 @@ describe("VERTICALS structural integrity", () => {
         }
       });
 
+      it("asks only the primary service question + urgency on a voice call; everything else is voiceExtractOnly", () => {
+        const asked = v.questions.filter((q) => !q.voiceExtractOnly).map((q) => q.key);
+        expect(asked).toEqual([v.questions[0].key, "urgency"]);
+      });
+
+      it("asks the primary service question open-ended (voiceOpenAsk, no spoken menu)", () => {
+        expect(v.questions[0].voiceOpenAsk).toBe(true);
+      });
+
       it("has a menu (first) question with at least one option", () => {
         expect(v.questions[0].options?.length ?? 0).toBeGreaterThan(0);
       });

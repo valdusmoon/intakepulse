@@ -99,7 +99,7 @@ export default async function DashboardPage({
         time: lead.updatedAt,
       });
     } else if (lead.source === "website_widget" && lead.intakeStatus === "completed") {
-      const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers) ?? "a new job";
+      const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested) ?? "a new job";
       activity.push({
         key: `widget-${lead.id}`,
         icon: "widgets",
@@ -109,7 +109,7 @@ export default async function DashboardPage({
         time: lead.updatedAt,
       });
     } else if (lead.source === "voice_overflow") {
-      const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers) ?? "a call";
+      const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested) ?? "a call";
       activity.push({
         key: `voice-${lead.id}`,
         icon: "phone_in_talk",
@@ -274,7 +274,7 @@ export default async function DashboardPage({
               priorityLeads.map((lead) => {
                 const priority = priorityMeta(lead.urgencyScore);
                 const intent = intentMeta(lead.qualityScore);
-                const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers);
+                const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
                 const value = fmtValueRange(lead.estimatedValueLow, lead.estimatedValueHigh);
                 return (
                   <Link

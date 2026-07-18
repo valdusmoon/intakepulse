@@ -256,6 +256,10 @@ function TextQuestion({
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
+// Sentinel value for the primary service question's "Something else" choice —
+// stripped before submit and sent as free-text serviceRequested instead.
+const OTHER_SERVICE = "__other__";
+
 export function IntakeForm({
   businessId,
   businessName,
@@ -271,6 +275,7 @@ export function IntakeForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [serviceOther, setServiceOther] = useState("");
 
   const visibleQuestions = useMemo(
     () => getVisibleQuestions(questions, answers),
@@ -278,6 +283,8 @@ export function IntakeForm({
   );
 
   const currentQuestion = step > 0 ? visibleQuestions[step - 1] ?? null : null;
+  const primaryKey = questions[0]?.key;
+  const isPrimaryQuestion = !!currentQuestion && !!primaryKey && currentQuestion.key === primaryKey;
   const isLastStep = step >= visibleQuestions.length;
   const progressPct =
     step === 0 ? 0 : Math.round((step / (visibleQuestions.length + 1)) * 100);
@@ -298,6 +305,10 @@ export function IntakeForm({
 
   function canAdvance(): boolean {
     if (!currentQuestion) return true;
+    // "Something else" on the service question needs the free-text filled in.
+    if (isPrimaryQuestion && answers[currentQuestion.key] === OTHER_SERVICE) {
+      return !!serviceOther.trim();
+    }
     if (!currentQuestion.required) return true;
     const a = answers[currentQuestion.key];
     return Array.isArray(a) ? a.length > 0 : !!a;
@@ -306,6 +317,16 @@ export function IntakeForm({
   async function handleSubmit(finalAnswers: Answers = answers) {
     setLoading(true);
     setError("");
+    // Off-list service ("Something else"): send the caller's words as
+    // serviceRequested and strip the sentinel so it isn't stored as a bogus
+    // option value (no quote is given for off-list services).
+    let outAnswers = finalAnswers;
+    let serviceRequested: string | undefined;
+    if (primaryKey && finalAnswers[primaryKey] === OTHER_SERVICE) {
+      serviceRequested = serviceOther.trim() || undefined;
+      outAnswers = { ...finalAnswers };
+      delete outAnswers[primaryKey];
+    }
     try {
       const res = await fetch(`/api/intake/${businessId}/submit`, {
         method: "POST",
@@ -315,7 +336,8 @@ export function IntakeForm({
           callerName,
           callerPhone,
           callerEmail: callerEmail.trim() || undefined,
-          answers: finalAnswers,
+          answers: outAnswers,
+          serviceRequested,
           source,
         }),
       });
@@ -415,7 +437,7 @@ export function IntakeForm({
         {/* Question steps */}
         {step > 0 && currentQuestion && (
           <>
-            {currentQuestion.type === "single_select" && (
+            {currentQuestion.type === "single_select" && !isPrimaryQuestion && (
               <SingleSelectQuestion
                 question={currentQuestion}
                 value={getAnswerStr(currentQuestion.key)}
@@ -429,6 +451,65 @@ export function IntakeForm({
                   }
                 }}
               />
+            )}
+
+            {currentQuestion.type === "single_select" && isPrimaryQuestion && (
+              <div className="space-y-2.5">
+                <SingleSelectQuestion
+                  question={currentQuestion}
+                  value={getAnswerStr(currentQuestion.key)}
+                  onChange={(v) => {
+                    setAnswer(currentQuestion.key, v);
+                    if (isLastStep) {
+                      const final = { ...answers, [currentQuestion.key]: v };
+                      setTimeout(() => handleSubmit(final), 200);
+                    } else {
+                      setTimeout(() => setStep((s) => s + 1), 200);
+                    }
+                  }}
+                />
+
+                {/* Off-list: let the caller ask for a service that isn't listed. */}
+                <button
+                  onClick={() => setAnswer(currentQuestion.key, OTHER_SERVICE)}
+                  className={`w-full text-left px-4 py-3.5 rounded-xl border-2 transition-all text-sm font-medium ${
+                    getAnswerStr(currentQuestion.key) === OTHER_SERVICE
+                      ? "border-cv-primary bg-cv-primary-soft text-cv-primary-dark"
+                      : "border-cv-border bg-white text-[#344054] hover:border-cv-border-strong hover:bg-cv-surface-subtle active:bg-cv-surface-subtle"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                        getAnswerStr(currentQuestion.key) === OTHER_SERVICE ? "border-cv-primary" : "border-cv-border-strong"
+                      }`}
+                    >
+                      {getAnswerStr(currentQuestion.key) === OTHER_SERVICE && <div className="w-2 h-2 rounded-full bg-cv-primary" />}
+                    </div>
+                    Something else
+                  </div>
+                </button>
+
+                {getAnswerStr(currentQuestion.key) === OTHER_SERVICE && (
+                  <div className="pt-1">
+                    <textarea
+                      value={serviceOther}
+                      onChange={(e) => setServiceOther(e.target.value)}
+                      placeholder="Tell us what you need…"
+                      rows={2}
+                      autoFocus
+                      className={`${inputCls} resize-none`}
+                    />
+                    <button
+                      onClick={advance}
+                      disabled={!canAdvance() || loading}
+                      className="mt-3 w-full flex items-center justify-center gap-2 bg-cv-primary text-white font-semibold py-3.5 rounded-xl hover:bg-cv-primary-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isLastStep ? (loading ? "Submitting…" : "Submit") : (<>Continue <ArrowRight className="w-4 h-4" /></>)}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {currentQuestion.type === "scale" && (
