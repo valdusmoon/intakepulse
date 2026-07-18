@@ -102,14 +102,8 @@ export function SettingsTabs({ business, pricingRules, serviceOptions, initialTa
 
 // ─── Call setup ─────────────────────────────────────────────────────────────
 
-// Ring time is a fixed product default now (see CALL_RING_TIMEOUT_SECONDS) — no
-// longer operator-configurable, so no RING_TIMES options list.
-const VOICES = [
-  { value: "alloy", label: "Alloy — neutral and balanced" },
-  { value: "ash", label: "Ash — clear and precise" },
-  { value: "coral", label: "Coral — warm and friendly" },
-  { value: "marin", label: "Marin — recommended, highest quality" },
-];
+// Ring time and voice are fixed product defaults now (ring: CALL_RING_TIMEOUT_SECONDS,
+// voice: OPENAI_CONFIG.VOICE) — not operator-configurable, so no options lists here.
 
 const DEFAULT_DISCLOSURE = "This call may be recorded and transcribed for quality and training purposes.";
 
@@ -118,10 +112,7 @@ function CallSetupPanel({ business }: { business: Business }) {
   const [overflowMode, setOverflowMode] = useState(business.overflowMode);
   const routing = useSave();
 
-  const [greetingMessage, setGreetingMessage] = useState(business.greetingMessage ?? "");
-  const [voiceName, setVoiceName] = useState(business.voiceName);
   const [urgentTransferNumber, setUrgentTransferNumber] = useState(business.urgentTransferNumber ?? "");
-  const [aiInstructions, setAiInstructions] = useState(business.aiInstructions ?? "");
   const [recordingEnabled, setRecordingEnabled] = useState(business.recordingEnabled);
   const [recordingDisclosure, setRecordingDisclosure] = useState(business.recordingDisclosure ?? "");
   const [recError, setRecError] = useState("");
@@ -202,25 +193,8 @@ function CallSetupPanel({ business }: { business: Business }) {
           </div>
         </CardHeader>
         <CardBody className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormGroup label="Greeting (optional)" help="What the AI says when it answers. Leave blank for the default.">
-              <TextArea value={greetingMessage} onChange={(e) => setGreetingMessage(e.target.value)} placeholder={`Thanks for calling ${business.businessName}...`} />
-            </FormGroup>
-            <FormGroup label="Voice" help="Prompts stay fixed and approved — the voice just reads them naturally.">
-              <Select value={voiceName} onChange={(e) => setVoiceName(e.target.value)}>
-                {VOICES.map((v) => (
-                  <option key={v.value} value={v.value}>
-                    {v.label}
-                  </option>
-                ))}
-              </Select>
-            </FormGroup>
-          </div>
           <FormGroup label="Urgent transfer number (optional)" help="If a caller asks for a person, the AI can transfer them here live. Use a reliably-staffed line (an on-call phone) — not the number Callverted already rings, or it'll just ring out again.">
             <Field className="font-cv-mono" value={urgentTransferNumber} onChange={(e) => setUrgentTransferNumber(e.target.value)} placeholder="+1 (555) 000-0000" />
-          </FormGroup>
-          <FormGroup label="Extra instructions for the AI (optional)">
-            <TextArea value={aiInstructions} onChange={(e) => setAiInstructions(e.target.value)} placeholder="Any business-specific notes the AI should know when answering calls." />
           </FormGroup>
 
           <div className="rounded-xl border border-cv-border p-4 flex flex-col gap-3">
@@ -269,10 +243,7 @@ function CallSetupPanel({ business }: { business: Business }) {
               }
               setRecError("");
               experience.save({
-                greetingMessage: greetingMessage || null,
-                voiceName,
                 urgentTransferNumber: urgentTransferNumber || null,
-                aiInstructions: aiInstructions || null,
                 recordingEnabled,
                 recordingDisclosure: recordingDisclosure.trim() || null,
               });

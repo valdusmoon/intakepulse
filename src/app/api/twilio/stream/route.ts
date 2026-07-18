@@ -135,7 +135,9 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
       return false;
     }
 
-    const openaiClient = await initializeOpenAI(business.voiceName);
+    // Voice is a fixed product default (OPENAI_CONFIG.VOICE) — no longer
+    // per-business, so we ignore the stored voiceName.
+    const openaiClient = await initializeOpenAI();
     // Caller must speak within 30s of the greeting FINISHING (bot-spam prevention).
     // Armed on the first response.done, not at connection-open — arming it immediately
     // ate into the caller's real response window by however long the (business-configurable)
