@@ -146,6 +146,9 @@ export interface ConversationContext {
   // Call-metadata fields captured outside the scored vertical Q&A
   callerName?: string;
   zipCode?: string;
+  // Set when the caller couldn't give a usable ZIP after retries — we stop asking
+  // and continue (the lead is still captured; the team confirms the location).
+  zipSkipped?: boolean;
   serviceAreaEligible?: boolean;
   callbackPreference?: string;
   priceEligible?: boolean;

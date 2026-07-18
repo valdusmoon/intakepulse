@@ -64,6 +64,34 @@ export function buildExtractIntakeTool(questions: VerticalQuestion[]): FunctionD
   };
 }
 
+/**
+ * Three-way classifier for the open-ended primary SERVICE question. Unlike the
+ * generic classify_answer (matched-or-unclear), this separates a clear service
+ * that just isn't configured ("off_list" — capture it, no re-ask, no quote) from
+ * a genuinely vague non-answer ("unclear" — worth one clarification). This is the
+ * "unclear ≠ off-list" rule: only vague answers get retried.
+ */
+export function buildClassifyServiceTool(options: { value: string; label: string }[]): FunctionDefinition {
+  return {
+    name: "classify_service",
+    type: "function",
+    description:
+      "Classify the service the caller asked for. Use \"matched\" (with matched_value) only if it clearly maps to one of the business's configured services. Use \"off_list\" if they named a specific service, trade, or issue that is NOT one of those configured services. Use \"unclear\" ONLY if they were vague and did not name any specific service or problem at all.",
+    parameters: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["matched", "off_list", "unclear"] },
+        matched_value: {
+          type: "string",
+          enum: options.map((o) => o.value),
+          description: `Only when status is "matched" — the configured service value. Options: ${options.map((o) => `${o.value} = ${o.label}`).join("; ")}`,
+        },
+      },
+      required: ["status"],
+    },
+  };
+}
+
 /** Generic single-value classifier — the allowed enum is built per-state from
  *  that state's actual options (e.g. a vertical question's option values, or
  *  callback-preference choices). Reused for every enum-based state. */

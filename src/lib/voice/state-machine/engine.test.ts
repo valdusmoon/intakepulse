@@ -105,11 +105,18 @@ describe("adaptive engine flow", () => {
     expect(ctx.session.state).toBe("zip_code");
   });
 
-  it("an empty opener falls back to asking new-or-existing", async () => {
+  it("an empty opener re-asks the description once, then takes a message (never dead-ends)", async () => {
     engine.startCall(ctx, client);
+    // 1st empty opener → one focused re-ask, still gathering the description.
     await engine.handleToolCall(ctx, client, "extract_intake", {});
-    expect(ctx.session.isNewCustomer).toBeUndefined();
-    expect(ctx.session.state).toBe("new_or_existing");
+    expect(ctx.session.state).toBe("open_description");
+    const reask = [...ctx.session.conversationContext.transcript].reverse().find((t) => t.role === "assistant")?.message ?? "";
+    expect(reask.toLowerCase()).toContain("quick description");
+
+    // 2nd empty opener → take a message (name ask), NOT voicemail.
+    await engine.handleToolCall(ctx, client, "extract_intake", {});
+    expect(ctx.session.state).toBe("name");
+    expect(ctx.session.isNewCustomer).toBe(false);
   });
 
   it("an existing customer from the opener skips qualification to the name ask", async () => {
@@ -224,7 +231,7 @@ describe("open-ended service ask + off-list capture", () => {
     expect(prompt.toLowerCase()).toContain("just tell me");
   });
 
-  it("captures an off-list service as free text instead of dead-ending to voicemail", async () => {
+  it("captures a CLEAR off-list service immediately — no retry, no dead-end", async () => {
     const ctx = ctxV2();
     const client = mockClient();
     engine.startCall(ctx, client);
@@ -232,15 +239,38 @@ describe("open-ended service ask + off-list capture", () => {
     expect(ctx.session.currentQuestionKey).toBe("service_type");
 
     await engine.handleTranscript(ctx, client, "I need drywall repair after a leak");
-    await engine.handleToolCall(ctx, client, "classify_answer", { value: "unclear" }); // 1st miss → retry
-    expect(ctx.session.state).toBe("qualification");
-
-    await engine.handleTranscript(ctx, client, "drywall repair");
-    await engine.handleToolCall(ctx, client, "classify_answer", { value: "unclear" }); // exhausted → off-list
+    await engine.handleToolCall(ctx, client, "classify_service", { status: "off_list" });
 
     expect(ctx.session.conversationContext.serviceRequested).toBeTruthy();
     expect(ctx.session.conversationContext.answers.service_type).toBeUndefined();
-    expect(ctx.session.state).not.toBe("fallback_voicemail");
+    expect(ctx.session.state).toBe("zip_code"); // captured + moved on, no re-ask
+  });
+
+  it("a VAGUE service answer is retried once, then captured", async () => {
+    const ctx = ctxV2();
+    const client = mockClient();
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "new" });
+
+    await engine.handleTranscript(ctx, client, "I just need someone to come out");
+    await engine.handleToolCall(ctx, client, "classify_service", { status: "unclear" }); // 1st → retry
+    expect(ctx.session.state).toBe("qualification");
+    expect(ctx.session.currentQuestionKey).toBe("service_type");
+
+    await engine.handleTranscript(ctx, client, "you know, just to look at things");
+    await engine.handleToolCall(ctx, client, "classify_service", { status: "unclear" }); // 2nd → capture off-list
+    expect(ctx.session.conversationContext.serviceRequested).toBeTruthy();
+    expect(ctx.session.state).toBe("zip_code");
+  });
+
+  it("a matched service via the classifier is stored structurally", async () => {
+    const ctx = ctxV2();
+    const client = mockClient();
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "new" });
+    await engine.handleTranscript(ctx, client, "there's flooding all over my floor");
+    await engine.handleToolCall(ctx, client, "classify_service", { status: "matched", matched_value: "water" });
+    expect(ctx.session.conversationContext.answers.service_type).toBe("water");
     expect(ctx.session.state).toBe("zip_code");
   });
 
@@ -266,5 +296,43 @@ describe("open-ended service ask + off-list capture", () => {
     expect(ctx.session.currentQuestionKey).toBe("urgency");
     await engine.handleTranscript(ctx, client, "emergency");
     expect(ctx.session.state).toBe("name");
+  });
+});
+
+describe("graceful degradation — light retries, no voicemail dead-ends", () => {
+  it("gives ZIP two retries, then skips it and continues", async () => {
+    const ctx = ctxV2();
+    const client = mockClient();
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "new", service_type: "water", urgency: "emergency" });
+    expect(ctx.session.state).toBe("zip_code");
+
+    await engine.handleToolCall(ctx, client, "extract_zip", { zip: "" }); // retry 1
+    expect(ctx.session.state).toBe("zip_code");
+    await engine.handleToolCall(ctx, client, "extract_zip", { zip: "" }); // retry 2
+    expect(ctx.session.state).toBe("zip_code");
+    await engine.handleToolCall(ctx, client, "extract_zip", { zip: "" }); // exhausted → intent classifier
+    await engine.handleToolCall(ctx, client, "detect_intent", { intent: "unknown" });
+
+    expect(ctx.session.conversationContext.zipSkipped).toBe(true);
+    expect(ctx.session.conversationContext.zipCode).toBeUndefined();
+    expect(ctx.session.state).toBe("name"); // never voicemail
+  });
+
+  it("marks urgency unknown after one retry and moves on", async () => {
+    const ctx = ctxV2();
+    const client = mockClient();
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "new", service_type: "water" });
+    for (const d of "07030") await engine.handleDtmf(ctx, client, noopWs, d);
+    expect(ctx.session.currentQuestionKey).toBe("urgency");
+
+    await engine.handleToolCall(ctx, client, "classify_answer", { value: "unclear" }); // retry
+    expect(ctx.session.state).toBe("qualification");
+    await engine.handleToolCall(ctx, client, "classify_answer", { value: "unclear" }); // exhausted → intent classifier
+    await engine.handleToolCall(ctx, client, "detect_intent", { intent: "unknown" });
+
+    expect(ctx.session.conversationContext.answers.urgency).toBe("unknown");
+    expect(ctx.session.state).toBe("name"); // never voicemail
   });
 });

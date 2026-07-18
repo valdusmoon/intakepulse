@@ -71,6 +71,12 @@ export function newOrExistingPrompt(): string {
   return "Is this a new issue, or an existing job? Press 1 for new, press 2 for existing, or just tell me.";
 }
 
+/** One focused re-ask when the opener was empty/gibberish — gives concrete
+ *  examples of what "what's going on?" means, before falling back to a message. */
+export function descriptionRetryPrompt(): string {
+  return "I just need a quick description — like “burst pipe,” “no heat,” or “mold inspection.” What's happening?";
+}
+
 export function qualificationPrompt(question: VerticalQuestion, opts?: { retry?: boolean }): string {
   // Open-ended service ask — no spoken menu. On a retry, offer the configured
   // services as examples (still "or describe it") so an off-list caller isn't

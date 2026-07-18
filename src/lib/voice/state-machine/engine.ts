@@ -25,7 +25,7 @@ import type { RealtimeClient } from "../realtime-client";
 import type { FlowContext } from "./types";
 import { matchDeterministicIntent, type GlobalIntent } from "./global-intent";
 import { cleanSpokenName, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
-import { buildClassifyAnswerTool, buildExtractIntakeTool, DETECT_INTENT_TOOL, EXTRACT_ZIP_TOOL } from "./tools";
+import { buildClassifyAnswerTool, buildClassifyServiceTool, buildExtractIntakeTool, DETECT_INTENT_TOOL, EXTRACT_ZIP_TOOL } from "./tools";
 import { validateExtraction } from "./extraction";
 import {
   CALLBACK_DTMF,
@@ -34,8 +34,8 @@ import {
   NEW_OR_EXISTING_OPTIONS,
   callbackPreferencePrompt,
   confirmationLine,
+  descriptionRetryPrompt,
   existingCustomerAck,
-  fallbackVoicemailLine,
   goodbyeLine,
   greetingPrompt,
   namePrompt,
@@ -52,7 +52,14 @@ import {
 import { captureLeadOnce, checkServiceArea, getPriceRangeForCategory, transferCallAction, canWarmTransfer } from "../functions/actions";
 import { INTERRUPTION } from "../config/constants";
 
-const RETRY_LIMIT = 1; // "maximum clarification attempts per state: 1"
+// Retries are deliberately light. ZIP is the one field worth pushing on (it
+// affects service-area fit and lead usefulness); every other field gets a single
+// clarification and then gracefully degrades. We NEVER dead-end a call to
+// voicemail — a partial/vague lead always beats a lost call.
+const RETRY_LIMITS: Record<string, number> = { zip_code: 2 };
+function retryLimitFor(state: string): number {
+  return RETRY_LIMITS[state] ?? 1;
+}
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
@@ -154,6 +161,26 @@ export async function handleToolCall(ctx: FlowContext, client: RealtimeClient, n
     return;
   }
 
+  if (name === "classify_service") {
+    const status = args?.status;
+    if (status === "matched" && typeof args?.matched_value === "string" && args.matched_value) {
+      // Maps to a configured service → structured answer + quote, as usual.
+      await applyStateAnswer(ctx, client, args.matched_value);
+    } else if (status === "off_list") {
+      // A clear service that just isn't configured → capture it now (their own
+      // words are already in serviceRequested), no re-ask, no quote.
+      captureOffListService(ctx);
+      ctx.session.currentQuestionKey = undefined;
+      resetAttempts(ctx, ctx.session.state);
+      await advance(ctx, client);
+    } else {
+      // Vague / no specific service named → one clarification with examples; a
+      // second miss is captured as off-list by handleStateFailure.
+      await handleStateFailure(ctx, client);
+    }
+    return;
+  }
+
   if (name === "extract_zip") {
     const zip = typeof args?.zip === "string" ? args.zip.replace(/\D/g, "") : "";
     if (zip.length !== 5) {
@@ -169,7 +196,7 @@ export async function handleToolCall(ctx: FlowContext, client: RealtimeClient, n
     if (intent && intent !== "unknown") {
       await handleGlobalIntent(ctx, client, intent);
     } else {
-      await enterFallbackVoicemail(ctx, client);
+      await degradeAndContinue(ctx, client);
     }
     return;
   }
@@ -317,6 +344,25 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
     }
   }
 
+  // The open-ended primary SERVICE question uses a 3-way classifier: a clear
+  // off-list service is captured immediately (no re-ask, no quote); only a vague
+  // non-answer is retried. "unclear ≠ off-list".
+  if (isPrimaryQuestion(ctx)) {
+    const primary = currentQuestion(ctx);
+    const guide = (primary?.options ?? []).map((o) => `${o.value} = "${o.label}"`).join("; ");
+    ctx.session.responseActive = true;
+    client.createResponse({
+      instructions:
+        `The caller was asked what service they need and said: "${transcript}". ` +
+        `The business's configured services are: ${guide}. Classify it: "matched" (with matched_value) if it clearly maps to one of these; ` +
+        `"off_list" if they named a specific but different service, trade, or issue; or "unclear" ONLY if they were vague and named no specific service or problem.`,
+      output_modalities: ["text"],
+      tools: [buildClassifyServiceTool(primary?.options ?? [])],
+      tool_choice: { type: "function", name: "classify_service" },
+    });
+    return;
+  }
+
   const allowedValues = options.map((o) => o.value);
   // Spell out the menu for the classifier — number, label, and the value to
   // return — rather than handing it bare enum codes with no idea what they mean
@@ -407,8 +453,9 @@ async function advance(ctx: FlowContext, client: RealtimeClient): Promise<void> 
     return;
   }
 
-  // 3b. ZIP, once we know the primary problem.
-  if (!cc.zipCode) {
+  // 3b. ZIP, once we know the primary problem (skipped once the caller couldn't
+  //     give a usable one after retries — the lead is still captured).
+  if (!cc.zipCode && !cc.zipSkipped) {
     enterZipCode(ctx, client);
     return;
   }
@@ -496,6 +543,23 @@ async function applyExtraction(ctx: FlowContext, client: RealtimeClient, args: u
     return;
   }
 
+  // Open description yielded nothing usable → one focused re-ask with examples,
+  // then take a message. Never dead-end a bare/gibberish opener.
+  if (fromState === "open_description") {
+    const gotSomething =
+      ctx.session.isNewCustomer !== undefined || Object.keys(cc.answers).length > 0 || !!cc.zipCode;
+    if (!gotSomething) {
+      const openAttempts = (ctx.session.attempts["open_description"] ?? 0) + 1;
+      ctx.session.attempts["open_description"] = openAttempts;
+      if (openAttempts <= 1) {
+        speak(ctx, client, descriptionRetryPrompt());
+        return;
+      }
+      await jumpToWrapUp(ctx, client, "No problem — I'll take a quick message for the team.");
+      return;
+    }
+  }
+
   await advance(ctx, client);
 }
 
@@ -578,10 +642,83 @@ function enterExistingCustomerPath(ctx: FlowContext, client: RealtimeClient, ack
   enterName(ctx, client, ackLine);
 }
 
-async function enterFallbackVoicemail(ctx: FlowContext, client: RealtimeClient): Promise<void> {
-  ctx.session.state = "fallback_voicemail";
-  speak(ctx, client, fallbackVoicemailLine());
-  ctx.session.onResponseDone = () => finishCall(ctx, client);
+/** Never route a call to voicemail: after retries are exhausted (or the intent
+ *  classifier can't tell what the caller wants), capture whatever we have for
+ *  THIS field and continue toward a saved lead. A partial/vague lead beats a
+ *  lost call — the whole product promise is "stop losing calls." */
+async function degradeAndContinue(ctx: FlowContext, client: RealtimeClient): Promise<void> {
+  const state = ctx.session.state;
+  const cc = ctx.session.conversationContext;
+
+  if (state === "qualification") {
+    const q = currentQuestion(ctx);
+    ctx.session.currentQuestionKey = undefined;
+    if (q && isPrimaryQuestion(ctx)) {
+      captureOffListService(ctx);
+    } else if (q) {
+      // A useful-but-not-critical field (e.g. urgency): mark it unknown and move
+      // on rather than interrogate. The lead just scores with less confidence.
+      cc.answers[q.key] = "unknown";
+      ctx.session.hasStartedQualification = true;
+    }
+    await advance(ctx, client);
+    return;
+  }
+
+  if (state === "zip_code") {
+    cc.zipSkipped = true;
+    await advance(ctx, client);
+    return;
+  }
+
+  if (state === "name") {
+    proceedPastName(ctx, client);
+    return;
+  }
+
+  if (state === "callback_preference") {
+    cc.callbackPreference = cc.callbackPreference ?? "as soon as possible";
+    enterConfirmation(ctx, client);
+    return;
+  }
+
+  if (state === "new_or_existing") {
+    await jumpToWrapUp(ctx, client, "No problem — I'll take a quick message for the team.");
+    return;
+  }
+
+  // wrap_up_reason or any other state → confirm/save what we have.
+  enterConfirmation(ctx, client);
+}
+
+/** Capture the caller's own words as an off-list service (no configured match,
+ *  so no quote) and mark qualification started. */
+function captureOffListService(ctx: FlowContext): void {
+  const cc = ctx.session.conversationContext;
+  if (!cc.serviceRequested) {
+    const last = lastUserUtterance(ctx);
+    if (last) cc.serviceRequested = last;
+  }
+  ctx.session.hasStartedQualification = true;
+}
+
+function lastUserUtterance(ctx: FlowContext): string | undefined {
+  const entry = [...ctx.session.conversationContext.transcript].reverse().find((e) => e.role === "user");
+  return entry?.message?.trim() || undefined;
+}
+
+/** Proceed past the name step without a name (couldn't catch it) — the lead is
+ *  saved with the caller's phone number; the team asks their name on callback. */
+function proceedPastName(ctx: FlowContext, client: RealtimeClient): void {
+  const cc = ctx.session.conversationContext;
+  if (ctx.session.isNewCustomer === false) {
+    proceedAfterNameWrapUp(ctx, client);
+  } else if (!shouldAskCallbackPreference(ctx)) {
+    cc.callbackPreference = "as soon as possible";
+    enterConfirmation(ctx, client);
+  } else {
+    enterCallbackPreference(ctx, client);
+  }
 }
 
 async function jumpToWrapUp(ctx: FlowContext, client: RealtimeClient, ackLine?: string): Promise<void> {
@@ -672,30 +809,26 @@ async function handleStateFailure(ctx: FlowContext, client: RealtimeClient): Pro
   const attempts = (ctx.session.attempts[state] ?? 0) + 1;
   ctx.session.attempts[state] = attempts;
 
-  if (attempts <= RETRY_LIMIT) {
+  if (attempts <= retryLimitFor(state)) {
     speak(ctx, client, `Sorry, I didn't quite catch that. ${retryPromptText(ctx)}`);
     return;
   }
+  resetAttempts(ctx, state);
 
-  // The primary service question never dead-ends to voicemail: if it still didn't
-  // match a configured service after the retry, capture whatever the caller asked
-  // for as an off-list service (serviceRequested was set from their words in
+  // The service question never dead-ends: capture whatever the caller asked for
+  // as an off-list service (serviceRequested was set from their words in
   // routeAnswer) and move on — no quote, but the lead is still taken.
-  if (ctx.session.state === "qualification" && isPrimaryQuestion(ctx)) {
-    const cc = ctx.session.conversationContext;
-    if (!cc.serviceRequested) {
-      const lastUser = [...cc.transcript].reverse().find((t) => t.role === "user");
-      if (lastUser?.message?.trim()) cc.serviceRequested = lastUser.message.trim();
-    }
-    ctx.session.hasStartedQualification = true;
+  if (state === "qualification" && isPrimaryQuestion(ctx)) {
+    captureOffListService(ctx);
     ctx.session.currentQuestionKey = undefined;
-    resetAttempts(ctx, ctx.session.state);
     await advance(ctx, client);
     return;
   }
 
-  // Retries exhausted — one last attempt via the global-intent fallback classifier
-  // before giving up to voicemail.
+  // Silent safety net: is the caller actually trying to reach a human or leave a
+  // message? (Most such phrasings are already caught deterministically on every
+  // turn; this is the fallback classifier.) If not, gracefully degrade THIS
+  // field — capture what we have and continue. We never route a call to voicemail.
   ctx.session.responseActive = true;
   client.createResponse({
     instructions: "The caller's last answer didn't match what was asked. Classify what they actually want.",
