@@ -33,7 +33,6 @@ export const businesses = pgTable("businesses", {
   ownerPhone: text("owner_phone"),
   serviceArea: text("service_area"),
   timezone: text("timezone").notNull().default("America/New_York"),
-  websiteUrl: text("website_url"),
 
   // Selected during onboarding — see src/lib/verticals/pricingTemplates.ts and
   // scripts/seed-verticals.ts for the set of supported verticals.

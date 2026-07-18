@@ -165,7 +165,7 @@ export async function PATCH(req: NextRequest) {
 
   const allowed = [
     "businessName", "ownerName", "ownerPhone", "ownerEmail",
-    "serviceArea", "websiteUrl", "timezone",
+    "serviceArea", "timezone",
     "forwardingNumber", "notificationPreferences",
     "twilioPhoneNumber", "overflowMode", "recordingEnabled", "recordingDisclosure",
     "urgentTransferNumber", "greetingMessage", "aiInstructions", "voiceName", "callTimeoutSeconds",

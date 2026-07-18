@@ -887,7 +887,6 @@ function BusinessProfilePanel({ business }: { business: Business }) {
   const [businessName, setBusinessName] = useState(business.businessName);
   const [ownerName, setOwnerName] = useState(business.ownerName);
   const [serviceArea, setServiceArea] = useState(business.serviceArea ?? "");
-  const [websiteUrl, setWebsiteUrl] = useState(business.websiteUrl ?? "");
   const { loading, saved, error, save } = useSave();
 
   return (
@@ -917,16 +916,13 @@ function BusinessProfilePanel({ business }: { business: Business }) {
           <FormGroup label="Primary service area">
             <Field value={serviceArea} onChange={(e) => setServiceArea(e.target.value)} placeholder="Greater Chicago Area" />
           </FormGroup>
-          <FormGroup label="Website">
-            <Field type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://example.com" />
-          </FormGroup>
         </div>
         {error && <p className="text-sm text-cv-red">{error}</p>}
         <Button
           variant="primary"
           className="self-end"
           disabled={loading}
-          onClick={() => save({ businessName, ownerName, serviceArea: serviceArea || null, websiteUrl: websiteUrl || null })}
+          onClick={() => save({ businessName, ownerName, serviceArea: serviceArea || null })}
         >
           {loading ? "Saving…" : saved ? "Saved ✓" : "Save profile"}
         </Button>
