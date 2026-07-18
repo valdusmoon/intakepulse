@@ -90,9 +90,15 @@ export const HAS_COVERAGE_QUESTION: VerticalQuestion = {
 
 export const UNIVERSAL_FOLLOWUP_QUESTIONS: VerticalQuestion[] = [URGENCY_QUESTION, TIME_SINCE_ISSUE_QUESTION, HAS_COVERAGE_QUESTION];
 
+// Urgency is the strongest signal we ALWAYS capture (voice asks it; the web form
+// asks it), so it drives most of the score. Recency + coverage are refinement on
+// top — captured on the web form and when a voice caller volunteers them, but the
+// score must already be sensible without them (an emergency should read Hot even
+// if that's all we know). This keeps voice (service + urgency only) and web (the
+// full set) scoring consistently. Caps: URGENCY_CAP 15, QUALITY_CAP 65 (scoring.ts).
 export const UNIVERSAL_FOLLOWUP_SCORING_RULES: ScoringRule[] = [
-  { answerKey: "urgency", answerValue: "emergency", urgencyBonus: 5, qualityBonus: 10 },
-  { answerKey: "urgency", answerValue: "soon", urgencyBonus: 2, qualityBonus: 5 },
+  { answerKey: "urgency", answerValue: "emergency", urgencyBonus: 13, qualityBonus: 35 },
+  { answerKey: "urgency", answerValue: "soon", urgencyBonus: 6, qualityBonus: 18 },
   { answerKey: "time_since_issue", answerValue: "today", urgencyBonus: 2, qualityBonus: 5 },
   { answerKey: "time_since_issue", answerValue: "this_week", urgencyBonus: 1, qualityBonus: 3 },
   { answerKey: "has_coverage", answerValue: "covered", qualityBonus: 20 },
