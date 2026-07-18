@@ -112,7 +112,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
       <section className="px-6 py-14 bg-white border-y border-[#e3e7ed]">
         <div className="max-w-4xl mx-auto">
           <h2 className="font-cv-heading text-2xl font-bold mb-2">What Callverted asks on a {industry.name} call</h2>
-          <p className="text-[#667085] mb-6 max-w-2xl">A rigid, {industry.name.toLowerCase()}-specific intake. It collects only what matters, then stops. No rambling AI receptionist.</p>
+          <p className="text-[#667085] mb-6 max-w-2xl">Callverted asks for the job and how urgent it is, then captures the rest from what the caller already says. It collects only what matters, then stops. No rambling AI receptionist.</p>
           <ol className="space-y-3">
             {industry.asks.map((a, i) => (
               <li key={i} className="flex items-start gap-3">

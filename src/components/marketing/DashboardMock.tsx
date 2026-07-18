@@ -30,7 +30,7 @@ const LEADS = [
   { initials: "MW", name: "Marcus Webb", service: "Furnace: no heat", intent: "High intent", intentTone: "bg-[#fef0c7] text-[#b25e09]", value: "$3,200–$8,500", wait: "22m", tier: "Hot", score: 88 },
   { initials: "DA", name: "Diane Alvarez", service: "Burst pipe", intent: "Emergency", intentTone: "bg-[#fee4e2] text-[#b42318]", value: "$1,800–$3,400", wait: "35m", tier: "Hot", score: 91 },
   { initials: "TB", name: "Tom Becker", service: "AC tune-up", intent: "Routine", intentTone: "bg-[#eef1f4] text-[#667085]", value: "$150–$400", wait: "1h", tier: "Warm", score: 52 },
-  { initials: "RG", name: "Ray Gomez", service: "Pricing question only", intent: "Low intent", intentTone: "bg-[#eef1f4] text-[#667085]", value: "—", wait: "2h", tier: "Cold", score: 21 },
+  { initials: "RG", name: "Ray Gomez", service: "Pricing question only", intent: "Low intent", intentTone: "bg-[#eef1f4] text-[#667085]", value: "—", wait: "2h", tier: "Cool", score: 21 },
 ];
 
 const FUNNEL = [
@@ -124,7 +124,7 @@ export function DashboardMock() {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-[13px] font-bold">Priority leads</p>
-                    <p className="text-[10px] text-[#98a2b3]">Ranked by urgency, value, and wait time</p>
+                    <p className="text-[10px] text-[#98a2b3]">Ranked by priority: urgency, value, and intent combined</p>
                   </div>
                   <span className="text-[11px] font-semibold text-landing-primary">View all</span>
                 </div>
