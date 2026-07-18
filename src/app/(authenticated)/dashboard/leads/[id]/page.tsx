@@ -8,7 +8,7 @@ import { getPendingFollowup } from "@/lib/db/queries/followups";
 import { getCallByLeadId } from "@/lib/db/queries/calls";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { formatIntakeAnswers, deriveServiceLabel, isOffListService } from "@/lib/verticals/labels";
-import { priorityMeta, intentMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort } from "@/lib/leads/priority";
+import { priorityMeta, intentMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort, leadCompletionMeta } from "@/lib/leads/priority";
 import { Card, CardHeader, CardTitle, CardBody, Badge, Icon } from "@/components/dashboard/v2/primitives";
 import { LeadDetailClient } from "./_client";
 
@@ -74,15 +74,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const formattedAnswers = formatIntakeAnswers(verticalConfig?.questions ?? [], lead.intakeAnswers);
   const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
   const offListService = isOffListService(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
-  // Coarse "how far the intake got" badge (voice leads only). "complete" shows
-  // nothing — a clean lead doesn't need a flag.
-  const completionBadge = (
-    {
-      partial: { label: "Partial intake", color: "amber" },
-      message_only: { label: "Message only", color: "blue" },
-      abandoned: { label: "Caller dropped", color: "gray" },
-    } as Record<string, { label: string; color: "amber" | "blue" | "gray" }>
-  )[lead.leadCompletionStatus ?? ""];
+  // Coarse "how far the intake got" badge (voice leads only; null on web/manual).
+  const completionBadge = leadCompletionMeta(lead.leadCompletionStatus);
   const displayName = lead.callerName ?? lead.callerPhone;
   const valueRange = fmtValueRange(lead.estimatedValueLow, lead.estimatedValueHigh);
   const hasCallEvidence = Boolean(call);
