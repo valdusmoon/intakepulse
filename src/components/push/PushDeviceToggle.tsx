@@ -30,7 +30,7 @@ export function PushDeviceToggle() {
   return (
     <div className="flex justify-between items-center py-3.5 border-t border-cv-border">
       <div className="pr-4">
-        <strong className="block text-xs">Phone alerts on this device</strong>
+        <strong className="block text-xs">Push alerts on this device</strong>
         <span className="block text-cv-muted text-[10px] mt-1">{note}</span>
         {error && <span className="block text-cv-red text-[10px] mt-1">{error}</span>}
       </div>
