@@ -8,7 +8,7 @@ import { getPendingFollowup } from "@/lib/db/queries/followups";
 import { getCallByLeadId } from "@/lib/db/queries/calls";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { formatIntakeAnswers, deriveServiceLabel, isOffListService } from "@/lib/verticals/labels";
-import { priorityMeta, intentMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort } from "@/lib/leads/priority";
+import { tierMeta, highValueBadge, intentMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort } from "@/lib/leads/priority";
 import { Card, CardHeader, CardTitle, CardBody, Badge, Icon } from "@/components/dashboard/v2/primitives";
 import { LeadDetailClient } from "./_client";
 
@@ -68,7 +68,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     getVerticalConfig(business.vertical),
   ]);
 
-  const priority = priorityMeta(lead.urgencyScore);
+  const tier = tierMeta(lead.priorityScore);
+  const highValue = highValueBadge(lead.estimatedValueLow);
   const intent = intentMeta(lead.qualityScore);
   const timeline = buildTimeline(call, lead);
   const formattedAnswers = formatIntakeAnswers(verticalConfig?.questions ?? [], lead.intakeAnswers);
@@ -89,7 +90,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="font-cv-heading text-[34px] leading-[1.15] tracking-tight">{displayName}</h1>
-            <Badge color={priority.color}>{priority.label}</Badge>
+            <Badge color={tier.color}>{tier.label}</Badge>
+            {highValue && <Badge color={highValue.color}>{highValue.label}</Badge>}
             <Badge color={intent.color}>{intent.label}</Badge>
           </div>
           <p className="mt-[7px] text-cv-muted text-sm">

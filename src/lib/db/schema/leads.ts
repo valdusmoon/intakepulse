@@ -1,5 +1,6 @@
 import { boolean, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { businesses } from "./businesses";
+import type { ScoreTrace } from "@/lib/leads/scoring";
 
 export const leads = pgTable("leads", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -31,6 +32,12 @@ export const leads = pgTable("leads", {
   // Scores — denormalized from ai_assessments for list view performance (no join needed)
   urgencyScore: integer("urgency_score"),   // 1-10, set by scoring engine
   qualityScore: integer("quality_score"),   // 1-100, set by scoring engine
+  // Composite "call first" ranking (0-100) — blends urgency/value/quality; drives
+  // the Hot/Warm/Cool tier and the dashboard priority queue. Set by scoring engine.
+  priorityScore: integer("priority_score"),
+  // Deterministic explanation of how the score was reached (matched rules, floors,
+  // normalized sub-scores, model version) — for debugging + "why is this Hot?".
+  scoreTrace: jsonb("score_trace").$type<ScoreTrace>(),
   estimatedValueLow: integer("estimated_value_low"),   // cents — AI estimate
   estimatedValueHigh: integer("estimated_value_high"), // cents — AI estimate
   // Actual reported job value once the business knows it — distinct from the

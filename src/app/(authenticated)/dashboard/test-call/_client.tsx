@@ -532,9 +532,16 @@ function LeadPreview({ packet, onClose }: { packet: LeadPacket; onClose: () => v
             <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold">Caller</div>
             <div className="text-base font-bold text-cv-ink truncate">{packet.callerName ?? "Not captured"}</div>
           </div>
-          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold ${TIER_STYLES[packet.tier]}`}>
-            {packet.tier} · {packet.leadScore}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {packet.isHighValue && (
+              <span className="rounded-full px-2.5 py-1 text-xs font-extrabold bg-cv-primary-soft text-cv-primary-dark">
+                High value
+              </span>
+            )}
+            <span className={`rounded-full px-2.5 py-1 text-xs font-extrabold ${TIER_STYLES[packet.tier]}`}>
+              {packet.tier} · {packet.priorityScore}
+            </span>
+          </div>
         </div>
 
         {/* Opportunity summary — the AI reasoning a real lead gets */}

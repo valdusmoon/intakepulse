@@ -79,12 +79,15 @@ export async function getSourceBreakdown(businessId: string) {
   }));
 }
 
+// The "call first" queue on the dashboard home — only leads still awaiting action
+// ('new'), ranked by the composite priorityScore (a lead drops off this widget once
+// it's marked contacted/booked/etc). Falls back to -1 so unscored leads sort last.
 export async function getPriorityQueue(businessId: string, limit = 4) {
   return db
     .select()
     .from(leads)
     .where(and(eq(leads.businessId, businessId), eq(leads.leadStatus, "new"), isNull(leads.deletedAt)))
-    .orderBy(desc(sql`coalesce(${leads.urgencyScore}, -1)`), leads.createdAt)
+    .orderBy(desc(sql`coalesce(${leads.priorityScore}, -1)`), leads.createdAt)
     .limit(limit);
 }
 

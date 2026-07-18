@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { scoreLeadFromAnswers } from "./scoring";
+import {
+  scoreLeadFromAnswers,
+  isHighValueLead,
+  EMERGENCY_PRIORITY_FLOOR,
+  CRITICAL_SIGNAL_PRIORITY_FLOOR,
+  SCORE_VERSION,
+  type ScoringContext,
+} from "./scoring";
 import type { ScoringRule, VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 import { VERTICALS } from "@/lib/verticals/verticalDefinitions";
 
@@ -135,5 +142,155 @@ describe("scoreLeadFromAnswers", () => {
         expect(result.estimatedValueLow).toBe(v.baseValueLow);
       });
     }
+  });
+
+  // ─── priorityScore + tier (the composite that ranks leads) ────────────────────
+  const HOT = 65;
+  const WARM = 40;
+  const tierOf = (p: number) => (p >= HOT ? "Hot" : p >= WARM ? "Warm" : "Cool");
+  const vertical = (name: string) => {
+    const v = VERTICALS.find((x) => x.vertical === name);
+    if (!v) throw new Error(`test setup: no vertical ${name}`);
+    return v;
+  };
+  const scoreIn = (name: string, answers: Record<string, string>, ctx?: ScoringContext) => {
+    const v = vertical(name);
+    return scoreLeadFromAnswers(answers, v.scoringRules, v.questions, v.baseValueLow, ctx);
+  };
+
+  describe("priorityScore composite", () => {
+    it("priorityScore is always within 0-100", () => {
+      for (const v of VERTICALS) {
+        const worst = scoreIn(v.vertical, {
+          [v.questions[0].key]: v.questions[0].options?.at(-1)?.value ?? "",
+          urgency: "emergency",
+          time_since_issue: "today",
+          has_coverage: "covered",
+        });
+        expect(worst.priorityScore).toBeGreaterThanOrEqual(0);
+        expect(worst.priorityScore).toBeLessThanOrEqual(100);
+      }
+    });
+
+    // The founder-approved target table (plan §"Fitted target table").
+    // Emergency water — the lead this whole change exists to fix — MUST read Hot.
+    it("restoration fire + emergency → Hot", () => {
+      const s = scoreIn("restoration", { service_type: "fire", urgency: "emergency" });
+      expect(tierOf(s.priorityScore)).toBe("Hot");
+    });
+
+    it("restoration water + emergency → Hot (the fix; was Cool/Warm)", () => {
+      const s = scoreIn("restoration", { service_type: "water", urgency: "emergency" });
+      expect(tierOf(s.priorityScore)).toBe("Hot");
+    });
+
+    it("restoration mold + soon → Warm", () => {
+      const s = scoreIn("restoration", { service_type: "mold", urgency: "soon" });
+      expect(tierOf(s.priorityScore)).toBe("Warm");
+    });
+
+    it("restoration water + flexible, no other signal → Cool", () => {
+      const s = scoreIn("restoration", { service_type: "water", urgency: "flexible" });
+      expect(tierOf(s.priorityScore)).toBe("Cool");
+    });
+
+    it("qualification (coverage + recency) raises a flexible lead's priority", () => {
+      // Both stay Cool at flexible urgency (Warm isn't lowered to catch them), but
+      // adding real qualifying signal must move the number up, not down.
+      const bare = scoreIn("restoration", { service_type: "water", urgency: "flexible" });
+      const qualified = scoreIn("restoration", {
+        service_type: "water",
+        urgency: "flexible",
+        has_coverage: "covered",
+        time_since_issue: "today",
+      });
+      expect(tierOf(bare.priorityScore)).toBe("Cool");
+      expect(qualified.priorityScore).toBeGreaterThan(bare.priorityScore);
+    });
+
+    it("spam / no-signal 'other' lead → Cool", () => {
+      const s = scoreIn("other", { service_type: "general", urgency: "flexible" });
+      expect(tierOf(s.priorityScore)).toBe("Cool");
+    });
+
+    it("an emergency outranks the same service at flexible urgency", () => {
+      const emergency = scoreIn("plumbing", { service_type: "burst_pipe", urgency: "emergency" });
+      const flexible = scoreIn("plumbing", { service_type: "burst_pipe", urgency: "flexible" });
+      expect(emergency.priorityScore).toBeGreaterThan(flexible.priorityScore);
+    });
+  });
+
+  describe("priority floors", () => {
+    it("a low-value emergency with a matched service floors to Hot", () => {
+      // $500 AC repair would blend to ~59 (Warm) — the emergency floor lifts it.
+      const s = scoreIn("hvac", { service_type: "ac_repair", urgency: "emergency" });
+      expect(s.priorityScore).toBeGreaterThanOrEqual(EMERGENCY_PRIORITY_FLOOR);
+      expect(tierOf(s.priorityScore)).toBe("Hot");
+    });
+
+    it("an emergency with OFF-LIST service words still floors to Hot", () => {
+      // No structured service match, but the caller gave words → service is clear.
+      const s = scoreIn("electrical", { urgency: "emergency" }, { serviceRequested: "my panel is buzzing loudly" });
+      expect(s.priorityScore).toBeGreaterThanOrEqual(EMERGENCY_PRIORITY_FLOOR);
+    });
+
+    it("an emergency with a TRULY unclear service does NOT floor to Hot", () => {
+      // No structured service, no off-list words → we can't tell what they need,
+      // so the word 'emergency' alone must not float the lead to Hot.
+      const s = scoreIn("electrical", { urgency: "emergency" });
+      expect(s.priorityScore).toBeLessThan(EMERGENCY_PRIORITY_FLOOR);
+    });
+
+    it("a critical-signal phrase in a free-text answer floors higher than a plain emergency", () => {
+      const s = scoreIn("restoration", { service_type: "water", urgency: "soon", cause: "active flooding in the basement" });
+      expect(s.priorityScore).toBeGreaterThanOrEqual(CRITICAL_SIGNAL_PRIORITY_FLOOR);
+      expect(tierOf(s.priorityScore)).toBe("Hot");
+      expect(s.trace.floorsApplied).toContain("critical_signal_floor");
+    });
+
+    it("critical-signal words passed via signalText also floor", () => {
+      const s = scoreIn("plumbing", { service_type: "drain_clog", urgency: "flexible" }, { signalText: "there is a sewage backup coming up the drain" });
+      expect(s.priorityScore).toBeGreaterThanOrEqual(CRITICAL_SIGNAL_PRIORITY_FLOOR);
+    });
+
+    it("a NEGATED critical-signal phrase does not floor", () => {
+      const s = scoreIn("plumbing", { service_type: "drain_clog", urgency: "flexible" }, { signalText: "just checking, there is no sewage backup and I don't smell gas" });
+      expect(s.priorityScore).toBeLessThan(CRITICAL_SIGNAL_PRIORITY_FLOOR);
+      expect(s.trace.floorsApplied).not.toContain("critical_signal_floor");
+    });
+  });
+
+  describe("high-value flag (tier-independent)", () => {
+    it("a valuable but non-urgent lead stays Cool yet is flagged high-value", () => {
+      // The founder-approved behavior: don't lower Warm to catch this — badge it.
+      const s = scoreIn("hvac", { service_type: "ac_replacement", urgency: "flexible", has_coverage: "covered" });
+      expect(tierOf(s.priorityScore)).toBe("Cool");
+      expect(s.valueScore).toBeGreaterThanOrEqual(80);
+      expect(isHighValueLead(s.estimatedValueLow)).toBe(true);
+    });
+
+    it("a small-ticket lead is not flagged high-value", () => {
+      const s = scoreIn("plumbing", { service_type: "drain_clog", urgency: "flexible" });
+      expect(isHighValueLead(s.estimatedValueLow)).toBe(false);
+    });
+  });
+
+  describe("scoreTrace (explainability)", () => {
+    it("records version, matched rules, floors, and normalized sub-scores", () => {
+      const s = scoreIn("restoration", { service_type: "water", urgency: "emergency" });
+      expect(s.trace.version).toBe(SCORE_VERSION);
+      expect(s.trace.floorsApplied).toContain("emergency_floor");
+      expect(s.trace.valueScore).toBe(s.valueScore);
+      expect(s.trace.urgency100).toBeGreaterThan(0);
+      // The two rules that should have fired for water + emergency.
+      const keys = s.trace.matchedRules.map((r) => `${r.answerKey}=${r.answerValue}`);
+      expect(keys).toContain("urgency=emergency");
+      expect(keys).toContain("service_type=water");
+    });
+
+    it("no floors applied on a plain flexible lead", () => {
+      const s = scoreIn("plumbing", { service_type: "drain_clog", urgency: "flexible" });
+      expect(s.trace.floorsApplied).toEqual([]);
+    });
   });
 });

@@ -129,7 +129,10 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
     await updateCall(session.callId, { leadId: lead.id, outcome: "ai_captured" });
   }
 
-  const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions, verticalConfig.baseValueLow);
+  const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions, verticalConfig.baseValueLow, {
+    serviceRequested: session.conversationContext.serviceRequested ?? null,
+    signalText: session.conversationContext.reasonForCall ?? null,
+  });
   const reasoning = await assessLead(lead.id, answers, scores, verticalConfig.aiPromptTemplate);
 
   if (!session.isTestCall && business.notificationPreferences?.qualifiedLead !== false) {
@@ -162,7 +165,7 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
         buildLeadPushPayload({
           leadId: lead.id,
           callerName: session.conversationContext.callerName ?? null,
-          urgencyScore: scores.urgencyScore,
+          priorityScore: scores.priorityScore,
           estimatedValueLow: scores.estimatedValueLow,
           estimatedValueHigh: scores.estimatedValueHigh,
         }),

@@ -91,14 +91,16 @@ export const HAS_COVERAGE_QUESTION: VerticalQuestion = {
 export const UNIVERSAL_FOLLOWUP_QUESTIONS: VerticalQuestion[] = [URGENCY_QUESTION, TIME_SINCE_ISSUE_QUESTION, HAS_COVERAGE_QUESTION];
 
 // Urgency is the strongest signal we ALWAYS capture (voice asks it; the web form
-// asks it), so it drives most of the score. Recency + coverage are refinement on
-// top — captured on the web form and when a voice caller volunteers them, but the
-// score must already be sensible without them (an emergency should read Hot even
-// if that's all we know). This keeps voice (service + urgency only) and web (the
-// full set) scoring consistently. Caps: URGENCY_CAP 15, QUALITY_CAP 65 (scoring.ts).
+// asks it). It drives the urgencyScore (and, via urgencyScore, most of the
+// composite priorityScore that tiers the lead — see scoring.ts). It contributes
+// to qualityScore too, but only modestly: qualityScore measures how QUALIFIED /
+// complete a lead is (coverage, recency, service richness), NOT how urgent it is —
+// otherwise "quality" just becomes urgency in disguise and the intent badge lies.
+// So emergency/soon add real-but-bounded quality; coverage is the bigger quality
+// lever. Caps: URGENCY_CAP 15, QUALITY_CAP 65 (scoring.ts).
 export const UNIVERSAL_FOLLOWUP_SCORING_RULES: ScoringRule[] = [
-  { answerKey: "urgency", answerValue: "emergency", urgencyBonus: 13, qualityBonus: 35 },
-  { answerKey: "urgency", answerValue: "soon", urgencyBonus: 6, qualityBonus: 18 },
+  { answerKey: "urgency", answerValue: "emergency", urgencyBonus: 13, qualityBonus: 18 },
+  { answerKey: "urgency", answerValue: "soon", urgencyBonus: 6, qualityBonus: 9 },
   { answerKey: "time_since_issue", answerValue: "today", urgencyBonus: 2, qualityBonus: 5 },
   { answerKey: "time_since_issue", answerValue: "this_week", urgencyBonus: 1, qualityBonus: 3 },
   { answerKey: "has_coverage", answerValue: "covered", qualityBonus: 20 },

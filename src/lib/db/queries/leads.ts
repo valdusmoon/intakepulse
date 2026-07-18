@@ -31,7 +31,7 @@ export async function getLeadsByBusiness(
   opts: {
     leadStatus?: string;
     source?: string;
-    priority?: "urgent" | "call_today" | "routine";
+    priority?: "hot" | "warm" | "cool";
     search?: string;
     limit?: number;
     offset?: number;
@@ -42,9 +42,10 @@ export async function getLeadsByBusiness(
   const filters: SQL[] = [eq(leads.businessId, businessId), isNull(leads.deletedAt)];
   if (leadStatus) filters.push(eq(leads.leadStatus, leadStatus));
   if (source) filters.push(eq(leads.source, source));
-  if (priority === "urgent") filters.push(sql`${leads.urgencyScore} >= 7`);
-  if (priority === "call_today") filters.push(sql`${leads.urgencyScore} >= 4 and ${leads.urgencyScore} < 7`);
-  if (priority === "routine") filters.push(sql`(${leads.urgencyScore} < 4 or ${leads.urgencyScore} is null)`);
+  // Tier thresholds mirror PRIORITY_TIERS in scoring.ts (Hot >= 65, Warm 40-64, Cool < 40).
+  if (priority === "hot") filters.push(sql`${leads.priorityScore} >= 65`);
+  if (priority === "warm") filters.push(sql`${leads.priorityScore} >= 40 and ${leads.priorityScore} < 65`);
+  if (priority === "cool") filters.push(sql`(${leads.priorityScore} < 40 or ${leads.priorityScore} is null)`);
   if (search) {
     filters.push(
       or(

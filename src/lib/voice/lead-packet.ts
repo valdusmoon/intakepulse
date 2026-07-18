@@ -1,4 +1,4 @@
-import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
+import { scoreLeadFromAnswers, priorityTier, HIGH_VALUE_THRESHOLD } from "@/lib/leads/scoring";
 import { generateAssessmentReasoning } from "@/lib/leads/assess";
 import { formatIntakeAnswers } from "@/lib/verticals/labels";
 import type { FlowContext } from "./state-machine/types";
@@ -12,6 +12,8 @@ import type { FlowContext } from "./state-machine/types";
  */
 export interface LeadPacket {
   tier: "Hot" | "Warm" | "Cool";
+  priorityScore: number; // 0-100 — composite that the tier is derived from
+  isHighValue: boolean; // value on its own is high — surfaced as a badge
   leadScore: number; // quality, 1-100
   urgencyScore: number; // 1-10
   estimatedValue: string;
@@ -52,7 +54,10 @@ export async function buildLeadPacket(ctx: FlowContext, opts: { withReasoning?: 
   const urgencyQuestion = verticalConfig.questions.find((q) => q.key === "urgency");
   const urgency = urgencyQuestion?.options?.find((o) => o.value === answers.urgency)?.label ?? null;
 
-  const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions, verticalConfig.baseValueLow);
+  const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions, verticalConfig.baseValueLow, {
+    serviceRequested: cc.serviceRequested ?? null,
+    signalText: cc.reasonForCall ?? null,
+  });
 
   // Optionally run the AI reasoning (not persisted) so the preview matches a real
   // lead. Gated so the public marketing demo stays a single cheap call.
@@ -66,7 +71,7 @@ export async function buildLeadPacket(ctx: FlowContext, opts: { withReasoning?: 
     recommendedActions = reasoning.recommendedActions;
   }
 
-  const tier = scores.qualityScore >= 60 ? "Hot" : scores.qualityScore >= 35 ? "Warm" : "Cool";
+  const tier = priorityTier(scores.priorityScore);
   const recommendedAction =
     recommendedActions[0] ??
     (answers.urgency === "emergency"
@@ -87,6 +92,8 @@ export async function buildLeadPacket(ctx: FlowContext, opts: { withReasoning?: 
 
   return {
     tier,
+    priorityScore: scores.priorityScore,
+    isHighValue: scores.valueScore >= HIGH_VALUE_THRESHOLD,
     leadScore: scores.qualityScore,
     urgencyScore: scores.urgencyScore,
     estimatedValue: `${usd(scores.estimatedValueLow)} to ${usd(scores.estimatedValueHigh)}`,

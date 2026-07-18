@@ -11,7 +11,7 @@ import {
 } from "@/lib/db/queries/dashboard";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel } from "@/lib/verticals/labels";
-import { priorityMeta, intentMeta, initials, timeAgoShort, fmtCents, fmtValueRange, sourceLabel, sourceSwatch } from "@/lib/leads/priority";
+import { tierMeta, intentMeta, highValueBadge, initials, timeAgoShort, fmtCents, fmtValueRange, sourceLabel, sourceSwatch } from "@/lib/leads/priority";
 import { Card, CardHeader, CardTitle, CardBody, Badge, StatusPill, MetricCard, Trend, Icon, LinkButton } from "@/components/dashboard/v2/primitives";
 import { hasPaymentOnFile, getSetupStage } from "@/lib/subscription";
 import { ActivationChecklist } from "@/components/dashboard/ActivationChecklist";
@@ -257,7 +257,7 @@ export default async function DashboardPage({
           <CardHeader>
             <div>
               <CardTitle>Priority leads</CardTitle>
-              <p className="text-[11px] text-cv-muted mt-1">Ranked by urgency, intent, and waiting time</p>
+              <p className="text-[11px] text-cv-muted mt-1">Ranked by priority — urgency, value, and intent combined</p>
             </div>
             <LinkButton href="/dashboard/leads" variant="ghost" size="sm">
               View all
@@ -272,8 +272,9 @@ export default async function DashboardPage({
               </div>
             ) : (
               priorityLeads.map((lead) => {
-                const priority = priorityMeta(lead.urgencyScore);
+                const tier = tierMeta(lead.priorityScore);
                 const intent = intentMeta(lead.qualityScore);
+                const highValue = highValueBadge(lead.estimatedValueLow);
                 const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
                 const value = fmtValueRange(lead.estimatedValueLow, lead.estimatedValueHigh);
                 return (
@@ -285,7 +286,7 @@ export default async function DashboardPage({
                     <div className="flex items-center gap-3 min-w-0">
                       <div
                         className={`w-10 h-10 rounded-[11px] grid place-items-center shrink-0 font-extrabold text-xs ${
-                          priority.label === "Urgent" ? "bg-cv-red-soft text-cv-red" : priority.label === "Call today" ? "bg-cv-amber-soft text-cv-amber" : "bg-cv-gray-soft text-[#344054]"
+                          tier.label === "Hot" ? "bg-cv-red-soft text-cv-red" : tier.label === "Warm" ? "bg-cv-amber-soft text-cv-amber" : "bg-cv-gray-soft text-[#344054]"
                         }`}
                       >
                         {initials(lead.callerName)}
@@ -293,11 +294,13 @@ export default async function DashboardPage({
                       <div className="min-w-0">
                         <div className="flex items-center flex-wrap gap-1.5">
                           <span className="text-sm font-extrabold">{lead.callerName ?? lead.callerPhone}</span>
-                          <Badge color={priority.color}>{priority.label}</Badge>
+                          <Badge color={tier.color}>{tier.label}</Badge>
                           <Badge color={intent.color}>{intent.label}</Badge>
+                          {highValue && <Badge color={highValue.color}>{highValue.label}</Badge>}
                         </div>
                         <div className="text-cv-muted text-xs mt-1 truncate">{service ?? "Details pending"}</div>
                         <div className="flex gap-2.5 items-center mt-[7px] text-cv-muted text-[11px] flex-wrap">
+                          {lead.urgencyScore != null && <span>Urgency {lead.urgencyScore}/10</span>}
                           {value && <span>Estimated {value}</span>}
                         </div>
                       </div>

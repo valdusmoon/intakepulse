@@ -1,6 +1,26 @@
 import type { BadgeColor } from "@/components/dashboard/v2/primitives";
+import { priorityTier, isHighValueLead, type LeadTier } from "@/lib/leads/scoring";
 
-/** Bucket the numeric urgencyScore (1-10) into the mockup's 3-tier priority label. */
+const TIER_COLOR: Record<LeadTier, BadgeColor> = { Hot: "red", Warm: "amber", Cool: "gray" };
+
+/** A tier-independent "High value" badge — lets a big but non-urgent lead read
+ *  "Cool · High value" so it's visible without inflating its priority. Returns
+ *  null when the lead isn't high-value. */
+export function highValueBadge(estimatedValueLow: number | null): { label: string; color: BadgeColor } | null {
+  return isHighValueLead(estimatedValueLow) ? { label: "High value", color: "purple" } : null;
+}
+
+/** The lead's Hot/Warm/Cool tier — the single "call first" badge, derived from the
+ *  composite priorityScore (urgency + value + quality). Use this as the primary
+ *  badge; `intentMeta` (quality) is the secondary signal. */
+export function tierMeta(priorityScore: number | null): { label: string; color: BadgeColor } {
+  if (priorityScore == null) return { label: "Unscored", color: "gray" };
+  const tier = priorityTier(priorityScore);
+  return { label: tier, color: TIER_COLOR[tier] };
+}
+
+/** Bucket the numeric urgencyScore (1-10) into a time-sensitivity label. Kept for
+ *  the urgency-specific chip / callback routing; the primary lead tier is `tierMeta`. */
 export function priorityMeta(urgencyScore: number | null): { label: string; color: BadgeColor } {
   if (urgencyScore == null) return { label: "Unscored", color: "gray" };
   if (urgencyScore >= 7) return { label: "Urgent", color: "red" };

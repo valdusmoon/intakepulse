@@ -29,7 +29,7 @@ function buildPrompt(
 
 function mockAssessment(scores: ScoringResult): ReasoningResult {
   return {
-    urgencyReasoning: `Urgency score ${scores.urgencyScore}/100 based on intake answers. (Mock assessment — OpenAI key not configured)`,
+    urgencyReasoning: `Urgency score ${scores.urgencyScore}/10 based on intake answers. (Mock assessment — OpenAI key not configured)`,
     qualityReasoning: `Quality score ${scores.qualityScore}/100 based on intake answers. (Mock assessment — OpenAI key not configured)`,
     recommendedActions: ["Call the lead back promptly.", "Review intake answers for job details.", "Confirm insurance status before site visit."],
   };
@@ -68,6 +68,8 @@ async function finalizeLead(
   await updateLead(leadId, {
     urgencyScore: scores.urgencyScore,
     qualityScore: scores.qualityScore,
+    priorityScore: scores.priorityScore,
+    scoreTrace: scores.trace,
     estimatedValueLow: scores.estimatedValueLow,
     estimatedValueHigh: scores.estimatedValueHigh,
     leadStatus: "qualified",

@@ -97,7 +97,7 @@ async function assessAndNotify(
         buildLeadPushPayload({
           leadId,
           callerName: lead.callerName,
-          urgencyScore: scores.urgencyScore,
+          priorityScore: scores.priorityScore,
           estimatedValueLow: scores.estimatedValueLow,
           estimatedValueHigh: scores.estimatedValueHigh,
         }),

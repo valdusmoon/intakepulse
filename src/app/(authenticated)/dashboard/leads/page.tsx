@@ -5,7 +5,7 @@ import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { getLeadsByBusiness } from "@/lib/db/queries/leads";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel, deriveReasonLine } from "@/lib/verticals/labels";
-import { priorityMeta, intentMeta, statusMeta, sourceLabel, timeAgoShort, fmtValueRange } from "@/lib/leads/priority";
+import { tierMeta, highValueBadge, intentMeta, statusMeta, sourceLabel, timeAgoShort, fmtValueRange } from "@/lib/leads/priority";
 import { Card, Badge, LinkButton, Icon } from "@/components/dashboard/v2/primitives";
 import { FilterSelect } from "./_filter-select";
 import { LeadRowActions } from "./lead-row-actions";
@@ -23,9 +23,9 @@ const STATUSES = [
 
 const PRIORITIES = [
   { value: "", label: "All priorities" },
-  { value: "urgent", label: "Urgent" },
-  { value: "call_today", label: "Call today" },
-  { value: "routine", label: "Routine" },
+  { value: "hot", label: "Hot" },
+  { value: "warm", label: "Warm" },
+  { value: "cool", label: "Cool" },
 ];
 
 const SOURCES = [
@@ -60,7 +60,7 @@ export default async function LeadsPage({
   const sp = await searchParams;
   const status = sp.status ?? "";
   const source = sp.source ?? "";
-  const priority = (sp.priority ?? "") as "" | "urgent" | "call_today" | "routine";
+  const priority = (sp.priority ?? "") as "" | "hot" | "warm" | "cool";
   const search = sp.search ?? "";
   const page = Math.max(1, Number(sp.page ?? 1));
   const limit = 25;
@@ -157,7 +157,8 @@ export default async function LeadsPage({
               </thead>
               <tbody>
                 {leadRows.map((lead) => {
-                  const p = priorityMeta(lead.urgencyScore);
+                  const tier = tierMeta(lead.priorityScore);
+                  const highValue = highValueBadge(lead.estimatedValueLow);
                   const intent = intentMeta(lead.qualityScore);
                   const status = statusMeta(lead.leadStatus);
                   const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
@@ -182,7 +183,10 @@ export default async function LeadsPage({
                         <Badge color={status.color}>{status.label}</Badge>
                       </td>
                       <td className="px-3.5 py-3.5 align-middle">
-                        <Badge color={p.color}>{p.label}</Badge>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Badge color={tier.color}>{tier.label}</Badge>
+                          {highValue && <Badge color={highValue.color}>{highValue.label}</Badge>}
+                        </div>
                       </td>
                       <td className="px-3.5 py-3.5 text-xs align-middle text-cv-muted max-w-[240px] leading-relaxed">
                         <Badge color={intent.color} className="mr-1.5">

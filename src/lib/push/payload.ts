@@ -1,9 +1,10 @@
 import type { LeadPushPayload } from "./send";
+import { priorityTier } from "@/lib/leads/scoring";
 
 interface LeadPushInput {
   leadId: string;
   callerName: string | null;
-  urgencyScore: number;
+  priorityScore: number;
   estimatedValueLow?: number | null;
   estimatedValueHigh?: number | null;
 }
@@ -15,9 +16,10 @@ function usd(n: number): string {
 // One place that turns a scored lead into the notification an operator sees on
 // their phone. Kept identical across the web-intake and voice-overflow paths.
 export function buildLeadPushPayload(input: LeadPushInput): LeadPushPayload {
-  const { leadId, callerName, urgencyScore, estimatedValueLow, estimatedValueHigh } = input;
+  const { leadId, callerName, priorityScore, estimatedValueLow, estimatedValueHigh } = input;
 
-  const tier = urgencyScore >= 80 ? "🔥 Hot lead" : urgencyScore >= 50 ? "Warm lead" : "New lead";
+  const TIER_TITLE = { Hot: "🔥 Hot lead", Warm: "Warm lead", Cool: "New lead" } as const;
+  const tier = TIER_TITLE[priorityTier(priorityScore)];
   const who = callerName?.trim() || "New caller";
 
   let value = "";
