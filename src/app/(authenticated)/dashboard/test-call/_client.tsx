@@ -219,7 +219,8 @@ export function TestCallClient({ businessName }: { businessName: string }) {
     setStarted(false);
     setLines([]);
     setState(null);
-    setAnswers({});
+    setAnswersFmt([]);
+    setServiceRequested(null);
     setMeta(null);
     setPreview(null);
     setShowPreview(false);
