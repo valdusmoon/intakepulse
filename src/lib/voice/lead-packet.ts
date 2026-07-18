@@ -1,18 +1,29 @@
 import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
+import { generateAssessmentReasoning } from "@/lib/leads/assess";
+import { formatIntakeAnswers } from "@/lib/verticals/labels";
 import type { FlowContext } from "./state-machine/types";
 
 /**
  * The ephemeral lead packet a business would receive, computed on the fly from a
  * call's collected answers. Used by the public demo and the in-app test tool,
- * neither of which persists anything: a test/demo call is never stored, so this
- * is the preview of what a real call would have produced.
+ * neither of which persists anything. With `withReasoning`, it also runs the AI
+ * assessment (reasoning only, never persisted) so the preview mirrors the real
+ * lead-detail page exactly.
  */
 export interface LeadPacket {
   tier: "Hot" | "Warm" | "Cool";
-  leadScore: number;
+  leadScore: number; // quality, 1-100
+  urgencyScore: number; // 1-10
   estimatedValue: string;
   recommendedAction: string;
   callerName: string | null;
+  service: string | null;
+  offList: boolean;
+  source: string;
+  answers: { key: string; label: string; value: string }[];
+  urgencyReasoning: string | null;
+  qualityReasoning: string | null;
+  recommendedActions: string[];
   details: { label: string; value: string }[];
 }
 
@@ -28,7 +39,7 @@ const URGENCY_WORD: Record<string, string> = {
   flexible: "Flexible",
 };
 
-export function buildLeadPacket(ctx: FlowContext): LeadPacket {
+export async function buildLeadPacket(ctx: FlowContext, opts: { withReasoning?: boolean } = {}): Promise<LeadPacket> {
   const { verticalConfig } = ctx;
   const cc = ctx.session.conversationContext;
   const answers = cc.answers;
@@ -37,19 +48,34 @@ export function buildLeadPacket(ctx: FlowContext): LeadPacket {
   const matchedService = primaryQuestion?.options?.find((o) => o.value === answers[primaryQuestion.key])?.label ?? null;
   // Off-list service (no matched option) → show the caller's own words instead.
   const service = matchedService ?? cc.serviceRequested ?? null;
+  const offList = !matchedService && !!cc.serviceRequested;
   const urgencyQuestion = verticalConfig.questions.find((q) => q.key === "urgency");
   const urgency = urgencyQuestion?.options?.find((o) => o.value === answers.urgency)?.label ?? null;
 
   const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions, verticalConfig.baseValueLow);
 
+  // Optionally run the AI reasoning (not persisted) so the preview matches a real
+  // lead. Gated so the public marketing demo stays a single cheap call.
+  let urgencyReasoning: string | null = null;
+  let qualityReasoning: string | null = null;
+  let recommendedActions: string[] = [];
+  if (opts.withReasoning) {
+    const { reasoning } = await generateAssessmentReasoning(answers, scores, verticalConfig.aiPromptTemplate);
+    urgencyReasoning = reasoning.urgencyReasoning;
+    qualityReasoning = reasoning.qualityReasoning;
+    recommendedActions = reasoning.recommendedActions;
+  }
+
   const tier = scores.qualityScore >= 60 ? "Hot" : scores.qualityScore >= 35 ? "Warm" : "Cool";
   const recommendedAction =
-    answers.urgency === "emergency"
+    recommendedActions[0] ??
+    (answers.urgency === "emergency"
       ? "Call back within 10 minutes"
       : answers.urgency === "soon"
         ? "Call back within the hour"
-        : "Call back today";
+        : "Call back today");
 
+  // Extra call-metadata not part of the scored Q&A (the full Q&A is in `answers`).
   const details: { label: string; value: string }[] = [];
   if (service) details.push({ label: "Service", value: service });
   if (urgency) details.push({ label: "Urgency", value: URGENCY_WORD[answers.urgency] ?? urgency });
@@ -62,9 +88,17 @@ export function buildLeadPacket(ctx: FlowContext): LeadPacket {
   return {
     tier,
     leadScore: scores.qualityScore,
+    urgencyScore: scores.urgencyScore,
     estimatedValue: `${usd(scores.estimatedValueLow)} to ${usd(scores.estimatedValueHigh)}`,
     recommendedAction,
     callerName: cc.callerName ?? null,
+    service,
+    offList,
+    source: ctx.session.isTestCall ? "voice_test" : "voice_overflow",
+    answers: formatIntakeAnswers(verticalConfig.questions, answers),
+    urgencyReasoning,
+    qualityReasoning,
+    recommendedActions,
     details,
   };
 }

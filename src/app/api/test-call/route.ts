@@ -133,6 +133,9 @@ export async function POST(req: NextRequest) {
   // has its own copy from what it just sent (it isn't waiting to be told).
   const linesFrom = incomingState && message ? beforeSnapshot + 1 : beforeSnapshot;
 
+  // Preview runs the AI reasoning (not persisted) so it mirrors the real lead
+  // detail — only when the call has ended.
+  const preview = ended ? await buildLeadPacket(ctx, { withReasoning: true }) : null;
   const cc = ctx.session.conversationContext;
   return NextResponse.json({
     sessionState: ended ? null : serializeSession(ctx.session),
@@ -149,7 +152,7 @@ export async function POST(req: NextRequest) {
     // finishCall, which skips captureLeadOnce for isTestCall sessions. Instead
     // we compute the ephemeral lead packet a real call would have produced, so
     // the tester can preview exactly what the business would receive.
-    preview: ended ? buildLeadPacket(ctx) : null,
+    preview,
     // Call-metadata captured outside the scored Q&A — surfaced so the tester's
     // inspector panel can reflect real call progress, not just scored answers.
     meta: {

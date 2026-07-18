@@ -74,26 +74,25 @@ async function finalizeLead(
   });
 }
 
-export async function assessLead(
-  leadId: string,
+/**
+ * Generate the plain-English reasoning for already-computed scores WITHOUT
+ * persisting anything. Used by assessLead (which then persists) and by the
+ * test-call/demo lead-packet preview (which never persists a lead but wants to
+ * show the same reasoning a real lead would get). Never throws — degrades to a
+ * canned assessment on any failure.
+ */
+export async function generateAssessmentReasoning(
   answers: Answers,
   scores: ScoringResult,
   promptTemplate: string
-): Promise<ReasoningResult> {
+): Promise<{ reasoning: ReasoningResult; model: string; rawResponse: Record<string, unknown> }> {
   if (!process.env.OPENAI_API_KEY) {
-    const mock = mockAssessment(scores);
-    await finalizeLead(leadId, scores, mock, "mock", { mock: true });
-    return mock;
+    return { reasoning: mockAssessment(scores), model: "mock", rawResponse: { mock: true } };
   }
 
   const MODEL = "gpt-4o";
-
-  let reasoning: ReasoningResult;
-  let rawResponse: Record<string, unknown> = { degraded: true };
-
   try {
     const prompt = buildPrompt(promptTemplate, scores, answers);
-
     const completion = await openai.chat.completions.create({
       model: MODEL,
       temperature: 0.3,
@@ -113,21 +112,29 @@ export async function assessLead(
     if (!parsed.urgencyReasoning || !parsed.qualityReasoning || !parsed.recommendedActions) {
       throw new Error("Missing fields in AI response");
     }
-
-    reasoning = parsed;
-    rawResponse = completion as unknown as Record<string, unknown>;
+    return { reasoning: parsed, model: MODEL, rawResponse: completion as unknown as Record<string, unknown> };
   } catch (error) {
-    // Covers both a malformed/incomplete response AND the OpenAI call itself
-    // throwing (network error, rate limit, timeout, etc). Either way, the lead
-    // must still get its deterministic scores and reach 'qualified' — falling
-    // through silently here would leave it stuck unscored with no notification.
+    // Covers a malformed/incomplete response AND the OpenAI call itself throwing.
     logger.error("AI reasoning generation failed — falling back to degraded assessment", {
-      leadId,
       error: error instanceof Error ? error.message : String(error),
     });
-    reasoning = degradedAssessment(scores);
+    return { reasoning: degradedAssessment(scores), model: MODEL, rawResponse: { degraded: true } };
   }
+}
 
-  await finalizeLead(leadId, scores, reasoning, MODEL, rawResponse);
+/**
+ * Generates reasoning AND persists it + the deterministic scores to the lead,
+ * marking it 'qualified'. This must never be skipped even when the reasoning
+ * call fails (degraded reasoning still persists), or the lead is stuck unscored
+ * with no notification.
+ */
+export async function assessLead(
+  leadId: string,
+  answers: Answers,
+  scores: ScoringResult,
+  promptTemplate: string
+): Promise<ReasoningResult> {
+  const { reasoning, model, rawResponse } = await generateAssessmentReasoning(answers, scores, promptTemplate);
+  await finalizeLead(leadId, scores, reasoning, model, rawResponse);
   return reasoning;
 }

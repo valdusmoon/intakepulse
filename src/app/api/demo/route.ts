@@ -138,12 +138,14 @@ export async function POST(req: NextRequest) {
   const ended = ctx.session.state === "end";
   const linesFrom = incomingState && message ? beforeSnapshot + 1 : beforeSnapshot;
 
+  // Public demo stays a single cheap call — no AI reasoning pass (withReasoning omitted).
+  const packet = ended ? await buildLeadPacket(ctx) : null;
   return NextResponse.json({
     sessionState: ended ? null : serializeSession(ctx.session),
     lines: ctx.session.conversationContext.transcript.slice(linesFrom).map((t) => ({ role: t.role, message: t.message })),
     state: ctx.session.state,
     ended,
-    packet: ended ? buildLeadPacket(ctx) : null,
+    packet,
   });
 }
 

@@ -526,6 +526,7 @@ function LeadPreview({ packet, onClose }: { packet: LeadPacket; onClose: () => v
         </button>
       </div>
       <div className="p-4 flex flex-col gap-3">
+        {/* Header — caller + tier/score, same as the lead detail */}
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold">Caller</div>
@@ -536,9 +537,48 @@ function LeadPreview({ packet, onClose }: { packet: LeadPacket; onClose: () => v
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* Opportunity summary — the AI reasoning a real lead gets */}
+        {(packet.urgencyReasoning || packet.qualityReasoning) && (
+          <div className="p-3 bg-cv-surface-blue border border-[#dce5ff] rounded-[10px] text-[12px] leading-relaxed">
+            {packet.urgencyReasoning && (
+              <p>
+                <strong>Urgency:</strong> {packet.urgencyReasoning}
+              </p>
+            )}
+            {packet.qualityReasoning && (
+              <p className="mt-1.5">
+                <strong>Quality:</strong> {packet.qualityReasoning}
+              </p>
+            )}
+          </div>
+        )}
+        {packet.recommendedActions.length > 0 && (
           <div>
-            <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold mb-0.5">Est. value</div>
+            <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold mb-1">Recommended actions</div>
+            <ul className="flex flex-col gap-1">
+              {packet.recommendedActions.map((a, i) => (
+                <li key={i} className="text-[12px] leading-relaxed flex gap-2">
+                  <span className="text-cv-primary">•</span>
+                  {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Service / range / recommended */}
+        <div className="grid grid-cols-2 gap-3 border-t border-cv-border pt-3">
+          <div>
+            <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold mb-0.5">Service</div>
+            <div className="text-sm font-semibold text-cv-ink">{packet.service ?? "Not captured"}</div>
+            {packet.offList && (
+              <span className="mt-1 inline-block">
+                <Badge color="amber">Off service list · no quote</Badge>
+              </span>
+            )}
+          </div>
+          <div>
+            <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold mb-0.5">Preliminary range</div>
             <div className="text-sm font-semibold text-cv-ink">{packet.estimatedValue}</div>
           </div>
           <div>
@@ -547,15 +587,19 @@ function LeadPreview({ packet, onClose }: { packet: LeadPacket; onClose: () => v
           </div>
         </div>
 
-        {packet.details.length > 0 && (
-          <dl className="text-sm space-y-1.5 border-t border-cv-border pt-3">
-            {packet.details.map(({ label, value }) => (
-              <div key={label} className="flex justify-between gap-2">
-                <dt className="text-cv-muted">{label}</dt>
-                <dd className="font-semibold text-cv-ink text-right">{value}</dd>
-              </div>
-            ))}
-          </dl>
+        {/* Qualification answers — same labeled Q&A as the lead detail */}
+        {packet.answers.length > 0 && (
+          <div className="border-t border-cv-border pt-3">
+            <div className="text-[10px] tracking-wide uppercase text-cv-muted font-semibold mb-2">Qualification answers</div>
+            <dl className="text-sm space-y-2">
+              {packet.answers.map((a) => (
+                <div key={a.key}>
+                  <dt className="text-[11px] text-cv-muted">{a.label}</dt>
+                  <dd className="font-semibold text-cv-ink">{a.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         )}
       </div>
     </div>
