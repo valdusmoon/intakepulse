@@ -71,7 +71,7 @@ export const businesses = pgTable("businesses", {
   // Free-text appended to the AI's system instructions for business-specific nuance
   aiInstructions: text("ai_instructions"),
   // OpenAI Realtime voice id — 'alloy' | 'ash' | 'coral' | 'marin'
-  voiceName: text("voice_name").notNull().default("alloy"),
+  voiceName: text("voice_name").notNull().default("marin"),
 
   // Emergency kill switch for this tenant only — blocks all inbound call handling
   isPaused: boolean("is_paused").notNull().default(false),
