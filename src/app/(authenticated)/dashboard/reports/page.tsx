@@ -28,7 +28,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     getCallMetrics(business.id),
     getReportsFunnel(business.id, days),
     getChannelPerformance(business.id, days),
-    getDailyCapturedVsWon(business.id, days),
+    getDailyCapturedVsWon(business.id, days, business.timezone),
   ]);
 
   const maxDaily = Math.max(1, ...series.map((d) => d.captured));

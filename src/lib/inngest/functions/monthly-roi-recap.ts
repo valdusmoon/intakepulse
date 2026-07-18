@@ -3,6 +3,7 @@ import { getAllBusinesses, updateBusiness } from "@/lib/db/queries/businesses";
 import { getLeadStatsBetween } from "@/lib/db/queries/leads";
 import { isBusinessSubscriptionActive } from "@/lib/subscription";
 import { sendMonthlyRoiRecapEmail } from "@/lib/email/notifications";
+import { zonedMonthStartUtc, formatInTimezone, dateKeyInTimezone } from "@/lib/utils/datetime";
 import { logger } from "@/lib/logger";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -21,13 +22,6 @@ export const monthlyRoiRecap = inngest.createFunction(
   },
   async () => {
     const now = new Date();
-
-    // The calendar month that just ended: [firstOfPrevMonth, firstOfThisMonth).
-    const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const firstOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const monthLabel = firstOfPrevMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-    const periodKey = `${firstOfPrevMonth.getFullYear()}-${String(firstOfPrevMonth.getMonth() + 1).padStart(2, "0")}`;
-
     const businesses = await getAllBusinesses();
 
     let sent = 0;
@@ -38,6 +32,15 @@ export const monthlyRoiRecap = inngest.createFunction(
         skipped++;
         continue;
       }
+
+      // The calendar month that just ended, on the business's own calendar:
+      // [firstOfPrevMonth, firstOfThisMonth). Computed per-business so a lead created
+      // late on the last day of the month (business-local) lands in the right recap.
+      const tz = business.timezone;
+      const firstOfThisMonth = zonedMonthStartUtc(tz, 0, now);
+      const firstOfPrevMonth = zonedMonthStartUtc(tz, -1, now);
+      const monthLabel = formatInTimezone(firstOfPrevMonth, tz, { month: "long", year: "numeric" });
+      const periodKey = dateKeyInTimezone(firstOfPrevMonth, tz).slice(0, 7); // 'YYYY-MM'
 
       // Already recapped this month.
       if (business.monthlyRecapSentFor === periodKey) {
@@ -73,7 +76,7 @@ export const monthlyRoiRecap = inngest.createFunction(
       }
     }
 
-    logger.info("monthly-roi-recap: complete", { sent, skipped, periodKey });
-    return { sent, skipped, periodKey };
+    logger.info("monthly-roi-recap: complete", { sent, skipped });
+    return { sent, skipped };
   }
 );

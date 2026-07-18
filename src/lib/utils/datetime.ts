@@ -28,7 +28,58 @@ export function formatInTimezone(
 }
 
 /** The calendar date (YYYY-MM-DD) of an instant as seen in a timezone. Used for
- *  tz-aware "is this Today / Yesterday" comparisons. en-CA yields ISO-style output. */
+ *  tz-aware "is this Today / Yesterday" comparisons and day-bucket keys. en-CA yields
+ *  ISO-style output. */
 export function dateKeyInTimezone(date: Date | string | number, timezone: string): string {
   return new Date(date).toLocaleDateString("en-CA", { timeZone: timezone });
+}
+
+/** How far ahead (ms) a timezone's local wall clock is vs UTC at a given instant.
+ *  e.g. America/New_York in summer is UTC-4 -> returns -14400000. */
+function tzOffsetMs(date: Date, timezone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hourCycle: "h23",
+    year: "numeric", month: "numeric", day: "numeric",
+    hour: "numeric", minute: "numeric", second: "numeric",
+  }).formatToParts(date);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)!.value);
+  const asIfUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return asIfUtc - date.getTime();
+}
+
+/** The UTC instant at which a timezone's local clock reads the first moment of a
+ *  month (00:00:00 on the 1st). `monthOffset` shifts by whole months from the month
+ *  containing `base` in that zone (0 = current business-local month, -1 = previous).
+ *  Used so "this month" / "the month that just ended" are bucketed on the business's
+ *  calendar, not the server's (UTC). Month starts are never inside a US DST gap, so a
+ *  single offset correction is exact. */
+export function zonedMonthStartUtc(timezone: string, monthOffset = 0, base: Date = new Date()): Date {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone, year: "numeric", month: "numeric",
+  }).formatToParts(base);
+  const localYear = Number(parts.find((p) => p.type === "year")!.value);
+  const localMonth = Number(parts.find((p) => p.type === "month")!.value); // 1-12
+  const target = localMonth - 1 + monthOffset; // 0-based month index, may be out of range
+  const year = localYear + Math.floor(target / 12);
+  const month = ((target % 12) + 12) % 12; // 0-11
+  // Interpret y-m-01 00:00 as if it were UTC, then correct by the zone's offset at
+  // that instant to land on the true UTC instant of business-local midnight.
+  const asIfUtc = Date.UTC(year, month, 1, 0, 0, 0);
+  return new Date(asIfUtc - tzOffsetMs(new Date(asIfUtc), timezone));
+}
+
+/** The list of the last `days` calendar dates (YYYY-MM-DD) in a timezone, oldest
+ *  first, ending today (business-local). Anchored at noon UTC of each business-local
+ *  day so the calendar decrement is DST-safe. Matches the day-bucket keys produced by
+ *  a `to_char(... AT TIME ZONE tz, 'YYYY-MM-DD')` SQL bucket. */
+export function lastNDateKeysInTimezone(days: number, timezone: string, base: Date = new Date()): string[] {
+  const todayKey = dateKeyInTimezone(base, timezone);
+  const keys: string[] = [];
+  let cursor = new Date(`${todayKey}T12:00:00Z`);
+  for (let i = 0; i < days; i++) {
+    keys.unshift(cursor.toISOString().slice(0, 10));
+    cursor = new Date(cursor.getTime() - 24 * 60 * 60 * 1000);
+  }
+  return keys;
 }

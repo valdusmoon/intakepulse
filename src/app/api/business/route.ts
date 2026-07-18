@@ -5,6 +5,7 @@ import { createPricingRulesBulk } from "@/lib/db/queries/pricingRules";
 import { sendSignupNotification, sendWelcomeEmail } from "@/lib/email/notifications";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { validateAndNormalizeEmail } from "@/lib/utils/email-validation";
+import { SUPPORTED_TIMEZONES } from "@/lib/utils/datetime";
 import { PRICING_TEMPLATES } from "@/lib/verticals/pricingTemplates";
 import { logger } from "@/lib/logger";
 
@@ -161,6 +162,12 @@ export async function PATCH(req: NextRequest) {
     const r = validateAndNormalizePhone(body.urgentTransferNumber);
     if (!r.isValid) return NextResponse.json({ error: r.error }, { status: 422 });
     body.urgentTransferNumber = r.normalized;
+  }
+
+  // Timezone drives server-side date formatting + report bucketing (AT TIME ZONE),
+  // so only accept known IANA zones — an arbitrary string would throw at format time.
+  if (body.timezone && !SUPPORTED_TIMEZONES.some((t) => t.value === body.timezone)) {
+    return NextResponse.json({ error: "Unsupported timezone" }, { status: 422 });
   }
 
   const allowed = [

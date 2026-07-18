@@ -2,11 +2,14 @@ import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "../index";
 import { leads } from "../schema/leads";
 import { calls } from "../schema/calls";
+import { zonedMonthStartUtc, lastNDateKeysInTimezone } from "@/lib/utils/datetime";
 
-export async function getHomeMetrics(businessId: string) {
+export async function getHomeMetrics(businessId: string, timezone: string) {
   const now = new Date();
-  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  // Month boundaries on the business's calendar, not the server's (UTC on Vercel),
+  // so "this month"/"last month" match what the owner sees.
+  const startOfThisMonth = zonedMonthStartUtc(timezone, 0, now);
+  const startOfLastMonth = zonedMonthStartUtc(timezone, -1, now);
   // The home "Conversion snapshot" is time-boxed to a recent window so it reflects
   // current performance instead of an all-time ratio that never moves. (totalLeads
   // stays all-time — it only gates the first-run activation checklist.)
@@ -156,8 +159,13 @@ export async function getChannelPerformance(businessId: string, days?: number) {
   return rows.map((r) => ({ source: r.source, leadCount: Number(r.leadCount), wonCount: Number(r.wonCount), revenue: Number(r.revenue) }));
 }
 
-export async function getDailyCapturedVsWon(businessId: string, days = 14) {
+export async function getDailyCapturedVsWon(businessId: string, days = 14, timezone = "America/New_York") {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  // Bucket each lead into a day on the business's calendar (createdAt/convertedAt are
+  // stored UTC; convert to business-local before slicing the date), so bars line up
+  // with the owner's actual days rather than UTC days.
+  const capturedDay = sql<string>`to_char(${leads.createdAt} at time zone 'UTC' at time zone ${timezone}, 'YYYY-MM-DD')`;
+  const wonDay = sql<string>`to_char(${leads.convertedAt} at time zone 'UTC' at time zone ${timezone}, 'YYYY-MM-DD')`;
 
   // Captured and won are bucketed by two different dates on purpose: a lead
   // captured today may not convert for weeks, so bucketing both by createdAt
@@ -165,16 +173,18 @@ export async function getDailyCapturedVsWon(businessId: string, days = 14) {
   // the lead was captured outside the selected range).
   const capturedRows = await db
     .select({
-      day: sql<string>`to_char(${leads.createdAt}, 'YYYY-MM-DD')`,
+      day: capturedDay,
       captured: sql<number>`count(*)`,
     })
     .from(leads)
     .where(and(eq(leads.businessId, businessId), isNull(leads.deletedAt), sql`${leads.createdAt} >= ${since.toISOString()}`))
-    .groupBy(sql`to_char(${leads.createdAt}, 'YYYY-MM-DD')`);
+    // Group by the day expression's ordinal position — reusing the sql fragment here
+    // would re-emit its bound tz param at a second position, which Postgres won't match.
+    .groupBy(sql`1`);
 
   const wonRows = await db
     .select({
-      day: sql<string>`to_char(${leads.convertedAt}, 'YYYY-MM-DD')`,
+      day: wonDay,
       won: sql<number>`count(*)`,
     })
     .from(leads)
@@ -186,16 +196,14 @@ export async function getDailyCapturedVsWon(businessId: string, days = 14) {
         sql`${leads.convertedAt} >= ${since.toISOString()}`
       )
     )
-    .groupBy(sql`to_char(${leads.convertedAt}, 'YYYY-MM-DD')`);
+    .groupBy(sql`1`);
 
   const capturedByDay = new Map(capturedRows.map((r) => [r.day, Number(r.captured)]));
   const wonByDay = new Map(wonRows.map((r) => [r.day, Number(r.won)]));
 
-  const series: { day: string; captured: number; won: number }[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-    const key = d.toISOString().slice(0, 10);
-    series.push({ day: key, captured: capturedByDay.get(key) ?? 0, won: wonByDay.get(key) ?? 0 });
-  }
-  return series;
+  return lastNDateKeysInTimezone(days, timezone).map((key) => ({
+    day: key,
+    captured: capturedByDay.get(key) ?? 0,
+    won: wonByDay.get(key) ?? 0,
+  }));
 }

@@ -50,7 +50,7 @@ export default async function DashboardPage({
   if (!business) redirect("/onboarding");
 
   const [metrics, sources, priorityLeads, recentLeads, recentCalls, verticalConfig] = await Promise.all([
-    getHomeMetrics(business.id),
+    getHomeMetrics(business.id, business.timezone),
     getSourceBreakdown(business.id),
     getPriorityQueue(business.id, 4),
     getRecentLeadsForActivity(business.id, 5),
