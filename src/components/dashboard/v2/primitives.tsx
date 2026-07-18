@@ -183,10 +183,15 @@ export function Toggle({
 }
 
 const fieldBase =
-  "h-10 w-full border border-cv-border-strong rounded-[9px] bg-cv-surface text-cv-ink px-[11px] outline-none focus:border-cv-primary focus:ring-[3px] focus:ring-cv-primary/10";
+  "h-10 w-full border rounded-[9px] px-[11px] outline-none focus:ring-[3px] focus:ring-cv-primary/10";
+const fieldNormal = "border-cv-border-strong bg-cv-surface text-cv-ink focus:border-cv-primary";
+// Read-only / disabled fields (e.g. the provisioned Callverted number, ring time)
+// render greyed with a not-allowed cursor so it's obvious they aren't editable.
+const fieldReadOnly = "border-cv-border bg-cv-surface-subtle text-cv-muted cursor-not-allowed focus:border-cv-border";
 
 export function Field({ className = "", ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={`${fieldBase} ${className}`} {...props} />;
+  const state = props.readOnly || props.disabled ? fieldReadOnly : fieldNormal;
+  return <input className={`${fieldBase} ${state} ${className}`} {...props} />;
 }
 
 export function Select({
@@ -194,8 +199,9 @@ export function Select({
   children,
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement>) {
+  const state = props.disabled ? fieldReadOnly : fieldNormal;
   return (
-    <select className={`${fieldBase} ${className}`} {...props}>
+    <select className={`${fieldBase} ${state} ${className}`} {...props}>
       {children}
     </select>
   );

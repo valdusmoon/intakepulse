@@ -169,9 +169,11 @@ function CallSetupPanel({ business }: { business: Business }) {
             <FormGroup label="Forward calls to" help="Your office, cell phone, or existing business line.">
               <Field className="font-cv-mono" value={forwardingNumber} onChange={(e) => setForwardingNumber(e.target.value)} placeholder="+1 (555) 000-0000" />
             </FormGroup>
+            {/* Ring time is hardcoded (~15s / CALL_RING_TIMEOUT_SECONDS) for everyone,
+                so there's nothing to configure — hidden until it's per-business.
             <FormGroup label="Ring time" help="How long your line rings before Callverted answers (~3 rings).">
               <Field value="About 15 seconds" readOnly />
-            </FormGroup>
+            </FormGroup> */}
             <FormGroup label="Overflow mode">
               <Select value={overflowMode} onChange={(e) => setOverflowMode(e.target.value as Business["overflowMode"])}>
                 <option value="ring_then_ai">Ring team first, then Callverted</option>
