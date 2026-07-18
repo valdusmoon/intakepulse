@@ -12,7 +12,6 @@ vi.mock("@/lib/email/notifications", () => ({ sendLeadPacketEmail: vi.fn() }));
 vi.mock("@/lib/twilio/client", () => ({ updateCallWithTwiml: vi.fn() }));
 
 import * as engine from "./engine";
-import { deriveLeadCompletionStatus } from "../functions/actions";
 import { makeFlowContext, makeVerticalConfig, makeSession } from "./mockFlowContext";
 import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 import type { FlowContext } from "./types";
@@ -335,37 +334,5 @@ describe("graceful degradation — light retries, no voicemail dead-ends", () =>
 
     expect(ctx.session.conversationContext.answers.urgency).toBe("unknown");
     expect(ctx.session.state).toBe("name"); // never voicemail
-  });
-});
-
-describe("leadCompletionStatus (coarse triage signal)", () => {
-  it("complete = matched service + real urgency + zip + name", () => {
-    const ctx = ctxV2();
-    ctx.session.isNewCustomer = true;
-    ctx.session.conversationContext.answers = { service_type: "water", urgency: "emergency" };
-    ctx.session.conversationContext.zipCode = "07030";
-    ctx.session.conversationContext.callerName = "Mike";
-    expect(deriveLeadCompletionStatus(ctx)).toBe("complete");
-  });
-
-  it("partial = off-list service or a degraded/missing field", () => {
-    const ctx = ctxV2();
-    ctx.session.isNewCustomer = true;
-    ctx.session.conversationContext.serviceRequested = "drywall repair"; // off-list
-    ctx.session.conversationContext.answers = { urgency: "unknown" };
-    ctx.session.conversationContext.callerName = "Sarah";
-    expect(deriveLeadCompletionStatus(ctx)).toBe("partial");
-  });
-
-  it("message_only = existing customer / left a message", () => {
-    const ctx = ctxV2();
-    ctx.session.isNewCustomer = false;
-    expect(deriveLeadCompletionStatus(ctx)).toBe("message_only");
-  });
-
-  it("abandoned = dropped before giving anything usable", () => {
-    const ctx = ctxV2();
-    ctx.session.isNewCustomer = true;
-    expect(deriveLeadCompletionStatus(ctx)).toBe("abandoned");
   });
 });

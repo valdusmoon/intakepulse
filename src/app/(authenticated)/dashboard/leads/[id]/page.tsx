@@ -8,7 +8,7 @@ import { getPendingFollowup } from "@/lib/db/queries/followups";
 import { getCallByLeadId } from "@/lib/db/queries/calls";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { formatIntakeAnswers, deriveServiceLabel, isOffListService } from "@/lib/verticals/labels";
-import { priorityMeta, intentMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort, leadCompletionMeta } from "@/lib/leads/priority";
+import { priorityMeta, intentMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort } from "@/lib/leads/priority";
 import { Card, CardHeader, CardTitle, CardBody, Badge, Icon } from "@/components/dashboard/v2/primitives";
 import { LeadDetailClient } from "./_client";
 
@@ -74,8 +74,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const formattedAnswers = formatIntakeAnswers(verticalConfig?.questions ?? [], lead.intakeAnswers);
   const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
   const offListService = isOffListService(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
-  // Coarse "how far the intake got" badge (voice leads only; null on web/manual).
-  const completionBadge = leadCompletionMeta(lead.leadCompletionStatus);
   const displayName = lead.callerName ?? lead.callerPhone;
   const valueRange = fmtValueRange(lead.estimatedValueLow, lead.estimatedValueHigh);
   const hasCallEvidence = Boolean(call);
@@ -92,7 +90,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="font-cv-heading text-[34px] leading-[1.15] tracking-tight">{displayName}</h1>
             <Badge color={priority.color}>{priority.label}</Badge>
-            {completionBadge && <Badge color={completionBadge.color}>{completionBadge.label}</Badge>}
             <Badge color={intent.color}>{intent.label}</Badge>
           </div>
           <p className="mt-[7px] text-cv-muted text-sm">

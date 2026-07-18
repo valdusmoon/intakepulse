@@ -59,19 +59,6 @@ export function sourceSwatch(source: string): string {
   return SOURCE_SWATCHES[source] ?? "#98a2b3";
 }
 
-const LEAD_COMPLETION_META: Record<string, { label: string; color: BadgeColor }> = {
-  complete: { label: "Complete", color: "green" },
-  partial: { label: "Partial", color: "amber" },
-  message_only: { label: "Message only", color: "blue" },
-  abandoned: { label: "Caller dropped", color: "gray" },
-};
-
-/** Badge meta for a lead's `leadCompletionStatus` (how far a voice intake got).
- *  Returns null when unset — web/manual leads don't populate it. */
-export function leadCompletionMeta(status: string | null | undefined): { label: string; color: BadgeColor } | null {
-  return status ? LEAD_COMPLETION_META[status] ?? null : null;
-}
-
 export function initials(name: string | null) {
   if (!name) return "—";
   const parts = name.trim().split(/\s+/);

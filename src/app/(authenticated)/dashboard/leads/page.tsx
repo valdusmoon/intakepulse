@@ -5,7 +5,7 @@ import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { getLeadsByBusiness } from "@/lib/db/queries/leads";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel, deriveReasonLine } from "@/lib/verticals/labels";
-import { priorityMeta, intentMeta, statusMeta, sourceLabel, timeAgoShort, fmtValueRange, leadCompletionMeta } from "@/lib/leads/priority";
+import { priorityMeta, intentMeta, statusMeta, sourceLabel, timeAgoShort, fmtValueRange } from "@/lib/leads/priority";
 import { Card, Badge, LinkButton, Icon } from "@/components/dashboard/v2/primitives";
 import { FilterSelect } from "./_filter-select";
 import { LeadRowActions } from "./lead-row-actions";
@@ -160,7 +160,6 @@ export default async function LeadsPage({
                   const p = priorityMeta(lead.urgencyScore);
                   const intent = intentMeta(lead.qualityScore);
                   const status = statusMeta(lead.leadStatus);
-                  const completion = leadCompletionMeta(lead.leadCompletionStatus);
                   const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
                   const reason = deriveReasonLine(verticalConfig, lead.intakeAnswers);
                   const value = fmtValueRange(lead.estimatedValueLow, lead.estimatedValueHigh);
@@ -178,14 +177,7 @@ export default async function LeadsPage({
                           <span className="text-xs text-cv-ink whitespace-nowrap">{sourceLabel(lead.source)}</span>
                         </div>
                       </td>
-                      <td className="px-3.5 py-3.5 text-xs align-middle">
-                        <div>{service ?? "—"}</div>
-                        {completion && (
-                          <span className="mt-1 inline-block">
-                            <Badge color={completion.color}>{completion.label}</Badge>
-                          </span>
-                        )}
-                      </td>
+                      <td className="px-3.5 py-3.5 text-xs align-middle">{service ?? "—"}</td>
                       <td className="px-3.5 py-3.5 align-middle">
                         <Badge color={status.color}>{status.label}</Badge>
                       </td>
