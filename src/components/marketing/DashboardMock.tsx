@@ -25,12 +25,20 @@ const METRICS = [
   { label: "Average callback time", value: "14 min", sub: "Down from 3h+ before Callverted", delta: "↓", deltaTone: "text-[#177245]" },
 ];
 
+// Intent chips mirror the real intentMeta buckets (High intent=blue, Medium=amber,
+// Intent unclear=gray). Urgency is shown as its own X/10 number, exactly like the live
+// priority widget — never as a chip. Scores/tiers stay consistent with the priorityScore
+// model (urgency-led 50/30/20): a low-urgency low-value lead can't reach Warm.
+const INTENT_BLUE = "bg-[#e8f0fe] text-[#1a56db]";
+const INTENT_AMBER = "bg-[#fef0c7] text-[#b25e09]";
+const INTENT_GRAY = "bg-[#eef1f4] text-[#667085]";
+
 const LEADS = [
-  { initials: "SC", name: "Sarah Chen", service: "Water damage", intent: "Emergency", intentTone: "bg-[#fee4e2] text-[#b42318]", value: "$4,500–$9,000", wait: "8m", tier: "Hot", score: 94 },
-  { initials: "MW", name: "Marcus Webb", service: "Furnace: no heat", intent: "High intent", intentTone: "bg-[#fef0c7] text-[#b25e09]", value: "$3,200–$8,500", wait: "22m", tier: "Hot", score: 88 },
-  { initials: "DA", name: "Diane Alvarez", service: "Burst pipe", intent: "Emergency", intentTone: "bg-[#fee4e2] text-[#b42318]", value: "$1,800–$3,400", wait: "35m", tier: "Hot", score: 91 },
-  { initials: "TB", name: "Tom Becker", service: "AC tune-up", intent: "Routine", intentTone: "bg-[#eef1f4] text-[#667085]", value: "$150–$400", wait: "1h", tier: "Warm", score: 52 },
-  { initials: "RG", name: "Ray Gomez", service: "Pricing question only", intent: "Low intent", intentTone: "bg-[#eef1f4] text-[#667085]", value: "—", wait: "2h", tier: "Cool", score: 21 },
+  { initials: "SC", name: "Sarah Chen", service: "Water damage", intent: "High intent", intentTone: INTENT_BLUE, value: "$4,500–$9,000", urgency: 10, wait: "8m", tier: "Hot", score: 94 },
+  { initials: "MW", name: "Marcus Webb", service: "Furnace: no heat", intent: "High intent", intentTone: INTENT_BLUE, value: "$3,200–$8,500", urgency: 8, wait: "22m", tier: "Hot", score: 88 },
+  { initials: "DA", name: "Diane Alvarez", service: "Burst pipe", intent: "High intent", intentTone: INTENT_BLUE, value: "$1,800–$3,400", urgency: 9, wait: "35m", tier: "Hot", score: 91 },
+  { initials: "TB", name: "Tom Becker", service: "Kitchen water damage", intent: "Medium intent", intentTone: INTENT_AMBER, value: "$1,200–$2,400", urgency: 6, wait: "1h", tier: "Warm", score: 53 },
+  { initials: "RG", name: "Ray Gomez", service: "Pricing question only", intent: "Intent unclear", intentTone: INTENT_GRAY, value: "—", urgency: 2, wait: "2h", tier: "Cool", score: 21 },
 ];
 
 const FUNNEL = [
@@ -40,9 +48,9 @@ const FUNNEL = [
 ];
 
 const CHANNELS = [
-  { label: "Voice overflow", pct: 68 },
+  { label: "Recovered by AI", pct: 68 },
   { label: "Website widget", pct: 22 },
-  { label: "After-hours line", pct: 10 },
+  { label: "Answered by team", pct: 10 },
 ];
 
 export function DashboardMock() {
@@ -137,7 +145,8 @@ export function DashboardMock() {
                           <span className="text-[12px] font-bold truncate">{l.name}</span>
                           <span className={`rounded px-1.5 py-0.5 text-[9px] font-semibold ${l.intentTone}`}>{l.intent}</span>
                         </div>
-                        <p className="text-[10.5px] text-[#667085] mt-0.5">{l.service} · <span className="text-[#98a2b3]">{l.value}</span></p>
+                        <p className="text-[10.5px] text-[#667085] mt-0.5">{l.service}</p>
+                        <p className="text-[9.5px] text-[#98a2b3] mt-0.5">Urgency {l.urgency}/10 · {l.value}</p>
                       </div>
                       <div className="text-right shrink-0">
                         <span className={`inline-block rounded-full px-1.5 py-0.5 text-[9.5px] font-bold ${l.tier === "Hot" ? "bg-[#fee4e2] text-[#b42318]" : l.tier === "Warm" ? "bg-[#fef0c7] text-[#b25e09]" : "bg-[#eef1f4] text-[#667085]"}`}>{l.tier} · {l.score}</span>

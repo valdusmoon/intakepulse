@@ -309,7 +309,7 @@ export default function V4Page() {
               src="/product/dashboard.png"
               alt="Callverted dashboard showing captured opportunity value, confirmed won revenue, and a ranked list of priority leads"
               width={2048}
-              height={1270}
+              height={1392}
               className="w-full h-auto rounded-2xl shadow-[0_36px_60px_-20px_rgba(16,24,40,.32),0_12px_24px_-10px_rgba(36,84,216,.16)]"
             />
           </div>
