@@ -24,7 +24,7 @@ export default function PrivacyPolicyPage() {
         <ul>
           <li><strong>Account information (you, the business):</strong> When you create a Callverted account, we collect your business name, your name, email address, phone number, service area, and the trade category you select. Billing information is collected and processed by Stripe on our behalf.</li>
           <li><strong>Caller and lead information:</strong> When someone calls your Callverted phone number, fills out your public intake form, or uses your embedded website widget, we collect their name (if given), phone number, email address (if given), and their answers to your business's intake questions — typically a service-type question plus a few standard follow-up questions about urgency, timing, and insurance/warranty/financing coverage.</li>
-          <li><strong>Call audio and transcripts:</strong> Every AI-handled call produces a written transcript and a short AI-generated summary. If you additionally enable call recording in Settings, we also store the audio of the call.</li>
+          <li><strong>Call transcripts and summaries:</strong> Every AI-handled call produces a written transcript and a short AI-generated summary. If you enable call recording in Settings, calls your own team answers are also recorded and transcribed so they can be summarized and scored into leads. In all cases the call audio is used only to generate the transcript and is then deleted — we do not retain call audio.</li>
           <li><strong>AI-generated scoring data:</strong> For each captured lead, we generate an urgency score (1–10), a quality score (1–100), an estimated job-value range, and written reasoning explaining those scores, based on the intake answers.</li>
           <li><strong>Information collected automatically:</strong> We collect standard web analytics data (pages visited, time spent, browser type, referring URLs) and server logs for security and debugging purposes.</li>
         </ul>
@@ -45,7 +45,7 @@ export default function PrivacyPolicyPage() {
       <Section title="3. Caller and Lead Data">
         <p>
           When someone calls, messages, or submits a form associated with your business, their information — name,
-          phone number, email, intake answers, and call recording or transcript if applicable — is stored in our
+          phone number, email, intake answers, and call transcript if applicable — is stored in our
           database and associated with your Callverted account. You are responsible for handling that data
           appropriately and for obtaining any consents required under applicable law, including for call recording
           (see below).
@@ -63,8 +63,9 @@ export default function PrivacyPolicyPage() {
           Call recording is off by default. If a business turns it on in Settings, Callverted plays a spoken
           disclosure to callers at the start of the call — businesses are responsible for writing disclosure
           language that satisfies the recording-consent laws of the jurisdictions where they and their callers are
-          located. When recording is enabled, the call audio is retained alongside the transcript and summary
-          already generated for every AI-handled call.
+          located. When recording is enabled, calls your team answers are recorded so they can be transcribed and
+          scored the same way AI-handled calls are. In every case the audio is used only to generate the written
+          transcript and summary and is then deleted; we do not retain call audio for playback or storage.
         </p>
       </Section>
 

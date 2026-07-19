@@ -13,7 +13,8 @@ export const ANNUAL_SAVINGS = MONTHLY_PRICE * 12 - ANNUAL_PRICE; // 289
 
 export const PLAN_FEATURES = [
   "24/7 live answering on missed calls",
-  "Trade-specific qualification + scoring",
+  "Answered-call summaries and transcripts",
+  "Trade-specific qualification + priority scoring",
   "Ranked leads with value estimates",
   "Website widget + intake link",
   "Weekly performance recap",

@@ -37,8 +37,8 @@ function Eyebrow({ children, className = "" }: { children: React.ReactNode; clas
 
 const FACTS = [
   { k: "Built for urgent trades", v: "Restoration · Plumbing · HVAC · Electrical", icon: "M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.7-5.7a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.7-1.7 2.7-2.7z" },
-  { k: "Your team first", v: "Answered calls stay normal", icon: "M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1L6.6 10.8z" },
-  { k: "Same inbound call", v: "No text-back dependency", icon: "M4 12a8 8 0 0 1 14-5.3L20 8M20 4v4h-4M20 12a8 8 0 0 1-14 5.3L4 16M4 20v-4h4" },
+  { k: "Your team first", v: "Callverted catches what rings out", icon: "M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1L6.6 10.8z" },
+  { k: "Missed or answered", v: "Calls become lead records", icon: "M4 12a8 8 0 0 1 14-5.3L20 8M20 4v4h-4M20 12a8 8 0 0 1-14 5.3L4 16M4 20v-4h4" },
   { k: "Structured outcome", v: "Urgency, fit, value, next action", icon: "M4 6h16M4 12h10M4 18h6" },
 ];
 
@@ -76,7 +76,7 @@ const CASES = [
 ];
 
 const SMALL_FEATURES = [
-  { kind: "context" as const, t: "Every call has context", d: "Full transcript, captured fields, and an AI summary." },
+  { kind: "context" as const, t: "Answered calls, captured too", d: "When your team picks up, the call can still be recorded, transcribed, summarized, and scored into a ranked lead." },
   { kind: "pricing" as const, t: "Approved pricing only", d: "Any quote comes from rules you set, never invented." },
   { kind: "recap" as const, t: "Weekly recovery recap", d: "What was recovered and what it was worth, every week." },
 ];
@@ -86,6 +86,7 @@ const COMPARE_ROWS: { dim: string; vals: (boolean | string)[] }[] = [
   { dim: "Answers the call live", vals: [false, false, true, true] },
   { dim: "Trade-specific intake", vals: [false, "Limited", "Generic", "Tuned to you"] },
   { dim: "Scores urgency + value", vals: [false, false, false, true] },
+  { dim: "Turns answered calls into leads", vals: [false, false, false, true] },
   { dim: "Optimizes for", vals: ["Nothing", "A text thread", "Call handling", "Recovered revenue"] },
 ];
 
@@ -156,7 +157,7 @@ export default function V4Page() {
                 Stop losing jobs to voicemail.
               </h1>
               <p className="text-lg text-white/70 mb-8 max-w-lg leading-relaxed">
-                Emergency calls, after-hours, overflow — your team rings first. If nobody picks up, Callverted answers the same call, qualifies the job, and hands you a ranked, callback-ready lead before they call someone else.
+                Emergency calls, after-hours, overflow — your team rings first. If nobody picks up, Callverted answers the same call, qualifies the job, and hands you a ranked, callback-ready lead before they call someone else. Answered calls can be logged and scored too.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <Link href="/sign-up" className="text-center font-semibold bg-landing-primary text-white px-7 py-3.5 rounded-xl hover:bg-blue-600 transition-colors shadow-[0_12px_34px_-8px_rgba(36,84,216,0.55)]">Start recovering leads</Link>
@@ -292,8 +293,8 @@ export default function V4Page() {
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="max-w-2xl mb-10">
             <Eyebrow className="mb-3">The product</Eyebrow>
-            <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-3">A lead packet, not a voicemail light.</h2>
-            <p className="text-[15px] text-[#667085]">The conversation is the capture layer. The lead packet is the product, scored, sorted, and ready to call back.</p>
+            <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-3">A lead packet for every serious call, not a voicemail light.</h2>
+            <p className="text-[15px] text-[#667085]">Missed calls get recovered live. Team-answered calls can be recorded, transcribed, and scored too, so every real opportunity lands in one ranked list, ready to call back.</p>
           </div>
         </ScrollReveal>
 
@@ -322,7 +323,7 @@ export default function V4Page() {
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-landing-primary mb-2">Fits your phone setup</p>
                 <h3 className="font-cv-heading text-xl font-bold mb-1">Keep your phones and your team.</h3>
-                <p className="text-[13.5px] text-[#667085] leading-relaxed max-w-[42ch]">You publish one Callverted number. It rings your team first, and Callverted only answers the calls that ring out or come in after hours.</p>
+                <p className="text-[13.5px] text-[#667085] leading-relaxed max-w-[42ch]">You publish one Callverted number. It rings your team first. If they answer, the call can be logged and summarized. If they miss it, Callverted answers live and turns it into a ranked lead.</p>
               </div>
               <div className="flex items-start">
                 {[
@@ -389,8 +390,8 @@ export default function V4Page() {
         <ScrollReveal className="max-w-3xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-10">
             <Eyebrow className="mb-3">The category</Eyebrow>
-            <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em]">Not a receptionist. A recovery service.</h2>
-            <p className="mt-3 text-[15px] text-[#667085]">How the other ways of handling a missed call stack up.</p>
+            <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em]">Not a receptionist. A call-to-lead system.</h2>
+            <p className="mt-3 text-[15px] text-[#667085]">How the other ways of handling an inbound call stack up.</p>
           </div>
           <div className="rounded-3xl border border-[#e3e7ed] bg-white overflow-hidden">
             <div>

@@ -48,6 +48,6 @@ export const FAQS: Faq[] = [
   },
   {
     q: "Do you record my calls?",
-    a: "Every call Callverted handles is saved as a written transcript in your dashboard, so you can read exactly what the caller said and how the job was qualified. No audio recordings to store or manage.",
+    a: "Every call Callverted handles becomes a written transcript in your dashboard, so you can read exactly what the caller said and how the job was qualified. You can also switch on recording for the calls your own team answers, so those get transcribed and scored too. Either way the audio is only used to create the transcript and is then deleted, so there are no recordings to store or manage.",
   },
 ];

@@ -130,7 +130,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>What Callverted is</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Callverted is an AI voice-overflow receptionist for home-service trades: restoration, HVAC, plumbing, electrical, general contracting, and other service businesses. When a call to your business goes unanswered (or every call, depending on your settings), Callverted picks up, asks a short set of qualifying questions for your trade, and turns the answers into a scored lead. Leads also arrive from a public intake form and an embeddable website widget, not just phone calls.
+                  Callverted is an AI voice-overflow receptionist for home-service trades: restoration, HVAC, plumbing, electrical, general contracting, and other service businesses. When a call to your business goes unanswered (or every call, depending on your settings), Callverted picks up, asks a short set of qualifying questions for your trade, and turns the answers into a scored lead. When your team answers a call, Callverted can optionally record, transcribe, and score that call too, so it becomes a ranked lead like any other. Leads also arrive from a public intake form and an embeddable website widget, not just phone calls.
                 </p>
               </InfoCard>
               <InfoCard>
@@ -250,14 +250,14 @@ export default function HelpPage() {
                 <BulletList items={[
                   "Business answered: your team picked up before Callverted stepped in.",
                   "Captured by Callverted: no one answered in time, so the AI took the call and ran qualification.",
+                  "Transferred to team: the caller asked for a person and Callverted bridged them live.",
                   "Caller abandoned: the caller hung up before completing the intake questions.",
-                  "Error: the call transfer failed.",
                 ]} />
               </InfoCard>
               <InfoCard>
                 <SubHeading>Call details</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Click <span className="font-medium">Details</span> on any call to expand its AI-generated summary and full turn-by-turn transcript in place. There&apos;s no audio recording playback in the dashboard: call evidence is text only.
+                  Click <span className="font-medium">Details</span> on any call to expand its AI-generated summary and full turn-by-turn transcript in place. AI-captured calls always have a transcript; team-answered calls have one only when you&apos;ve enabled call recording. Either way, call evidence is text only: when recording is on, the audio is transcribed and then deleted, never stored for playback.
                 </p>
               </InfoCard>
               <InfoCard>
@@ -378,7 +378,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Plan</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Callverted is one plan: <span className="font-semibold">$149/month</span>, with a 14-day free trial. It includes AI voice overflow, the public intake form and website widget, AI-driven lead scoring with reasoning and recommended actions, business-approved pricing rules, the full lead dashboard, and email alerts on qualified leads plus a weekly recap. No add-ons, no lead caps.
+                  Callverted is one plan: <span className="font-semibold">$149/month</span>, with a 14-day free trial. It includes AI voice overflow, optional answered-call recording and transcription, the public intake form and website widget, AI-driven lead scoring with reasoning and recommended actions, business-approved pricing rules, the full lead dashboard, and email alerts on qualified leads plus a weekly recap. No add-ons, no lead caps.
                 </p>
               </InfoCard>
               <InfoCard>

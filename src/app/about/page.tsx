@@ -37,6 +37,11 @@ export default function AboutPage() {
             its value, reassures the caller, and hands you a ranked, callback-ready lead within minutes.
           </p>
           <p>
+            It doesn&apos;t stop at the calls you miss. When your team does answer, Callverted can quietly record,
+            transcribe, and score that call too, so every serious opportunity, recovered or answered, lands in the
+            same ranked list instead of scattered across memory and sticky notes.
+          </p>
+          <p>
             The principle underneath it: <strong className="text-[#152033]">code owns the workflow, not the AI.</strong>{" "}
             The model only ever listens, classifies, and speaks fixed lines. It never improvises pricing, never invents
             details, and never controls where the call goes. That&apos;s what makes it safe to put in front of your

@@ -26,8 +26,9 @@ export default function TermsOfServicePage() {
           intake questions specific to your trade and produces a scored lead: an urgency score, a quality score, an
           estimated job-value range, and written reasoning, delivered to you by email and shown in your dashboard.
           The same intake questions are also available as a standalone public web form and an embeddable website
-          widget, so leads can reach you by phone, form, or widget using the same qualification logic. You configure
-          your own pricing guidance per service category in Settings; the AI reads back only the price ranges and
+          widget, so leads can reach you by phone, form, or widget using the same qualification logic. If you enable
+          call recording, calls your own team answers can also be recorded, transcribed, and scored into leads. You
+          configure your own pricing guidance per service category in Settings; the AI reads back only the price ranges and
           messages you've approved — it does not create quotes, contracts, or estimates on its own, and it does not
           negotiate price. The Service does not provide staff scheduling, contract generation, electronic
           signatures, photo analysis, or automated review requests. The Service is intended for use by home-service
@@ -97,16 +98,18 @@ export default function TermsOfServicePage() {
       <Section title="6. Call Recording">
         <p>
           Call recording is an optional, business-configurable feature. If you enable it, Callverted plays a spoken
-          disclosure you provide at the start of the call. You are solely responsible for ensuring your disclosure
-          language and use of call recording complies with the wiretapping and recording-consent laws of every
-          jurisdiction in which you or your callers are located, including obtaining any required consent.
+          disclosure you provide at the start of the call, and calls your team answers are recorded so they can be
+          transcribed and scored. In all cases the audio is used only to produce a written transcript and is then
+          deleted; we do not retain call audio. You are solely responsible for ensuring your disclosure language and
+          use of call recording complies with the wiretapping and recording-consent laws of every jurisdiction in
+          which you or your callers are located, including obtaining any required consent.
         </p>
       </Section>
 
       <Section title="7. Caller and Lead Data">
         <p>
           Data collected from your callers and leads — including their contact information, intake answers, and
-          call recordings or transcripts where applicable — is associated with your account. You agree to handle
+          call transcripts where applicable — is associated with your account. You agree to handle
           this data responsibly, in compliance with applicable privacy and telemarketing laws, and only for
           legitimate business purposes related to responding to their inquiry. You may not use caller or lead data
           for unrelated marketing or share it with third parties outside the ordinary operation of your business.
