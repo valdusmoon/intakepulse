@@ -13,6 +13,11 @@ const SOURCES = [
   { value: "website_widget", label: "Website form" },
 ];
 
+// Same sentinel the public intake uses for the service question's "Something
+// else" choice — stripped before submit and sent as free-text serviceRequested
+// instead, so an off-list job entered by hand scores like one taken on the form.
+const OTHER_SERVICE = "__other__";
+
 export default function NewLeadForm({ questions }: { questions: VerticalQuestion[] }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -30,6 +35,9 @@ export default function NewLeadForm({ questions }: { questions: VerticalQuestion
   // Keyed by question so this stays in step with whatever the vertical defines,
   // rather than hardcoding "service" and "urgency" here.
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [serviceOther, setServiceOther] = useState("");
+
+  const primaryKey = questions[0]?.key;
 
   function update<K extends keyof typeof form>(field: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -52,6 +60,16 @@ export default function NewLeadForm({ questions }: { questions: VerticalQuestion
     setSubmitting(true);
     setError("");
 
+    // Off-list service: send what they described as free-text serviceRequested
+    // and drop the sentinel so it never lands in answers as a bogus value.
+    const outAnswers = { ...answers };
+    let serviceRequested: string | undefined;
+    if (primaryKey && outAnswers[primaryKey] === OTHER_SERVICE) {
+      serviceRequested = serviceOther.trim() || undefined;
+      delete outAnswers[primaryKey];
+    }
+    if (form.zip.trim()) outAnswers.zip_code = form.zip.trim();
+
     try {
       const res = await fetch("/api/leads", {
         method: "POST",
@@ -62,10 +80,8 @@ export default function NewLeadForm({ questions }: { questions: VerticalQuestion
           callerEmail: form.callerEmail.trim() || undefined,
           source: form.source,
           notes: form.notes || undefined,
-          intakeAnswers: {
-            ...answers,
-            ...(form.zip.trim() ? { zip_code: form.zip.trim() } : {}),
-          },
+          serviceRequested,
+          intakeAnswers: outAnswers,
         }),
       });
 
@@ -123,13 +139,25 @@ export default function NewLeadForm({ questions }: { questions: VerticalQuestion
                   value={answers[q.key] ?? ""}
                   onChange={(e) => setAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))}
                 >
-                  <option value="">Not sure yet</option>
+                  <option value="">Not provided</option>
                   {q.options?.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
                     </option>
                   ))}
+                  {/* Only the service question takes an off-list answer, same as
+                      the public intake. */}
+                  {q.key === primaryKey && <option value={OTHER_SERVICE}>Something else</option>}
                 </Select>
+                {q.key === primaryKey && answers[q.key] === OTHER_SERVICE && (
+                  <div className="mt-2">
+                    <Field
+                      value={serviceOther}
+                      onChange={(e) => setServiceOther(e.target.value)}
+                      placeholder="What did they ask for?"
+                    />
+                  </div>
+                )}
               </FormGroup>
             ))}
 

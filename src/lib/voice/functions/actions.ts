@@ -5,7 +5,7 @@
  * (pricing, lead creation, notification) out of the model's control entirely.
  */
 
-import { getActivePricingRule } from "@/lib/db/queries/pricingRules";
+import { quoteForCategory, type QuoteResult } from "@/lib/leads/quote";
 import { createLead } from "@/lib/db/queries/leads";
 import { updateCall } from "@/lib/db/queries/calls";
 import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
@@ -39,10 +39,7 @@ export function checkServiceArea(ctx: FlowContext, zip: string): ServiceAreaResu
   return eligible ? { eligible: true } : { eligible: false, serviceAreaDescription: serviceArea };
 }
 
-export interface PriceRangeResult {
-  eligible: boolean;
-  message: string;
-}
+export type PriceRangeResult = QuoteResult;
 
 /**
  * Reads a business-approved message for a service category — never composes
@@ -50,16 +47,14 @@ export interface PriceRangeResult {
  * for this business — the value of the vertical's primary (first) intake
  * question, e.g. "water" | "fire" | "mold" for restoration, or "ac_repair" |
  * "furnace_replacement" | ... for HVAC.
+ *
+ * Thin wrapper over the shared quote step so voice and web quote identically.
  */
-export async function getPriceRangeForCategory(
+export function getPriceRangeForCategory(
   ctx: FlowContext,
   serviceCategory: string
 ): Promise<PriceRangeResult> {
-  const rule = await getActivePricingRule(ctx.business.id, serviceCategory);
-  if (!rule) {
-    return { eligible: false, message: "The team will need to review the details before discussing pricing." };
-  }
-  return { eligible: true, message: rule.approvedCustomerMessage };
+  return quoteForCategory(ctx.business.id, serviceCategory);
 }
 
 export interface CaptureLeadResult {

@@ -25,6 +25,9 @@ const MUST_SAY = [
   "Show you understood their specific situation, in your own words, using what they actually told you.",
   "Briefly acknowledge how it must feel when the situation is distressing (a fire, a flood, no heat in winter). Warm and human, not dramatic. One clause is enough.",
   "Say the team has been notified, so they know it reached a person. State it positively and stop there. Vary how you word this.",
+  "Close by asking them to please wait for the callback. Plain and short, e.g. \"Please wait and we'll be in touch.\" Vary the wording slightly.",
+  "Speak as \"we\", never \"I\". The message comes from the company, not from an individual.",
+  "Mention the callback exactly once. Do not restate it in different words at the end.",
 ];
 
 const NEVER_SAY = [
@@ -32,7 +35,7 @@ const NEVER_SAY = [
   "Mention or imply any price, cost, estimate, quote, insurance, or coverage decision.",
   "Promise a specific person, technician, or crew.",
   "Give safety, medical, or repair advice, or tell them to take any action.",
-  "Suggest, in any wording, that they should wait, hold off, or not contact anyone else. In a genuine emergency that is exactly the wrong advice and it is not ours to give.",
+  "Tell them not to contact anyone else, or imply they shouldn't. Asking them to wait for the callback is fine; telling someone with an active emergency to stop looking for help is not ours to say.",
   "Diagnose the problem or state a cause as fact.",
   "Invent any detail they did not give you.",
   "Use exclamation marks or salesy language.",
@@ -41,17 +44,22 @@ const NEVER_SAY = [
 const bullets = (rules: string[]) => rules.map((r) => `- ${r}`).join("\n");
 
 /** Callback wording both channels commit to, so a caller and a web submitter are
- *  told the same thing. Urgency is the only field every channel always captures. */
+ *  told the same thing. Urgency is the only field every channel always captures.
+ *
+ *  Every phrase here is deliberately relative, never a clock. We're speaking on
+ *  the business's behalf to someone who will hold them to it, and we have no
+ *  visibility into their crew's day — so nothing here may name a time, a window,
+ *  or a day ("today", "within the hour"). Convey priority, not a deadline. */
 export function callbackPhraseForUrgency(urgency?: unknown): string {
   if (urgency === "emergency") return "as soon as possible";
-  if (urgency === "soon") return "today";
+  if (urgency === "soon") return "as soon as they can";
   return "shortly";
 }
 
 function systemPrompt(businessName: string, callbackPhrase: string): string {
   return `You write the closing message shown to someone who just requested service from a home-services company (restoration, HVAC, plumbing, electrical, contracting).
 
-Write 1-2 short sentences, max 45 words, second person, plain warm English.
+Write exactly 3 short sentences, max 45 words total, second person, plain warm English.
 
 You MUST:
 ${bullets(MUST_SAY)}
@@ -83,7 +91,7 @@ export function voiceReassuranceInstruction(businessName: string, callbackPhrase
 
 /** The always-safe message. Used verbatim when AI is unavailable or fails. */
 export function genericReassurance(businessName: string): string {
-  return `Thanks for the details. ${businessName} has your request and will get back to you shortly.`;
+  return `Thanks for the details. ${businessName} has your request and will get back to you shortly. Please wait and someone will be in touch.`;
 }
 
 /** Readable "Question: Answer" lines — the model reasons better over the labels

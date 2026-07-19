@@ -320,6 +320,9 @@ export function IntakeForm({
   const [submitted, setSubmitted] = useState(false);
   const [serviceOther, setServiceOther] = useState("");
   const [reassurance, setReassurance] = useState("");
+  // The business's own approved pricing wording for this service, when they've
+  // set one — the same quote step the voice call runs.
+  const [priceMessage, setPriceMessage] = useState("");
 
   // Same short set a voice caller gets. voiceExtractOnly marks the enrichment
   // fields (timing, insurance, cause, rooms) that were only ever worth capturing
@@ -398,6 +401,7 @@ export function IntakeForm({
         throw new Error(data.error || "Submission failed. Please try again.");
       }
       if (typeof data.reassurance === "string") setReassurance(data.reassurance);
+      if (typeof data.priceMessage === "string") setPriceMessage(data.priceMessage);
       setSubmitted(true);
       // Notify parent (widget iframe) that form is complete so it can close the modal
       if (window.parent !== window) {
@@ -443,6 +447,15 @@ export function IntakeForm({
               )}
             </p>
           </div>
+
+          {priceMessage && (
+            <div className="mt-6 rounded-xl border border-cv-border bg-white p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-cv-muted-2 mb-1.5">
+                What this usually runs
+              </p>
+              <p className="text-[13px] leading-relaxed text-cv-ink">{priceMessage}</p>
+            </div>
+          )}
 
           {readback.length > 0 && (
             <div className="mt-6 rounded-xl border border-cv-border bg-cv-surface-subtle p-4">

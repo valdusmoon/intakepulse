@@ -50,7 +50,8 @@ import {
   zipPrompt,
 } from "./call-flow";
 import { voiceReassuranceInstruction } from "@/lib/leads/reassurance";
-import { captureLeadOnce, checkServiceArea, getPriceRangeForCategory, transferCallAction, canWarmTransfer } from "../functions/actions";
+import { captureLeadOnce, checkServiceArea, transferCallAction, canWarmTransfer } from "../functions/actions";
+import { quoteForAnswers } from "@/lib/leads/quote";
 import { INTERRUPTION } from "../config/constants";
 
 // Retries are deliberately light. ZIP is the one field worth pushing on (it
@@ -586,14 +587,13 @@ async function applyZip(ctx: FlowContext, client: RealtimeClient, zip: string): 
 
 async function enterPriceEligibility(ctx: FlowContext, client: RealtimeClient): Promise<void> {
   ctx.session.state = "price_eligibility";
-  // The first question in a vertical's config doubles as its primary
-  // category (e.g. damage type, service type) — read it generically rather
-  // than a hardcoded key so this works for every vertical.
-  const primaryQuestionKey = ctx.verticalConfig.questions[0]?.key;
-  const category = primaryQuestionKey ? ctx.session.conversationContext.answers[primaryQuestionKey] : undefined;
-  const price = category
-    ? await getPriceRangeForCategory(ctx, category)
-    : { eligible: false, message: "The team will need to review the details before discussing pricing." };
+  // Same quote step the web form runs — the vertical's first question doubles
+  // as its pricing category, resolved inside the shared helper.
+  const price = await quoteForAnswers(
+    ctx.business.id,
+    ctx.verticalConfig.questions,
+    ctx.session.conversationContext.answers
+  );
 
   ctx.session.conversationContext.priceEligible = price.eligible;
   ctx.session.conversationContext.priceMessage = price.message;

@@ -13,6 +13,7 @@ import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
 import { assessLead } from "@/lib/leads/assess";
 import { generateReassurance, genericReassurance } from "@/lib/leads/reassurance";
+import { quoteForAnswers } from "@/lib/leads/quote";
 import { sendLeadPacketEmail } from "@/lib/email/notifications";
 import { sendLeadPushNotification } from "@/lib/push/send";
 import { buildLeadPushPayload } from "@/lib/push/payload";
@@ -209,5 +210,14 @@ export async function POST(
       })
     : genericReassurance(business.businessName);
 
-  return NextResponse.json({ leadId: lead!.id, reassurance }, { status: 200 });
+  // The quote step, same as voice — the business's own approved wording for this
+  // service category. Only returned when a rule exists: on a call the fallback
+  // line carries the conversation into the next question, but on a confirmation
+  // screen "we can't quote yet" is noise, so we simply show nothing.
+  const quote = config ? await quoteForAnswers(businessId, config.questions, answers ?? {}) : null;
+
+  return NextResponse.json(
+    { leadId: lead!.id, reassurance, priceMessage: quote?.eligible ? quote.message : null },
+    { status: 200 }
+  );
 }

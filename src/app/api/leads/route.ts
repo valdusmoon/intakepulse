@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!business) return NextResponse.json({ error: "Business not found" }, { status: 404 });
 
   const body = await req.json();
-  const { callerName, callerPhone, callerEmail, notes, source, intakeAnswers } = body;
+  const { callerName, callerPhone, callerEmail, notes, source, intakeAnswers, serviceRequested } = body;
 
   if (!callerPhone) return NextResponse.json({ error: "Phone is required" }, { status: 400 });
 
@@ -47,13 +47,20 @@ export async function POST(req: NextRequest) {
   // when the person entering it didn't know the answers — an unscored lead is
   // still a lead, it just can't be ranked.
   const answers: Answers = intakeAnswers && typeof intakeAnswers === "object" ? intakeAnswers : {};
-  const hasAnswers = Object.keys(answers).length > 0;
+  const offListService =
+    typeof serviceRequested === "string" && serviceRequested.trim() ? serviceRequested.trim() : null;
+  // An off-list service is a real answer to the primary question, so it counts
+  // as signal even when the structured answers are otherwise empty.
+  const hasAnswers = Object.keys(answers).length > 0 || !!offListService;
 
   let scores: ScoringResult | null = null;
   if (hasAnswers) {
     const config = await getVerticalConfig(business.vertical);
     if (config) {
-      scores = scoreLeadFromAnswers(answers, config.scoringRules, config.questions, config.baseValueLow);
+      scores = scoreLeadFromAnswers(answers, config.scoringRules, config.questions, config.baseValueLow, {
+        serviceRequested: offListService,
+        signalText: notes?.trim() || null,
+      });
     }
   }
 
@@ -64,6 +71,7 @@ export async function POST(req: NextRequest) {
     callerEmail: callerEmail?.trim() || null,
     source: leadSource,
     intakeAnswers: answers,
+    serviceRequested: offListService,
     // "completed" only when the vertical's questions were actually answered here;
     // contact-details-only entries stay 'not_started', which is what they are.
     intakeStatus: scores ? "completed" : "not_started",
