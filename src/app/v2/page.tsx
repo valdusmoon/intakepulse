@@ -13,15 +13,21 @@ import { MissedCallCalculator } from "@/components/marketing/MissedCallCalculato
 import { PricingCard } from "@/components/marketing/PricingCard";
 
 /**
- * /v2 — "SPEED-TO-LEAD" POSITIONING VARIANT, TIGHTENED (throwaway, noindex).
- * Collapses the earlier 16-section draft into a leaner 15-section flow per the
- * founder's spec: capture more leads -> qualify fast -> rank by priority -> call
- * back before the customer moves on. The standalone "Speed wins jobs" / HBR-stat
- * section was folded into the hero + problem copy; "What we set up" merged into a
- * single 4-step "How it works"; Problem trimmed to 3 cards; ROI/category/trust/
- * pricing shortened. Still NO PHOTO ASSETS — hero uses the CSS/JS glass panel,
- * the intake section reuses the live ExtractionDemo, everything else is icon/HTML
- * cards. Design draft for iteration; visuals come later.
+ * /v2 — "SPEED-TO-LEAD" POSITIONING VARIANT (throwaway, noindex).
+ * 13 sections: capture more leads -> qualify fast -> rank by priority -> call
+ * back before the customer moves on.
+ *
+ * Trimmed from 16 because four sections were making the same argument. The hero
+ * proof bar restated the subhead verbatim; the "Keep your phones" node diagram
+ * restated the 4-step How-it-works (its one distinct point, that your team rings
+ * first, now leads that section); the product-dashboard cards restated the lead
+ * packet, so the two merged into a single handoff section; and the done-with-you
+ * bullets moved beside the price, where "what do I get for the money" is the
+ * question actually being asked.
+ *
+ * Still NO PHOTO ASSETS — hero uses the CSS/JS glass panel, the intake section
+ * reuses the live ExtractionDemo, everything else is icon/HTML cards. Design
+ * draft for iteration; visuals come later.
  */
 
 export const metadata: Metadata = {
@@ -68,12 +74,6 @@ function IconChip({ d }: { d: string }) {
 }
 
 // ── Section data ─────────────────────────────────────────────────────────────
-const HERO_PROOF = [
-  { icon: I.phone, t: "Answers when you can't", d: "Missed calls get answered live and turned into qualified leads." },
-  { icon: I.list, t: "Nothing slips through", d: "Calls, website inquiries, and intake links land in one ranked list." },
-  { icon: I.bolt, t: "Know who to call first", d: "Every lead scored Hot, Warm, or Cool by urgency and job value." },
-];
-
 const LEAK_CARDS = [
   { icon: I.missed, t: "Missed calls", d: "You never even find out they called. They hang up and dial the next company on Google." },
   { icon: I.phone, t: "Answered, then forgotten", d: "Your tech takes the call between jobs. The name, the job, and the callback never get written down." },
@@ -99,16 +99,8 @@ const PACKET = [
   { t: "Summary", d: "What happened, in two sentences your team can read while dialing." },
   { t: "Service fit", d: "The matched service, off-list requests, and whether it's in your area." },
   { t: "Value estimate", d: "A rough range so big jobs never wait behind small ones." },
-  { t: "Approved quote guidance", d: "Only prices you approved. Never invented." },
   { t: "Transcript", d: "Every word, so you can verify exactly what was said." },
   { t: "Recommended next action", d: "Call now, review pricing, or follow up later." },
-];
-
-const PRODUCT_CARDS = [
-  { icon: I.list, t: "Ranked by priority", d: "Open the app, see who to call first." },
-  { icon: I.chat, t: "Full context", d: "Transcript, summary, source, and every answer attached to the lead." },
-  { icon: I.bell, t: "Instant alerts", d: "New leads hit your phone and inbox the moment they come in." },
-  { icon: I.chart, t: "Weekly recap", d: "What came in, what you won, and what's still waiting on a callback." },
 ];
 
 const COMPARE_COLS = ["Voicemail", "Missed-call text-back", "AI receptionist", "Callverted"];
@@ -173,7 +165,7 @@ export default function V2Page() {
         </div>
       </LandingNavShell>
 
-      {/* ── 1. Hero ──────────────────────────────────────────────────────── */}
+      {/* ── 1. Hero ─────────────────────────────────────────────────────────────── */}
       <HeroScenesProvider tone="medium">
         <section className="relative flex items-center overflow-hidden bg-landing-ink">
           <div className="pointer-events-none absolute inset-0" aria-hidden style={{ background: "radial-gradient(120% 90% at 15% 0%, #16223f 0%, #0a0f1c 55%)" }} />
@@ -200,23 +192,8 @@ export default function V2Page() {
         </section>
       </HeroScenesProvider>
 
-      {/* Hero proof points */}
-      <section className="bg-white border-b border-[#eef1f4]">
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-5 py-8">
-          {HERO_PROOF.map((p) => (
-            <div key={p.t} className="flex items-start gap-3">
-              <IconChip d={p.icon} />
-              <div>
-                <p className="text-[14px] font-bold text-[#152033] leading-snug mb-0.5">{p.t}</p>
-                <p className="text-[13px] text-[#667085] leading-snug">{p.d}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── 2. Problem — the leak ────────────────────────────────────────── */}
-      <section className="px-6 py-20 sm:py-24 bg-white">
+      {/* ── 2. Problem — the leak ───────────────────────────────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-white border-t border-[#eef1f4]">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal className="max-w-2xl mb-12">
             <Eyebrow className="mb-3">The leak</Eyebrow>
@@ -235,12 +212,13 @@ export default function V2Page() {
         </div>
       </section>
 
-      {/* ── 3. How Callverted works — 4 steps ────────────────────────────── */}
+      {/* ── 3. How Callverted works — 4 steps ───────────────────────────────────── */}
       <section id="how" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal className="max-w-2xl mb-12">
             <Eyebrow className="mb-3">How it works</Eyebrow>
-            <h2 className="font-cv-heading text-3xl sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.03]">From first ring to ranked lead in about a minute.</h2>
+            <h2 className="font-cv-heading text-3xl sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">From first ring to ranked lead in about a minute.</h2>
+            <p className="text-[16px] text-[#667085] leading-relaxed">You keep your phones. Publish one Callverted number and it rings your team first, every time. Answer it and the call still gets logged. Miss it and Callverted picks up live.</p>
           </ScrollReveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {STEPS.map((s, i) => (
@@ -257,7 +235,7 @@ export default function V2Page() {
         </div>
       </section>
 
-      {/* ── 3b. Caller assurance ─────────────────────────────────────────── */}
+      {/* ── 4. Caller assurance ─────────────────────────────────────────────────── */}
       <section className="px-6 py-20 sm:py-24 bg-white">
         <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-10 lg:gap-14 items-center">
           <ScrollReveal>
@@ -288,10 +266,10 @@ export default function V2Page() {
                 <p className="text-[11px] font-bold uppercase tracking-widest text-[#98a2b3]">End of call</p>
               </div>
               <p className="font-cv-body text-[15px] leading-relaxed text-[#152033]">
-                &ldquo;Sarah, I&apos;m sorry you&apos;re dealing with water coming into the basement.{" "}
-                <span className="font-semibold">Blue Star Restoration</span> has your request and the team has
-                been notified directly, so you&apos;re in the queue. They&apos;ll call you back as soon as
-                possible.&rdquo;
+                &ldquo;Sarah, we understand you&apos;re dealing with water coming into the basement, and that
+                must be stressful. The team at <span className="font-semibold">Blue Star Restoration</span> has
+                been notified and will get back to you as soon as possible. Please wait for our
+                callback.&rdquo;
               </p>
               <p className="mt-4 pt-4 border-t border-[#e3e7ed] text-[12.5px] text-[#667085]">
                 Website and intake-link submissions end the same way on screen, written from what that person
@@ -302,7 +280,7 @@ export default function V2Page() {
         </div>
       </section>
 
-      {/* ── 4. Lead sources ──────────────────────────────────────────────── */}
+      {/* ── 5. Lead sources ─────────────────────────────────────────────────────── */}
       <section id="sources" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-white">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal className="max-w-2xl mb-12">
@@ -321,7 +299,7 @@ export default function V2Page() {
         </div>
       </section>
 
-      {/* ── 5. Smart qualification demo ──────────────────────────────────── */}
+      {/* ── 6. Smart qualification demo ─────────────────────────────────────────── */}
       <section className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="max-w-2xl mb-10">
@@ -333,13 +311,13 @@ export default function V2Page() {
         </ScrollReveal>
       </section>
 
-      {/* ── 6. Lead packet ───────────────────────────────────────────────── */}
-      <section className="px-6 py-20 sm:py-24 bg-white">
+      {/* ── 7. The handoff — lead packet + ranked list ──────────────────────────── */}
+      <section id="product" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-white">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-10 lg:gap-14 items-start">
           <ScrollReveal>
             <Eyebrow className="mb-3">The handoff</Eyebrow>
-            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">Your team gets the lead while it is still hot.</h2>
-            <p className="text-[15px] text-[#667085] leading-relaxed">Everything your team needs to win the callback, on one card.</p>
+            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">One list, ranked by who to call first.</h2>
+            <p className="text-[15px] text-[#667085] leading-relaxed">Missed calls, answered calls, and website inquiries all become the same lead record. It hits your phone and inbox the moment it lands, with everything your team needs to win the callback.</p>
             <div className="mt-7 rounded-2xl border border-[#e3e7ed] bg-white p-4 shadow-sm max-w-[300px]">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[10.5px] font-bold uppercase tracking-widest text-landing-primary">Ready to call back</p>
@@ -367,54 +345,7 @@ export default function V2Page() {
         </div>
       </section>
 
-      {/* ── 7. Product dashboard ─────────────────────────────────────────── */}
-      <section id="product" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
-        <div className="max-w-6xl mx-auto">
-          <ScrollReveal className="max-w-2xl mb-12">
-            <Eyebrow className="mb-3">The product</Eyebrow>
-            <h2 className="font-cv-heading text-3xl sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">One list, ranked by who to call first.</h2>
-            <p className="text-[16px] text-[#667085] leading-relaxed">Missed calls, answered calls, and website inquiries become the same clean lead record. No sticky notes, no spreadsheet.</p>
-          </ScrollReveal>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {PRODUCT_CARDS.map((c, i) => (
-              <ScrollReveal key={c.t} delay={i * 90} className="rounded-2xl border border-[#e3e7ed] bg-white p-6">
-                <IconChip d={c.icon} />
-                <h3 className="font-cv-heading text-[16px] font-bold mt-4 mb-1.5">{c.t}</h3>
-                <p className="text-[13.5px] text-[#667085] leading-relaxed">{c.d}</p>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── 8. Phone setup ───────────────────────────────────────────────── */}
-      <section className="px-6 py-20 sm:py-24 bg-white">
-        <ScrollReveal className="max-w-5xl mx-auto">
-          <div className="max-w-2xl mb-10">
-            <Eyebrow className="mb-3">Your team first</Eyebrow>
-            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">Keep your phones. We catch what they miss.</h2>
-            <p className="text-[15px] text-[#667085] leading-relaxed">You publish one Callverted number that rings your team first, every time. Answer it and the call gets logged. Miss it and Callverted picks up live. Either way, the lead is saved, scored, and ranked.</p>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-stretch gap-3">
-            {[
-              { l: "Customer calls", i: I.phone },
-              { l: "Team rings first", i: I.bell },
-              { l: "Answered or recovered", i: I.recover },
-              { l: "Lead packet created", i: I.list },
-              { l: "Team notified", i: I.check },
-            ].map((n, idx, arr) => (
-              <div key={n.l} className="flex sm:flex-1 items-center gap-3 sm:flex-col sm:text-center">
-                <div className="flex sm:flex-col items-center gap-3 sm:gap-2 rounded-2xl border border-[#e3e7ed] bg-[#f9fafb] px-4 py-3 sm:py-5 w-full">
-                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${idx === arr.length - 1 ? "bg-landing-primary text-white" : "bg-landing-primary/10 text-landing-primary"}`}><Icon d={n.i} /></span>
-                  <span className="text-[13px] sm:text-[12.5px] font-semibold text-[#344054] leading-tight">{n.l}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollReveal>
-      </section>
-
-      {/* ── 9. ROI calculator ────────────────────────────────────────────── */}
+      {/* ── 8. ROI calculator ───────────────────────────────────────────────────── */}
       <section className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
         <ScrollReveal className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-10 items-center">
           <div>
@@ -428,7 +359,7 @@ export default function V2Page() {
         </ScrollReveal>
       </section>
 
-      {/* ── 10. Category ─────────────────────────────────────────────────── */}
+      {/* ── 9. Category ─────────────────────────────────────────────────────────── */}
       <section className="px-6 py-20 sm:py-24 bg-white">
         <ScrollReveal className="max-w-3xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-10">
@@ -458,7 +389,7 @@ export default function V2Page() {
         </ScrollReveal>
       </section>
 
-      {/* ── 11. Built for urgent trades ──────────────────────────────────── */}
+      {/* ── 10. Built for urgent trades ─────────────────────────────────────────── */}
       <section id="trades" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal className="max-w-2xl mb-10">
@@ -482,37 +413,33 @@ export default function V2Page() {
         </div>
       </section>
 
-      {/* ── 12. Setup / trust ────────────────────────────────────────────── */}
-      <section className="px-6 py-20 sm:py-24 bg-white">
-        <ScrollReveal className="max-w-4xl mx-auto">
-          <div className="max-w-2xl mb-10">
-            <Eyebrow className="mb-3">Done with you</Eyebrow>
-            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold tracking-[-0.035em] leading-[1.03]">We help set it up, not just hand you software.</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-            {TRUST.map((t) => (
-              <div key={t} className="flex items-start gap-3">
-                <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-landing-primary/10 text-landing-primary">
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                </span>
-                <p className="text-[15px] font-semibold text-[#344054] leading-snug">{t}</p>
-              </div>
-            ))}
-          </div>
-        </ScrollReveal>
-      </section>
-
-      {/* ── 13. Pricing ──────────────────────────────────────────────────── */}
+      {/* ── 11. Pricing + done-with-you setup ───────────────────────────────────── */}
       <section id="pricing" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
-        <ScrollReveal className="max-w-md mx-auto text-center">
-          <Eyebrow className="mb-3">Pricing</Eyebrow>
-          <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-3">One flat price. Everything included.</h2>
-          <p className="text-[14.5px] text-[#667085] mb-6">Missed-call answering, answered-call capture, website intake, lead scoring, alerts, and weekly reports. No per-call or per-lead fees.</p>
-          <PricingCard />
+        <ScrollReveal className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[0.95fr_1fr] gap-12 lg:gap-16 items-center">
+          <div className="text-center lg:text-left">
+            <Eyebrow className="mb-3">Pricing</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-3">One flat price. Everything included.</h2>
+            <p className="text-[14.5px] text-[#667085] mb-6 max-w-md mx-auto lg:mx-0">Missed-call answering, answered-call capture, website intake, lead scoring, alerts, and weekly reports. No per-call or per-lead fees.</p>
+            <PricingCard />
+          </div>
+          <div>
+            <Eyebrow className="mb-3">Done with you</Eyebrow>
+            <h3 className="font-cv-heading text-2xl sm:text-[28px] font-bold tracking-[-0.035em] leading-[1.1] mb-6">We help set it up, not just hand you software.</h3>
+            <div className="space-y-4">
+              {TRUST.map((t) => (
+                <div key={t} className="flex items-start gap-3">
+                  <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-landing-primary/10 text-landing-primary">
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                  </span>
+                  <p className="text-[15px] font-semibold text-[#344054] leading-snug">{t}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </ScrollReveal>
       </section>
 
-      {/* ── 14. FAQ ──────────────────────────────────────────────────────── */}
+      {/* ── 12. FAQ ─────────────────────────────────────────────────────────────── */}
       <section className="px-6 py-20 sm:py-24 bg-white">
         <ScrollReveal className="max-w-2xl mx-auto">
           <div className="text-center mb-8"><Eyebrow className="mb-3">FAQ</Eyebrow><h2 className="font-cv-heading text-2xl sm:text-3xl font-bold tracking-[-0.035em]">Questions owners ask first</h2></div>
@@ -530,7 +457,7 @@ export default function V2Page() {
         </ScrollReveal>
       </section>
 
-      {/* ── 15. Final CTA ────────────────────────────────────────────────── */}
+      {/* ── 13. Final CTA ───────────────────────────────────────────────────────── */}
       <section className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-t border-[#e3e7ed]">
         <ScrollReveal className="max-w-5xl mx-auto">
           <div className="relative overflow-hidden rounded-3xl px-8 sm:px-12 py-14 sm:py-16 text-center text-white shadow-[0_30px_60px_-24px_rgba(28,63,168,0.5)]" style={{ background: "linear-gradient(135deg, #2a5ae0 0%, #1c3fa8 55%, #16307e 100%)" }}>

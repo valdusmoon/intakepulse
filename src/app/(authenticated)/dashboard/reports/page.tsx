@@ -4,7 +4,7 @@ import Link from "next/link";
 import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { getCallMetrics } from "@/lib/db/queries/calls";
 import { getReportsFunnel, getChannelPerformance, getDailyCapturedVsWon } from "@/lib/db/queries/dashboard";
-import { Card, CardHeader, CardTitle, CardBody, MetricCard } from "@/components/dashboard/v2/primitives";
+import { Card, CardHeader, CardTitle, CardBody, MetricCard, DownloadLink, Icon } from "@/components/dashboard/v2/primitives";
 import { RangeSelect } from "./_range-select";
 import { fmtCents, sourceLabel, sourceSwatch } from "@/lib/leads/priority";
 
@@ -63,7 +63,17 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             Connect captured opportunities to callbacks, booked work, and confirmed revenue.
           </p>
         </div>
-        <RangeSelect current={days} options={RANGES} />
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Exports the same range the page is showing. */}
+          <DownloadLink href={`/api/export/reports?range=${days}`}>
+            <Icon name="download" />
+            Export
+          </DownloadLink>
+          {/* Select is w-full by design — constrain it here rather than override the child. */}
+          <div className="w-[170px]">
+            <RangeSelect current={days} options={RANGES} />
+          </div>
+        </div>
       </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-4">

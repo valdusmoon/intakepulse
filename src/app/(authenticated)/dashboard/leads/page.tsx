@@ -6,7 +6,7 @@ import { getLeadsByBusiness } from "@/lib/db/queries/leads";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel, deriveReasonLine } from "@/lib/verticals/labels";
 import { tierMeta, highValueBadge, intentMeta, statusMeta, sourceLabel, timeAgoShort, fmtValueRange } from "@/lib/leads/priority";
-import { Card, Badge, LinkButton, Icon } from "@/components/dashboard/v2/primitives";
+import { Card, Badge, LinkButton, DownloadLink, Icon } from "@/components/dashboard/v2/primitives";
 import { FilterSelect } from "./_filter-select";
 import { LeadRowActions } from "./lead-row-actions";
 
@@ -92,6 +92,16 @@ export default async function LeadsPage({
 
   const hasFilters = Boolean(status || source || priority || search);
 
+  // The export route takes the same filter params as this page (minus paging — it
+  // exports every matching lead), so the file matches the list on screen.
+  const exportQuery = new URLSearchParams({
+    ...(status && { status }),
+    ...(source && { source }),
+    ...(priority && { priority }),
+    ...(search && { search }),
+  }).toString();
+  const exportHref = `/api/export/leads${exportQuery ? `?${exportQuery}` : ""}`;
+
   return (
     <div className="font-cv-body text-cv-ink">
       <div className="flex justify-between items-start gap-6 mb-[22px] flex-col sm:flex-row">
@@ -130,11 +140,17 @@ export default async function LeadsPage({
           <FilterSelect name="source" value={source} options={SOURCES} currentParams={{ search, priority, source, status }} />
           <FilterSelect name="status" value={status} options={STATUSES} currentParams={{ search, priority, source, status }} />
         </div>
-        {hasFilters && (
-          <Link href="/dashboard/leads" className="text-cv-primary text-xs font-bold hover:underline whitespace-nowrap">
-            Clear filters
-          </Link>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          {hasFilters && (
+            <Link href="/dashboard/leads" className="text-cv-primary text-xs font-bold hover:underline whitespace-nowrap">
+              Clear filters
+            </Link>
+          )}
+          <DownloadLink href={exportHref}>
+            <Icon name="download" />
+            Export
+          </DownloadLink>
+        </div>
       </Card>
 
       <Card>

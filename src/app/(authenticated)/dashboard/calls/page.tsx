@@ -7,7 +7,7 @@ import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel } from "@/lib/verticals/labels";
 import { priorityMeta } from "@/lib/leads/priority";
 import { formatInTimezone, dateKeyInTimezone } from "@/lib/utils/datetime";
-import { Card, MetricCard, Icon } from "@/components/dashboard/v2/primitives";
+import { Card, MetricCard, DownloadLink, Icon } from "@/components/dashboard/v2/primitives";
 import { CallRow } from "./_call-row";
 
 const OUTCOMES = [
@@ -73,6 +73,11 @@ export default async function CallsPage({
     return `/dashboard/calls?${base.toString()}`;
   }
 
+  // The export route takes the same filter params as this page (minus paging — it
+  // exports every matching call), so the file matches the list on screen.
+  const exportQuery = new URLSearchParams({ ...(outcome && { outcome }), ...(search && { search }) }).toString();
+  const exportHref = `/api/export/calls${exportQuery ? `?${exportQuery}` : ""}`;
+
   return (
     <div className="font-cv-body text-cv-ink">
       <div className="flex justify-between items-start gap-6 mb-[22px] flex-col sm:flex-row">
@@ -123,6 +128,11 @@ export default async function CallsPage({
             Apply
           </button>
         </form>
+        {/* Outside the form so it downloads instead of submitting it. */}
+        <DownloadLink href={exportHref}>
+          <Icon name="download" />
+          Export
+        </DownloadLink>
       </Card>
 
       <Card>

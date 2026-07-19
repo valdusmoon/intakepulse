@@ -105,6 +105,29 @@ export function LinkButton({
   );
 }
 
+/** A button-styled plain anchor for file downloads (CSV exports). Deliberately not
+ *  next/link: client-side navigation would try to render the route as a page instead
+ *  of letting the browser take the attachment response. */
+export function DownloadLink({
+  href,
+  variant = "default",
+  size = "md",
+  className = "",
+  children,
+}: {
+  href: string;
+  variant?: BtnVariant;
+  size?: BtnSize;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <a href={href} download className={`${btnBase} ${btnVariants[variant]} ${btnSizes[size]} ${className}`}>
+      {children}
+    </a>
+  );
+}
+
 export type BadgeColor = "green" | "amber" | "red" | "blue" | "purple" | "gray";
 
 const badgeColors: Record<BadgeColor, string> = {
