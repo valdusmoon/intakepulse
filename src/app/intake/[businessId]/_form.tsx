@@ -451,7 +451,7 @@ export function IntakeForm({
           {priceMessage && (
             <div className="mt-6 rounded-xl border border-cv-border bg-white p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-cv-muted-2 mb-1.5">
-                What this usually runs
+                Pricing
               </p>
               <p className="text-[13px] leading-relaxed text-cv-ink">{priceMessage}</p>
             </div>
