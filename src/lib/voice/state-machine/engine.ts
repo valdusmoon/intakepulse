@@ -49,6 +49,7 @@ import {
   wrapUpReasonPrompt,
   zipPrompt,
 } from "./call-flow";
+import { voiceReassuranceInstruction } from "@/lib/leads/reassurance";
 import { captureLeadOnce, checkServiceArea, getPriceRangeForCategory, transferCallAction, canWarmTransfer } from "../functions/actions";
 import { INTERRUPTION } from "../config/constants";
 
@@ -609,8 +610,29 @@ function enterCallbackPreference(ctx: FlowContext, client: RealtimeClient): void
 
 function enterConfirmation(ctx: FlowContext, client: RealtimeClient): void {
   ctx.session.state = "confirmation";
-  speak(ctx, client, confirmationLine(ctx));
   ctx.session.onResponseDone = () => finishCall(ctx, client);
+  speakConfirmation(ctx, client);
+}
+
+/**
+ * The one turn the model words itself. Everything else in this engine is dictated
+ * verbatim, but the closing line has to reflect what the caller actually described,
+ * and the model in the call already has that context — so it writes this one under
+ * a tight set of rules rather than us round-tripping to a second model mid-call.
+ */
+function speakConfirmation(ctx: FlowContext, client: RealtimeClient): void {
+  const cc = ctx.session.conversationContext;
+  const callbackPhrase = cc.callbackPreference ?? "as soon as possible";
+
+  ctx.session.responseActive = true;
+  client.createResponse({
+    instructions: voiceReassuranceInstruction(ctx.business.businessName, callbackPhrase),
+    tool_choice: "none",
+  });
+  // Seeded with the scripted line purely so the turn is never unrecorded; unlike
+  // every other turn this text was never what we asked for, so the overwrite from
+  // the real audio transcript is what actually makes this entry correct.
+  pushSpokenTurn(ctx, confirmationLine(ctx));
 }
 
 async function finishCall(ctx: FlowContext, client: RealtimeClient): Promise<void> {
@@ -924,7 +946,29 @@ function speak(ctx: FlowContext, client: RealtimeClient, text: string): void {
     instructions: `Say exactly, naturally, in one short turn: "${text}"`,
     tool_choice: "none",
   });
-  ctx.session.conversationContext.transcript.push({ role: "assistant", message: text });
+  pushSpokenTurn(ctx, text);
+}
+
+/** Records the turn we're about to speak so it lands in the transcript in order,
+ *  and marks it to be replaced by the audio that actually goes out. */
+function pushSpokenTurn(ctx: FlowContext, intended: string): void {
+  ctx.session.spokenTranscriptIndex = ctx.session.conversationContext.transcript.length;
+  ctx.session.conversationContext.transcript.push({ role: "assistant", message: intended });
+}
+
+/**
+ * Replaces the intended text of the in-flight assistant turn with what was really
+ * said. Fires for every spoken turn, so a rephrase or a caller barging in
+ * mid-sentence is reflected in the record rather than papered over.
+ */
+export function recordSpokenTranscript(ctx: FlowContext, spoken: string): void {
+  const idx = ctx.session.spokenTranscriptIndex;
+  if (idx === undefined) return;
+  ctx.session.spokenTranscriptIndex = undefined;
+  const text = spoken.trim();
+  if (!text) return;
+  const entry = ctx.session.conversationContext.transcript[idx];
+  if (entry?.role === "assistant") entry.message = text;
 }
 
 /** DTMF cuts off in-progress audio immediately — no VAD false-positive risk

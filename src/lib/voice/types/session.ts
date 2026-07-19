@@ -115,6 +115,14 @@ export interface SessionState {
   // isn't enough, since classification-only turns (extract_zip/classify_answer/
   // detect_intent) never push into it the way speak() does.
   responseActive?: boolean;
+  // Index into conversationContext.transcript of the assistant turn currently
+  // being spoken. Seeded with the text we asked for (so the turn lands in
+  // chronological order and a record exists even in text-mode//on failure), then
+  // overwritten with what actually went out once response.audio_transcript.done
+  // arrives. Without that overwrite the transcript records our intent rather than
+  // the call — wrong whenever the model rephrases or the caller barges in
+  // mid-sentence, and the transcript is a feature businesses rely on.
+  spokenTranscriptIndex?: number;
 
   // Running OpenAI token usage for the whole call, summed from each response's
   // response.done usage. Audio and text tokens are tracked separately because

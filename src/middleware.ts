@@ -10,6 +10,9 @@ const isPublicRoute = createRouteMatcher([
   '/industries(.*)',
   '/faq',
   '/about',
+  '/v1', // throwaway landing-positioning variant (noindex) — public so it can be previewed
+  '/v2', // throwaway landing-positioning variant (noindex) — public so it can be previewed
+
   '/blog(.*)',
   '/compare(.*)',
   '/legal(.*)',

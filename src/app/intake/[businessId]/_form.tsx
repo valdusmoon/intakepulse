@@ -23,17 +23,21 @@ function ContactStep({
   name,
   phone,
   email,
+  zip,
   onName,
   onPhone,
   onEmail,
+  onZip,
   onNext,
 }: {
   name: string;
   phone: string;
   email: string;
+  zip: string;
   onName: (v: string) => void;
   onPhone: (v: string) => void;
   onEmail: (v: string) => void;
+  onZip: (v: string) => void;
   onNext: () => void;
 }) {
   const [phoneError, setPhoneError] = useState("");
@@ -50,7 +54,7 @@ function ContactStep({
     onNext();
   }
 
-  const canProceed = name.trim() && phone.trim();
+  const canProceed = name.trim() && phone.trim() && zip.trim();
 
   return (
     <div className="space-y-5">
@@ -89,6 +93,19 @@ function ContactStep({
             value={email}
             onChange={(e) => onEmail(e.target.value)}
             placeholder="you@example.com"
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-[#344054] mb-1.5">
+            ZIP code where the work is needed
+          </label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={zip}
+            onChange={(e) => onZip(e.target.value)}
+            placeholder="07030"
             className={inputCls}
           />
         </div>
@@ -260,6 +277,31 @@ function TextQuestion({
 // stripped before submit and sent as free-text serviceRequested instead.
 const OTHER_SERVICE = "__other__";
 
+// Callback wording mirrors the voice confirmation (call-flow.ts:confirmationLine)
+// so a caller and a web submitter are promised the same thing. Urgency is the
+// only signal both channels always capture, so it alone sets the expectation.
+const CALLBACK_TIMING: Record<string, string> = {
+  emergency: "as soon as possible",
+  soon: "today",
+  flexible: "shortly",
+};
+
+/** One answered question rendered for the confirmation read-back, or null when
+ *  it was skipped. Option values are mapped back to their labels so the person
+ *  sees what they picked, not the stored enum. */
+function answerDisplay(q: VerticalQuestion, answers: Answers, serviceOther: string): string | null {
+  const v = answers[q.key];
+  if (v === OTHER_SERVICE) return serviceOther.trim() || null;
+  if (Array.isArray(v)) {
+    const labels = v.map((val) => q.options?.find((o) => o.value === val)?.label ?? val);
+    return labels.length ? labels.join(", ") : null;
+  }
+  if (typeof v === "string" && v.trim()) {
+    return q.options?.find((o) => o.value === v)?.label ?? v;
+  }
+  return null;
+}
+
 export function IntakeForm({
   businessId,
   businessName,
@@ -271,14 +313,20 @@ export function IntakeForm({
   const [callerName, setCallerName] = useState("");
   const [callerPhone, setCallerPhone] = useState("");
   const [callerEmail, setCallerEmail] = useState("");
+  const [callerZip, setCallerZip] = useState("");
   const [answers, setAnswers] = useState<Answers>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [serviceOther, setServiceOther] = useState("");
+  const [reassurance, setReassurance] = useState("");
 
+  // Same short set a voice caller gets. voiceExtractOnly marks the enrichment
+  // fields (timing, insurance, cause, rooms) that were only ever worth capturing
+  // if volunteered — asking them here just lengthened the form, and a lead lost
+  // to form fatigue is worth less than the scoring nuance those answers added.
   const visibleQuestions = useMemo(
-    () => getVisibleQuestions(questions, answers),
+    () => getVisibleQuestions(questions, answers).filter((q) => !q.voiceExtractOnly),
     [questions, answers]
   );
 
@@ -320,7 +368,11 @@ export function IntakeForm({
     // Off-list service ("Something else"): send the caller's words as
     // serviceRequested and strip the sentinel so it isn't stored as a bogus
     // option value (no quote is given for off-list services).
-    let outAnswers = finalAnswers;
+    // ZIP rides in intakeAnswers under the same key voice uses, so the callback
+    // view shows a location no matter which channel the lead came through.
+    let outAnswers: Answers = callerZip.trim()
+      ? { ...finalAnswers, zip_code: callerZip.trim() }
+      : finalAnswers;
     let serviceRequested: string | undefined;
     if (primaryKey && finalAnswers[primaryKey] === OTHER_SERVICE) {
       serviceRequested = serviceOther.trim() || undefined;
@@ -341,10 +393,11 @@ export function IntakeForm({
           source,
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || "Submission failed. Please try again.");
       }
+      if (typeof data.reassurance === "string") setReassurance(data.reassurance);
       setSubmitted(true);
       // Notify parent (widget iframe) that form is complete so it can close the modal
       if (window.parent !== window) {
@@ -365,16 +418,50 @@ export function IntakeForm({
   }
 
   if (submitted) {
+    const firstName = callerName.trim().split(/\s+/)[0];
+    const timing = CALLBACK_TIMING[getAnswerStr("urgency")] ?? "shortly";
+    const readback = visibleQuestions
+      .map((q) => ({ label: q.label, value: answerDisplay(q, answers, serviceOther) }))
+      .filter((r): r is { label: string; value: string } => !!r.value);
+
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-6">
-        <div className="text-center max-w-xs">
-          <div className="w-16 h-16 rounded-full bg-cv-green-soft flex items-center justify-center mx-auto mb-5">
-            <Check className="w-8 h-8 text-cv-green" />
+      <div className="min-h-screen bg-white flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-sm">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-full bg-cv-green-soft flex items-center justify-center mx-auto mb-5">
+              <Check className="w-8 h-8 text-cv-green" />
+            </div>
+            <h1 className="font-cv-heading text-2xl font-bold text-cv-ink mb-2">
+              Thanks{firstName ? `, ${firstName}` : ""}.
+            </h1>
+            <p className="text-cv-muted text-sm leading-relaxed">
+              {reassurance || (
+                <>
+                  <span className="font-semibold text-[#344054]">{businessName}</span> has your request and
+                  will call you back <span className="font-semibold text-[#344054]">{timing}</span>.
+                </>
+              )}
+            </p>
           </div>
-          <h1 className="font-cv-heading text-2xl font-bold text-cv-ink mb-2">You&apos;re all set!</h1>
-          <p className="text-cv-muted text-sm leading-relaxed">
-            We have everything we need.{" "}
-            <span className="font-semibold text-[#344054]">{businessName}</span> will be in touch shortly.
+
+          {readback.length > 0 && (
+            <div className="mt-6 rounded-xl border border-cv-border bg-cv-surface-subtle p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-cv-muted-2 mb-3">
+                What we sent them
+              </p>
+              <dl className="space-y-2.5">
+                {readback.map((r) => (
+                  <div key={r.label} className="flex items-baseline justify-between gap-4">
+                    <dt className="text-[13px] text-cv-muted shrink-0">{r.label}</dt>
+                    <dd className="text-[13px] font-semibold text-cv-ink text-right">{r.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+
+          <p className="mt-5 text-center text-[12.5px] text-cv-muted-2">
+            Keep your phone nearby. No need to send this again.
           </p>
         </div>
       </div>
@@ -427,9 +514,11 @@ export function IntakeForm({
             name={callerName}
             phone={callerPhone}
             email={callerEmail}
+            zip={callerZip}
             onName={setCallerName}
             onPhone={setCallerPhone}
             onEmail={setCallerEmail}
+            onZip={setCallerZip}
             onNext={advance}
           />
         )}

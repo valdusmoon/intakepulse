@@ -12,6 +12,7 @@ import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
 import { assessLead } from "@/lib/leads/assess";
+import { generateReassurance, genericReassurance } from "@/lib/leads/reassurance";
 import { sendLeadPacketEmail } from "@/lib/email/notifications";
 import { sendLeadPushNotification } from "@/lib/push/send";
 import { buildLeadPushPayload } from "@/lib/push/payload";
@@ -194,5 +195,19 @@ export async function POST(
   // its own errors internally.
   after(() => assessAndNotify(lead!.id, businessId, answers ?? {}));
 
-  return NextResponse.json({ leadId: lead!.id }, { status: 200 });
+  // Closing message for the confirmation screen. Generated inline (not deferred)
+  // because the form has nothing to show without it; it falls back to the
+  // generic line on any failure, so a slow or down model never blocks a lead.
+  const config = await getVerticalConfig(business.vertical);
+  const reassurance = config
+    ? await generateReassurance({
+        businessName: business.businessName,
+        callerName: callerName.trim(),
+        questions: config.questions,
+        answers: answers ?? {},
+        serviceRequested: intakePayload.serviceRequested ?? undefined,
+      })
+    : genericReassurance(business.businessName);
+
+  return NextResponse.json({ leadId: lead!.id, reassurance }, { status: 200 });
 }

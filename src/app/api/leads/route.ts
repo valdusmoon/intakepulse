@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { createLead, getLeadsByBusiness } from "@/lib/db/queries/leads";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
+import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
+import { scoreLeadFromAnswers, type ScoringResult } from "@/lib/leads/scoring";
+import type { Answers } from "@/lib/verticals/filterAnswers";
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!business) return NextResponse.json({ error: "Business not found" }, { status: 404 });
 
   const body = await req.json();
-  const { callerName, callerPhone, callerEmail, notes, source } = body;
+  const { callerName, callerPhone, callerEmail, notes, source, intakeAnswers } = body;
 
   if (!callerPhone) return NextResponse.json({ error: "Phone is required" }, { status: 400 });
 
@@ -39,15 +42,42 @@ export async function POST(req: NextRequest) {
   const validSources = ["manual", "email", "website_widget", "direct_intake"] as const;
   const leadSource = validSources.includes(source) ? source : "manual";
 
+  // A hand-entered lead is scored on the same engine as every other source, so it
+  // ranks in the priority queue rather than sitting outside it. Scoring is skipped
+  // when the person entering it didn't know the answers — an unscored lead is
+  // still a lead, it just can't be ranked.
+  const answers: Answers = intakeAnswers && typeof intakeAnswers === "object" ? intakeAnswers : {};
+  const hasAnswers = Object.keys(answers).length > 0;
+
+  let scores: ScoringResult | null = null;
+  if (hasAnswers) {
+    const config = await getVerticalConfig(business.vertical);
+    if (config) {
+      scores = scoreLeadFromAnswers(answers, config.scoringRules, config.questions, config.baseValueLow);
+    }
+  }
+
   const lead = await createLead({
     businessId: business.id,
     callerName: callerName?.trim() || null,
     callerPhone: phoneResult.normalized!,
     callerEmail: callerEmail?.trim() || null,
     source: leadSource,
-    // intakeStatus/leadStatus default to 'not_started'/'new' — no vertical Q&A
-    // ran for a manually-entered lead, which is exactly what 'not_started' means.
+    intakeAnswers: answers,
+    // "completed" only when the vertical's questions were actually answered here;
+    // contact-details-only entries stay 'not_started', which is what they are.
+    intakeStatus: scores ? "completed" : "not_started",
     notes: notes?.trim() || null,
+    ...(scores
+      ? {
+          urgencyScore: scores.urgencyScore,
+          qualityScore: scores.qualityScore,
+          priorityScore: scores.priorityScore,
+          scoreTrace: scores.trace,
+          estimatedValueLow: scores.estimatedValueLow,
+          estimatedValueHigh: scores.estimatedValueHigh,
+        }
+      : {}),
   });
 
   return NextResponse.json(lead, { status: 201 });

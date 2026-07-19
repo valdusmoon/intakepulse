@@ -1,0 +1,568 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { CallvertedLogo } from "@/components/CallvertedLogo";
+import { ScrollReveal } from "@/components/marketing/ScrollReveal";
+import { MarketingFooter } from "@/components/marketing/MarketingChrome";
+import { JsonLd, faqSchema } from "@/components/marketing/JsonLd";
+import { AuthAwareNavCta } from "@/components/marketing/AuthAwareNavCta";
+import { ExtractionDemo } from "@/components/marketing/V4Interactive";
+import { HeroScenesProvider, HeroSceneCard } from "@/components/marketing/HeroScenes";
+import { BookDemo } from "@/components/marketing/BookDemo";
+import { LandingNavShell } from "@/components/marketing/LandingNavShell";
+import { MissedCallCalculator } from "@/components/marketing/MissedCallCalculator";
+import { PricingCard } from "@/components/marketing/PricingCard";
+
+/**
+ * /v2 — "SPEED-TO-LEAD" POSITIONING VARIANT, TIGHTENED (throwaway, noindex).
+ * Collapses the earlier 16-section draft into a leaner 15-section flow per the
+ * founder's spec: capture more leads -> qualify fast -> rank by priority -> call
+ * back before the customer moves on. The standalone "Speed wins jobs" / HBR-stat
+ * section was folded into the hero + problem copy; "What we set up" merged into a
+ * single 4-step "How it works"; Problem trimmed to 3 cards; ROI/category/trust/
+ * pricing shortened. Still NO PHOTO ASSETS — hero uses the CSS/JS glass panel,
+ * the intake section reuses the live ExtractionDemo, everything else is icon/HTML
+ * cards. Design draft for iteration; visuals come later.
+ */
+
+export const metadata: Metadata = {
+  title: "Callverted | Capture Every Lead, Call Back the Hottest First",
+  robots: { index: false, follow: false },
+};
+
+// ── Icon paths (stroke, 24-grid) ────────────────────────────────────────────
+const I = {
+  phone: "M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1L6.6 10.8z",
+  missed: "M18 6 6 18M6 6l12 12",
+  recover: "M4 12a8 8 0 0 1 14-5.3L20 8M20 4v4h-4M20 12a8 8 0 0 1-14 5.3L4 16M4 20v-4h4",
+  check: "M20 6 9 17l-5-5",
+  list: "M4 6h16M4 12h10M4 18h6",
+  arrow: "M5 12h14M13 6l6 6-6 6",
+  dollar: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
+  globe: "M12 3a9 9 0 1 0 9 9 9 9 0 0 0-9-9zM3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z",
+  link: "M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1",
+  bell: "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0",
+  bolt: "M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z",
+  chat: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  chart: "M4 18 10 12l4 3 6-8M20 7h-4M20 7v4",
+  wrench: "M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.7-5.7a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.7-1.7 2.7-2.7z",
+} as const;
+
+function Eyebrow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <p className={`text-xs font-bold uppercase tracking-widest text-landing-primary ${className}`}>{children}</p>;
+}
+
+function Icon({ d, className = "h-[18px] w-[18px]" }: { d: string; className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d={d} />
+    </svg>
+  );
+}
+
+function IconChip({ d }: { d: string }) {
+  return (
+    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-landing-primary/10 text-landing-primary">
+      <Icon d={d} />
+    </span>
+  );
+}
+
+// ── Section data ─────────────────────────────────────────────────────────────
+const HERO_PROOF = [
+  { icon: I.phone, t: "Answers when you can't", d: "Missed calls get answered live and turned into qualified leads." },
+  { icon: I.list, t: "Nothing slips through", d: "Calls, website inquiries, and intake links land in one ranked list." },
+  { icon: I.bolt, t: "Know who to call first", d: "Every lead scored Hot, Warm, or Cool by urgency and job value." },
+];
+
+const LEAK_CARDS = [
+  { icon: I.missed, t: "Missed calls", d: "You never even find out they called. They hang up and dial the next company on Google." },
+  { icon: I.phone, t: "Answered, then forgotten", d: "Your tech takes the call between jobs. The name, the job, and the callback never get written down." },
+  { icon: I.globe, t: "Web leads that sit", d: "A form fill waits in an inbox all afternoon. By the time someone replies, the job is booked elsewhere." },
+];
+
+const STEPS = [
+  { icon: I.recover, t: "Capture", d: "Your phones ring first. If nobody picks up, Callverted answers live. Website and intake-link inquiries flow into the same system." },
+  { icon: I.check, t: "Qualify", d: "It asks what a good dispatcher would ask: what happened, where, and how urgent. A few questions, not an interrogation." },
+  { icon: I.dollar, t: "Quote from your rules", d: "Only prices you approved, repeated word for word. Anything else and it says your team will follow up. It never invents a number." },
+  { icon: I.list, t: "Rank and alert", d: "Your team gets a scored lead in about a minute: the job, the estimated value, and how fast to call back." },
+];
+
+const SOURCES = [
+  { icon: I.phone, t: "Missed-call recovery", d: "Your team misses the call. Callverted answers live and qualifies the job on the spot." },
+  { icon: I.recover, t: "Answered-call capture", d: "Switch it on and the calls your team takes get summarized and scored too. Details stop living in someone's head." },
+  { icon: I.globe, t: "Website widget", d: "One line of code adds intake to your site. Visitors describe the job before they bounce." },
+  { icon: I.link, t: "Direct intake link", d: "One link for ads, your Google profile, texts, and social. Every submission gets qualified the same way." },
+];
+
+const PACKET = [
+  { t: "Priority", d: "Hot, Warm, or Cool, scored on urgency, job value, and lead quality." },
+  { t: "Summary", d: "What happened, in two sentences your team can read while dialing." },
+  { t: "Service fit", d: "The matched service, off-list requests, and whether it's in your area." },
+  { t: "Value estimate", d: "A rough range so big jobs never wait behind small ones." },
+  { t: "Approved quote guidance", d: "Only prices you approved. Never invented." },
+  { t: "Transcript", d: "Every word, so you can verify exactly what was said." },
+  { t: "Recommended next action", d: "Call now, review pricing, or follow up later." },
+];
+
+const PRODUCT_CARDS = [
+  { icon: I.list, t: "Ranked by priority", d: "Open the app, see who to call first." },
+  { icon: I.chat, t: "Full context", d: "Transcript, summary, source, and every answer attached to the lead." },
+  { icon: I.bell, t: "Instant alerts", d: "New leads hit your phone and inbox the moment they come in." },
+  { icon: I.chart, t: "Weekly recap", d: "What came in, what you won, and what's still waiting on a callback." },
+];
+
+const COMPARE_COLS = ["Voicemail", "Missed-call text-back", "AI receptionist", "Callverted"];
+const COMPARE_ROWS: { dim: string; vals: (boolean | string)[] }[] = [
+  { dim: "Answers missed calls live", vals: [false, false, true, true] },
+  { dim: "Captures answered calls", vals: [false, false, false, true] },
+  { dim: "Qualifies web inquiries", vals: [false, false, false, true] },
+  { dim: "Confirms the job back to the caller", vals: [false, false, false, true] },
+  { dim: "Creates structured lead packets", vals: [false, false, false, true] },
+  { dim: "Scores urgency and value", vals: [false, false, false, true] },
+  { dim: "Quotes only from approved rules", vals: [false, false, false, true] },
+  { dim: "What it's built for", vals: ["Storing messages", "Sending a text", "Answering calls", "Winning the job"] },
+];
+
+const ASSURANCE = [
+  "Their problem is repeated back, so they know it landed",
+  "Your business name is what they remember, not ours",
+  "It never promises a price or an arrival time on your behalf",
+  "Every caller hears something, even at 2am",
+];
+
+const TRADES = [
+  { name: "Restoration", href: "/industries/restoration", icon: I.recover },
+  { name: "HVAC", href: "/industries/hvac", icon: I.bolt },
+  { name: "Plumbing", href: "/industries/plumbing", icon: I.wrench },
+  { name: "Electrical", href: "/industries/electrical", icon: I.bolt },
+  { name: "General contracting", href: "/industries/general-contracting", icon: I.wrench },
+  { name: "Your trade", href: "/industries", icon: I.arrow },
+];
+
+const TRUST = [
+  "We build your call flow and lead sources with you",
+  "You approve every service, price, and question before launch",
+  "We run test calls together before a customer ever hears it",
+  "A real person helps you tune it after launch",
+];
+
+const FAQ_V2 = [
+  { q: "Is this just an AI receptionist?", a: "No. An answering service takes a message. Callverted qualifies the job, scores the lead, and tells your team who to call back first. It also captures answered calls and website inquiries, not just missed ones." },
+  { q: "Does it replace my phone number?", a: "No. You publish a Callverted number that rings your team first on every call. Callverted only steps in when nobody picks up." },
+  { q: "What happens when my team answers?", a: "If you switch on answered-call capture, the call is transcribed, summarized, and scored, so the details are saved instead of disappearing after hangup. The audio itself is deleted once transcribed, never stored." },
+  { q: "Can it qualify website leads too?", a: "Yes. Add the website widget or share your intake link. Those submissions go through the same qualification and scoring as phone calls." },
+  { q: "Will the AI make up prices?", a: "Never. Callers only hear pricing you approved, word for word. If there is no approved price, it says your team will follow up with a quote." },
+  { q: "How fast can we launch?", a: "About 30 minutes of setup: call flow, service area, pricing rules, and test calls. We walk through it with you." },
+];
+
+export default function V2Page() {
+  return (
+    <div className="min-h-screen bg-white text-[#152033]">
+      {/* ── Nav ─────────────────────────────────────────────────────────── */}
+      <LandingNavShell>
+        <Link href="/" className="flex items-center gap-2.5">
+          <CallvertedLogo className="h-8 w-8" gradientId="v2logo" />
+          <span className="font-cv-heading text-lg font-bold tracking-tight text-white">Callverted</span>
+        </Link>
+        <div className="flex items-center gap-6 text-sm">
+          <a href="#how" className="text-white/90 hover:text-white font-medium transition-colors hidden md:block">How it works</a>
+          <a href="#sources" className="text-white/90 hover:text-white font-medium transition-colors hidden lg:block">Lead sources</a>
+          <a href="#pricing" className="text-white/90 hover:text-white font-medium transition-colors hidden sm:block">Pricing</a>
+          <BookDemo className="font-medium text-white/90 hover:text-white transition-colors hidden md:block">Book a demo</BookDemo>
+          <AuthAwareNavCta />
+        </div>
+      </LandingNavShell>
+
+      {/* ── 1. Hero ──────────────────────────────────────────────────────── */}
+      <HeroScenesProvider tone="medium">
+        <section className="relative flex items-center overflow-hidden bg-landing-ink">
+          <div className="pointer-events-none absolute inset-0" aria-hidden style={{ background: "radial-gradient(120% 90% at 15% 0%, #16223f 0%, #0a0f1c 55%)" }} />
+          <div className="pointer-events-none absolute -top-24 right-[8%] h-[420px] w-[420px] rounded-full bg-landing-primary/25 blur-[120px]" aria-hidden />
+          <div className="relative max-w-6xl mx-auto px-6 w-full grid grid-cols-1 lg:grid-cols-[1fr_0.95fr] gap-10 items-center pt-32 pb-20">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur px-3.5 py-1.5 text-xs font-semibold text-white mb-6">
+                <span className="h-1.5 w-1.5 rounded-full bg-landing-primary-glow" /> Built for restoration, HVAC, plumbing, and electrical
+              </span>
+              <h1 className="font-cv-heading text-[44px] sm:text-[62px] font-bold leading-[0.98] tracking-[-0.035em] mb-6 text-white">
+                Capture every lead. Call back the hottest first.
+              </h1>
+              <p className="text-lg text-white/70 mb-8 max-w-lg leading-relaxed">
+                Callverted answers the calls your team misses, captures the ones they take, and qualifies every website inquiry. Each lead is scored and ranked, so your team calls the biggest, most urgent jobs back first.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                <Link href="/sign-up" className="text-center font-semibold bg-landing-primary text-white px-7 py-3.5 rounded-xl hover:bg-blue-600 transition-colors shadow-[0_12px_34px_-8px_rgba(36,84,216,0.55)]">Start your free trial</Link>
+                <BookDemo className="text-center font-medium text-white bg-white/10 backdrop-blur border border-white/20 px-7 py-3.5 rounded-xl hover:bg-white/20 transition-colors">Book a demo</BookDemo>
+              </div>
+              <p className="text-[12.5px] text-white/50 font-medium">14-day free trial · your phones ring first · no per-lead fees</p>
+            </div>
+            <div className="hidden lg:flex justify-end"><HeroSceneCard /></div>
+          </div>
+        </section>
+      </HeroScenesProvider>
+
+      {/* Hero proof points */}
+      <section className="bg-white border-b border-[#eef1f4]">
+        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-5 py-8">
+          {HERO_PROOF.map((p) => (
+            <div key={p.t} className="flex items-start gap-3">
+              <IconChip d={p.icon} />
+              <div>
+                <p className="text-[14px] font-bold text-[#152033] leading-snug mb-0.5">{p.t}</p>
+                <p className="text-[13px] text-[#667085] leading-snug">{p.d}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 2. Problem — the leak ────────────────────────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <ScrollReveal className="max-w-2xl mb-12">
+            <Eyebrow className="mb-3">The leak</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">Every missed call is a customer dialing your competitor next.</h2>
+            <p className="text-[16px] text-[#667085] leading-relaxed">A burst pipe at 7pm. Your crew is on a job, the phone rings out, and the homeowner calls the next number on Google. Answered calls leak too: the details live in someone&apos;s head until they don&apos;t.</p>
+          </ScrollReveal>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {LEAK_CARDS.map((c, i) => (
+              <ScrollReveal key={c.t} delay={i * 90} className="rounded-2xl border border-[#e3e7ed] bg-white p-6">
+                <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#fff1f0] text-[#e5484d] mb-4"><Icon d={c.icon} /></span>
+                <h3 className="font-cv-heading text-[16px] font-bold mb-1.5">{c.t}</h3>
+                <p className="text-[13.5px] text-[#667085] leading-relaxed">{c.d}</p>
+              </ScrollReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 3. How Callverted works — 4 steps ────────────────────────────── */}
+      <section id="how" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
+        <div className="max-w-6xl mx-auto">
+          <ScrollReveal className="max-w-2xl mb-12">
+            <Eyebrow className="mb-3">How it works</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.03]">From first ring to ranked lead in about a minute.</h2>
+          </ScrollReveal>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {STEPS.map((s, i) => (
+              <ScrollReveal key={s.t} delay={i * 90} className="rounded-2xl border border-[#e3e7ed] bg-white p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-landing-primary text-white font-cv-heading text-[15px] font-bold">{i + 1}</span>
+                  <span className="text-landing-primary"><Icon d={s.icon} /></span>
+                </div>
+                <h3 className="font-cv-heading text-[16px] font-bold mb-1.5">{s.t}</h3>
+                <p className="text-[13.5px] text-[#667085] leading-relaxed">{s.d}</p>
+              </ScrollReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 3b. Caller assurance ─────────────────────────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-white">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-10 lg:gap-14 items-center">
+          <ScrollReveal>
+            <Eyebrow className="mb-3">What your customer hears</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">
+              They hang up knowing you got it.
+            </h2>
+            <p className="text-[15px] text-[#667085] leading-relaxed mb-6">
+              No voicemail beep, no dead air. Callverted repeats their problem back in its own words, names your
+              business, and tells them your team already has it. They stop calling around.
+            </p>
+            <div className="space-y-3">
+              {ASSURANCE.map((a) => (
+                <div key={a} className="flex items-start gap-3">
+                  <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-landing-primary/10 text-landing-primary">
+                    <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                  </span>
+                  <p className="text-[14px] text-[#344054] leading-snug">{a}</p>
+                </div>
+              ))}
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={90}>
+            <div className="rounded-2xl border border-[#e3e7ed] bg-[#f9fafb] p-6 shadow-[0_18px_45px_-24px_rgba(16,24,40,.35)]">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-landing-primary/10 text-landing-primary"><Icon d={I.phone} className="h-4 w-4" /></span>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-[#98a2b3]">End of call</p>
+              </div>
+              <p className="font-cv-body text-[15px] leading-relaxed text-[#152033]">
+                &ldquo;Sarah, I&apos;m sorry you&apos;re dealing with water coming into the basement.{" "}
+                <span className="font-semibold">Blue Star Restoration</span> has your request and the team has
+                been notified directly, so you&apos;re in the queue. They&apos;ll call you back as soon as
+                possible.&rdquo;
+              </p>
+              <p className="mt-4 pt-4 border-t border-[#e3e7ed] text-[12.5px] text-[#667085]">
+                Website and intake-link submissions end the same way on screen, written from what that person
+                actually typed rather than the same thank-you everyone else gets.
+              </p>
+            </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* ── 4. Lead sources ──────────────────────────────────────────────── */}
+      <section id="sources" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <ScrollReveal className="max-w-2xl mb-12">
+            <Eyebrow className="mb-3">Lead sources</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">Four ways in. One list to work.</h2>
+          </ScrollReveal>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {SOURCES.map((s, i) => (
+              <ScrollReveal key={s.t} delay={i * 80} className="rounded-2xl border border-[#e3e7ed] bg-[#f9fafb] p-6">
+                <IconChip d={s.icon} />
+                <h3 className="font-cv-heading text-[15px] font-bold mt-4 mb-1">{s.t}</h3>
+                <p className="text-[13px] text-[#667085] leading-relaxed">{s.d}</p>
+              </ScrollReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 5. Smart qualification demo ──────────────────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
+        <ScrollReveal className="max-w-6xl mx-auto">
+          <div className="max-w-2xl mb-10">
+            <Eyebrow className="mb-3">Smart qualification</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">It asks less because it understands more.</h2>
+            <p className="text-[16px] text-[#667085] leading-relaxed">If the caller already said it&apos;s a burst pipe in the kitchen, Callverted doesn&apos;t ask again. It listens first, then asks only for what&apos;s missing.</p>
+          </div>
+          <ExtractionDemo />
+        </ScrollReveal>
+      </section>
+
+      {/* ── 6. Lead packet ───────────────────────────────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-white">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-10 lg:gap-14 items-start">
+          <ScrollReveal>
+            <Eyebrow className="mb-3">The handoff</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">Your team gets the lead while it is still hot.</h2>
+            <p className="text-[15px] text-[#667085] leading-relaxed">Everything your team needs to win the callback, on one card.</p>
+            <div className="mt-7 rounded-2xl border border-[#e3e7ed] bg-white p-4 shadow-sm max-w-[300px]">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10.5px] font-bold uppercase tracking-widest text-landing-primary">Ready to call back</p>
+                <span className="rounded-full bg-[#fff1f0] px-2.5 py-1 text-[11px] font-bold text-[#e5484d]">Hot · 92</span>
+              </div>
+              <p className="font-cv-heading text-[15px] font-bold text-[#152033]">Water damage · Emergency · In your area</p>
+              <p className="text-[12.5px] text-[#667085] mt-0.5">Est. value: $1.8k–$3.2k</p>
+              <div className="mt-3 rounded-lg bg-[#eef3ff] px-3 py-2">
+                <p className="text-[9.5px] uppercase tracking-wide text-landing-primary/70 font-semibold">Next action</p>
+                <p className="text-[12.5px] font-bold text-landing-primary">Call within 10 minutes</p>
+              </div>
+            </div>
+          </ScrollReveal>
+          <ScrollReveal className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {PACKET.map((p) => (
+              <div key={p.t} className="rounded-2xl border border-[#e3e7ed] bg-[#f9fafb] p-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg className="h-4 w-4 shrink-0 text-landing-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5" /></svg>
+                  <h3 className="font-cv-heading text-[15px] font-bold">{p.t}</h3>
+                </div>
+                <p className="text-[13px] text-[#667085] leading-relaxed">{p.d}</p>
+              </div>
+            ))}
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* ── 7. Product dashboard ─────────────────────────────────────────── */}
+      <section id="product" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
+        <div className="max-w-6xl mx-auto">
+          <ScrollReveal className="max-w-2xl mb-12">
+            <Eyebrow className="mb-3">The product</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">One list, ranked by who to call first.</h2>
+            <p className="text-[16px] text-[#667085] leading-relaxed">Missed calls, answered calls, and website inquiries become the same clean lead record. No sticky notes, no spreadsheet.</p>
+          </ScrollReveal>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {PRODUCT_CARDS.map((c, i) => (
+              <ScrollReveal key={c.t} delay={i * 90} className="rounded-2xl border border-[#e3e7ed] bg-white p-6">
+                <IconChip d={c.icon} />
+                <h3 className="font-cv-heading text-[16px] font-bold mt-4 mb-1.5">{c.t}</h3>
+                <p className="text-[13.5px] text-[#667085] leading-relaxed">{c.d}</p>
+              </ScrollReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 8. Phone setup ───────────────────────────────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-white">
+        <ScrollReveal className="max-w-5xl mx-auto">
+          <div className="max-w-2xl mb-10">
+            <Eyebrow className="mb-3">Your team first</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">Keep your phones. We catch what they miss.</h2>
+            <p className="text-[15px] text-[#667085] leading-relaxed">You publish one Callverted number that rings your team first, every time. Answer it and the call gets logged. Miss it and Callverted picks up live. Either way, the lead is saved, scored, and ranked.</p>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-stretch gap-3">
+            {[
+              { l: "Customer calls", i: I.phone },
+              { l: "Team rings first", i: I.bell },
+              { l: "Answered or recovered", i: I.recover },
+              { l: "Lead packet created", i: I.list },
+              { l: "Team notified", i: I.check },
+            ].map((n, idx, arr) => (
+              <div key={n.l} className="flex sm:flex-1 items-center gap-3 sm:flex-col sm:text-center">
+                <div className="flex sm:flex-col items-center gap-3 sm:gap-2 rounded-2xl border border-[#e3e7ed] bg-[#f9fafb] px-4 py-3 sm:py-5 w-full">
+                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${idx === arr.length - 1 ? "bg-landing-primary text-white" : "bg-landing-primary/10 text-landing-primary"}`}><Icon d={n.i} /></span>
+                  <span className="text-[13px] sm:text-[12.5px] font-semibold text-[#344054] leading-tight">{n.l}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── 9. ROI calculator ────────────────────────────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
+        <ScrollReveal className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-10 items-center">
+          <div>
+            <Eyebrow className="mb-3">The math</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-[42px] font-bold tracking-[-0.035em] text-[#152033] mb-4 leading-[1.03]">What are slow callbacks costing you?</h2>
+            <p className="text-[#667085] text-[15px] leading-relaxed max-w-md">Missed calls are easy to measure. Slow follow-up is the bigger leak.</p>
+          </div>
+          <div className="border border-white/10 bg-landing-ink rounded-[24px] p-6 sm:p-7 shadow-[0_40px_90px_-40px_rgba(16,24,40,0.5)]">
+            <MissedCallCalculator />
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── 10. Category ─────────────────────────────────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-white">
+        <ScrollReveal className="max-w-3xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <Eyebrow className="mb-3">The category</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em]">Not an answering service. A system for winning the callback.</h2>
+            <p className="mt-3 text-[15px] text-[#667085]">Answering the phone is the easy part. Callverted qualifies the job, scores the lead, and points your team at the callbacks worth winning.</p>
+          </div>
+          <div className="rounded-3xl border border-[#e3e7ed] bg-white overflow-hidden">
+            <div className="grid grid-cols-[1.4fr_1.1fr_1.2fr] sm:grid-cols-[1.6fr_1fr_1fr_1fr_1.1fr] bg-[#f9fafb] border-b border-[#e3e7ed] text-[11.5px] sm:text-[13px] font-bold">
+              <div className="px-4 sm:px-6 py-4" />
+              {COMPARE_COLS.map((c, i) => (
+                <div key={c} className={`px-2 sm:px-3 py-4 text-center ${i < 2 ? "hidden sm:block" : ""} ${i === 3 ? "text-landing-primary bg-[#eef3ff] rounded-t-xl" : "text-[#667085]"}`}>{c}</div>
+              ))}
+            </div>
+            {COMPARE_ROWS.map((row, i) => (
+              <div key={row.dim} className={`grid grid-cols-[1.4fr_1.1fr_1.2fr] sm:grid-cols-[1.6fr_1fr_1fr_1fr_1.1fr] items-center text-[12.5px] sm:text-[13.5px] ${i > 0 ? "border-t border-[#eef1f4]" : ""}`}>
+                <div className="px-4 sm:px-6 py-4 font-semibold text-[#152033]">{row.dim}</div>
+                {row.vals.map((v, j) => (
+                  <div key={j} className={`px-2 sm:px-3 py-4 text-center ${j < 2 ? "hidden sm:block" : ""} ${j === 3 ? "bg-[#f7faff] font-semibold text-[#152033]" : "text-[#667085]"}`}>
+                    <Cell v={v} accent={j === 3} />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <p className="sm:hidden mt-3 text-center text-[11.5px] text-[#98a2b3]">Shown vs. an AI receptionist. Voicemail &amp; text-back columns appear on a wider screen.</p>
+        </ScrollReveal>
+      </section>
+
+      {/* ── 11. Built for urgent trades ──────────────────────────────────── */}
+      <section id="trades" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
+        <div className="max-w-6xl mx-auto">
+          <ScrollReveal className="max-w-2xl mb-10">
+            <Eyebrow className="mb-3">Built for urgent trades</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">Tuned to how your jobs actually come in.</h2>
+            <p className="text-[15px] text-[#667085] leading-relaxed">Restoration, HVAC, plumbing, electrical, and contracting jobs come in differently. Your intake questions, pricing, and urgency rules match your trade.</p>
+          </ScrollReveal>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            {TRADES.map((t, i) => (
+              <ScrollReveal key={t.name} delay={(i % 3) * 80}>
+                <Link href={t.href} className="group flex items-center justify-between gap-3 rounded-2xl border border-[#e3e7ed] bg-white px-5 py-5 transition-shadow hover:shadow-[0_18px_40px_-16px_rgba(16,24,40,.28)]">
+                  <span className="flex items-center gap-3">
+                    <IconChip d={t.icon} />
+                    <span className="font-cv-heading text-[15px] font-bold">{t.name}</span>
+                  </span>
+                  <svg className="h-4 w-4 text-[#c1c8d3] transition-all group-hover:text-landing-primary group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </Link>
+              </ScrollReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 12. Setup / trust ────────────────────────────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-white">
+        <ScrollReveal className="max-w-4xl mx-auto">
+          <div className="max-w-2xl mb-10">
+            <Eyebrow className="mb-3">Done with you</Eyebrow>
+            <h2 className="font-cv-heading text-3xl sm:text-[40px] font-bold tracking-[-0.035em] leading-[1.03]">We help set it up, not just hand you software.</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+            {TRUST.map((t) => (
+              <div key={t} className="flex items-start gap-3">
+                <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-landing-primary/10 text-landing-primary">
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                </span>
+                <p className="text-[15px] font-semibold text-[#344054] leading-snug">{t}</p>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── 13. Pricing ──────────────────────────────────────────────────── */}
+      <section id="pricing" className="scroll-mt-20 px-6 py-20 sm:py-24 bg-[#f9fafb] border-y border-[#e3e7ed]">
+        <ScrollReveal className="max-w-md mx-auto text-center">
+          <Eyebrow className="mb-3">Pricing</Eyebrow>
+          <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em] mb-3">One flat price. Everything included.</h2>
+          <p className="text-[14.5px] text-[#667085] mb-6">Missed-call answering, answered-call capture, website intake, lead scoring, alerts, and weekly reports. No per-call or per-lead fees.</p>
+          <PricingCard />
+        </ScrollReveal>
+      </section>
+
+      {/* ── 14. FAQ ──────────────────────────────────────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-white">
+        <ScrollReveal className="max-w-2xl mx-auto">
+          <div className="text-center mb-8"><Eyebrow className="mb-3">FAQ</Eyebrow><h2 className="font-cv-heading text-2xl sm:text-3xl font-bold tracking-[-0.035em]">Questions owners ask first</h2></div>
+          <div className="rounded-2xl border border-[#e3e7ed] bg-white overflow-hidden">
+            {FAQ_V2.map((faq, i) => (
+              <details key={faq.q} className={`group ${i > 0 ? "border-t border-[#e3e7ed]" : ""} [&_summary::-webkit-details-marker]:hidden`}>
+                <summary className="flex items-center justify-between gap-4 cursor-pointer list-none text-sm font-bold px-5 py-4.5">
+                  {faq.q}
+                  <svg className="w-4 h-4 shrink-0 text-[#98a2b3] transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                </summary>
+                <p className="px-5 pb-4.5 text-sm text-[#667085] leading-relaxed">{faq.a}</p>
+              </details>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── 15. Final CTA ────────────────────────────────────────────────── */}
+      <section className="px-6 py-20 sm:py-24 bg-[#f9fafb] border-t border-[#e3e7ed]">
+        <ScrollReveal className="max-w-5xl mx-auto">
+          <div className="relative overflow-hidden rounded-3xl px-8 sm:px-12 py-14 sm:py-16 text-center text-white shadow-[0_30px_60px_-24px_rgba(28,63,168,0.5)]" style={{ background: "linear-gradient(135deg, #2a5ae0 0%, #1c3fa8 55%, #16307e 100%)" }}>
+            <h2 className="font-cv-heading text-3xl sm:text-[42px] font-bold tracking-[-0.035em] mb-4 leading-[1.05] max-w-2xl mx-auto">Stop letting good leads go cold.</h2>
+            <p className="text-white/70 mb-8 text-[15px] max-w-xl mx-auto">Every call answered. Every lead scored. Your team calling the right people back while the job is still up for grabs.</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/sign-up" className="text-center font-semibold bg-white text-landing-primary px-6 py-3.5 rounded-xl hover:bg-[#f0f4ff] transition-colors shadow-lg whitespace-nowrap">Start your free trial</Link>
+              <BookDemo className="text-center font-semibold text-white bg-white/10 border border-white/40 px-6 py-3.5 rounded-xl hover:bg-white/20 transition-colors whitespace-nowrap">Book a 15-min demo</BookDemo>
+            </div>
+            <p className="mt-5 text-[12.5px] text-white/60">14-day free trial · no contracts · real setup help</p>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      <MarketingFooter />
+      <JsonLd data={faqSchema(FAQ_V2)} />
+
+      {/* ── Corner CTA ───────────────────────────────────────────────────── */}
+      <BookDemo
+        title="Questions before you start?"
+        blurb="Book a quick call or leave your details — a real person (not a bot) will get back to you, usually same day."
+        className="fixed bottom-5 right-5 z-50 hidden sm:flex items-center gap-2.5 rounded-full bg-landing-primary text-white pl-4 pr-5 py-3 shadow-[0_12px_30px_-8px_rgba(36,84,216,0.6)] hover:bg-blue-600 transition-colors"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d={I.chat} /></svg>
+        <span className="text-sm font-semibold">Questions? Talk to us</span>
+      </BookDemo>
+    </div>
+  );
+}
+
+function Cell({ v, accent = false }: { v: boolean | string; accent?: boolean }) {
+  if (v === true) return <svg className={`inline w-5 h-5 ${accent ? "text-landing-primary" : "text-[#23a35a]"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>;
+  if (v === false) return <span className="inline-block w-4 h-0.5 rounded-full bg-[#d0d7e2]" />;
+  return <span>{v}</span>;
+}

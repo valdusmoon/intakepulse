@@ -78,6 +78,15 @@ export class OpenAIHandlerService {
     openaiClient.on("conversation.item.input_audio_transcription.completed", (event) => {
       void engine.handleTranscript(ctx, openaiClient, event.transcript);
     });
+
+    // The assistant side of the transcript comes from the audio that actually
+    // went out, not from the text we asked for — they diverge when the model
+    // rephrases or the caller barges in partway through a sentence.
+    openaiClient.on("response.audio_transcript.done", (event) => {
+      if (typeof event?.transcript === "string") {
+        engine.recordSpokenTranscript(ctx, event.transcript);
+      }
+    });
   }
 
   private handleFunctionCalls(openaiClient: RealtimeClient, ctx: FlowContext): void {

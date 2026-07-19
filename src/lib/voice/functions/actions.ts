@@ -109,7 +109,13 @@ export function deriveIntakeStatus(ctx: FlowContext): "not_started" | "started" 
  */
 export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> {
   const { session, business, verticalConfig } = ctx;
-  const answers: Answers = session.conversationContext.answers;
+  // The ZIP is asked for and read back to the caller, but it lives on the call
+  // session rather than in answers — fold it in so it survives onto the lead and
+  // the owner has a location when they call back. Same key the web form writes.
+  const zip = session.conversationContext.zipCode;
+  const answers: Answers = zip
+    ? { ...session.conversationContext.answers, zip_code: zip }
+    : session.conversationContext.answers;
 
   const lead = await createLead({
     businessId: business.id,

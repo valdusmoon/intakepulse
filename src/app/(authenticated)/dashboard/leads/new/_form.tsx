@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
+import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 import { Card, CardHeader, CardTitle, CardBody, FormGroup, Field, Select, TextArea, Button, Icon } from "@/components/dashboard/v2/primitives";
 
 const SOURCES = [
@@ -12,7 +13,7 @@ const SOURCES = [
   { value: "website_widget", label: "Website form" },
 ];
 
-export default function NewLeadForm() {
+export default function NewLeadForm({ questions }: { questions: VerticalQuestion[] }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -22,9 +23,13 @@ export default function NewLeadForm() {
     callerName: "",
     callerPhone: "",
     callerEmail: "",
+    zip: "",
     source: "manual",
     notes: "",
   });
+  // Keyed by question so this stays in step with whatever the vertical defines,
+  // rather than hardcoding "service" and "urgency" here.
+  const [answers, setAnswers] = useState<Record<string, string>>({});
 
   function update<K extends keyof typeof form>(field: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -57,6 +62,10 @@ export default function NewLeadForm() {
           callerEmail: form.callerEmail.trim() || undefined,
           source: form.source,
           notes: form.notes || undefined,
+          intakeAnswers: {
+            ...answers,
+            ...(form.zip.trim() ? { zip_code: form.zip.trim() } : {}),
+          },
         }),
       });
 
@@ -103,6 +112,26 @@ export default function NewLeadForm() {
             <FormGroup label="Email (optional)">
               <Field type="email" value={form.callerEmail} onChange={(e) => update("callerEmail", e.target.value)} placeholder="name@example.com" />
             </FormGroup>
+
+            <FormGroup label="ZIP code (optional)">
+              <Field value={form.zip} onChange={(e) => update("zip", e.target.value)} placeholder="07030" />
+            </FormGroup>
+
+            {questions.map((q) => (
+              <FormGroup key={q.key} label={q.label}>
+                <Select
+                  value={answers[q.key] ?? ""}
+                  onChange={(e) => setAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))}
+                >
+                  <option value="">Not sure yet</option>
+                  {q.options?.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormGroup>
+            ))}
 
             <FormGroup label="Source">
               <Select value={form.source} onChange={(e) => update("source", e.target.value)}>

@@ -336,3 +336,58 @@ describe("graceful degradation — light retries, no voicemail dead-ends", () =>
     expect(ctx.session.state).toBe("name"); // never voicemail
   });
 });
+
+// The assistant side of the transcript must reflect the audio that actually went
+// out, not the text we asked for — businesses rely on it as a record of the call.
+describe("spoken transcript recording", () => {
+  function ctxMidTurn(): FlowContext {
+    const ctx = makeFlowContext({
+      session: makeSession(),
+      verticalConfig: makeVerticalConfig(RESTORATION),
+    });
+    const cc = ctx.session.conversationContext;
+    cc.transcript.push({ role: "user", message: "my basement is flooding" });
+    ctx.session.spokenTranscriptIndex = cc.transcript.length;
+    cc.transcript.push({ role: "assistant", message: "the text we asked for" });
+    return ctx;
+  }
+
+  it("replaces the intended text with what was actually said", () => {
+    const ctx = ctxMidTurn();
+    engine.recordSpokenTranscript(ctx, "  Sorry you're dealing with this. The team has your details.  ");
+    expect(ctx.session.conversationContext.transcript[1].message).toBe(
+      "Sorry you're dealing with this. The team has your details."
+    );
+    expect(ctx.session.spokenTranscriptIndex).toBeUndefined();
+  });
+
+  it("records a barge-in as the partial sentence the caller actually heard", () => {
+    const ctx = ctxMidTurn();
+    engine.recordSpokenTranscript(ctx, "Thanks, I have this noted as an");
+    expect(ctx.session.conversationContext.transcript[1].message).toBe("Thanks, I have this noted as an");
+  });
+
+  it("keeps the intended text when the spoken transcript is empty", () => {
+    const ctx = ctxMidTurn();
+    engine.recordSpokenTranscript(ctx, "   ");
+    expect(ctx.session.conversationContext.transcript[1].message).toBe("the text we asked for");
+  });
+
+  it("ignores a stray transcript event with no turn in flight", () => {
+    const ctx = ctxMidTurn();
+    engine.recordSpokenTranscript(ctx, "the real line");
+    engine.recordSpokenTranscript(ctx, "a later event that must not overwrite it");
+    expect(ctx.session.conversationContext.transcript[1].message).toBe("the real line");
+  });
+
+  it("keeps assistant turns in order with the caller's turns", () => {
+    const ctx = ctxMidTurn();
+    engine.recordSpokenTranscript(ctx, "What is the ZIP code?");
+    ctx.session.conversationContext.transcript.push({ role: "user", message: "07030" });
+    expect(ctx.session.conversationContext.transcript.map((t) => t.role)).toEqual([
+      "user",
+      "assistant",
+      "user",
+    ]);
+  });
+});

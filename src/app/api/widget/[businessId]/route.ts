@@ -82,7 +82,9 @@ export async function GET(
   document.getElementById('ip-close').addEventListener('click', close);
   overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
   document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close(); });
-  window.addEventListener('message', function(e) { if (e.data === 'ip:intake-complete') close(); });
+  // Deliberately no auto-close on completion: the confirmation screen reads the
+  // job back and sets the callback expectation, so it has to stay readable. The
+  // close button, backdrop click, and Escape all still dismiss it.
 })();
 `.trim();
 
@@ -106,13 +108,9 @@ export async function GET(
     el.appendChild(frame);
   });
 
-  window.addEventListener('message', function(e) {
-    if (e.data === 'ip:intake-complete') {
-      document.querySelectorAll('.ip-inline-frame').forEach(function(f) {
-        f.style.opacity = '0.5';
-      });
-    }
-  });
+  // Completion used to dim the frame; it now holds the read-back confirmation,
+  // so it stays at full opacity. The form still posts 'ip:intake-complete' for
+  // host pages that want to hook their own analytics onto it.
 })();
 `.trim();
 
