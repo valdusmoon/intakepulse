@@ -68,7 +68,8 @@ export const winbackEmails = inngest.createFunction(
           ownerName: business.ownerName,
           businessName: business.businessName,
           reactivateUrl: `${APP_URL}/dashboard/billing`,
-          stats,
+          // Count job leads only in the "you captured X" figure — messages aren't leads.
+          stats: { ...stats, total: stats.jobTotal },
         });
         await updateBusiness(business.id, { winbackSentAt: new Date() });
         sent++;

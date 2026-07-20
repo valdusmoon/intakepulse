@@ -8,6 +8,10 @@ export interface BusinessNotificationPreferences {
   // lead. Push-primary (instant, free, no A2P); SMS stays as the fallback.
   pushNewLead: boolean;
   weeklyReport: boolean;
+  // Low-key email alert when the AI captures a non-job MESSAGE (existing customer,
+  // billing, callback, a question) rather than a scored job lead. Push for these
+  // reuses pushNewLead. Optional so existing rows (no key) default to on via !==false.
+  messageNotification?: boolean;
 }
 
 export interface CustomServiceOption {
@@ -21,6 +25,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES: BusinessNotificationPreferences = {
   smsNewLead: false,
   pushNewLead: true,
   weeklyReport: true,
+  messageNotification: true,
 };
 
 export const businesses = pgTable("businesses", {

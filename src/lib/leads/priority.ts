@@ -37,6 +37,21 @@ export function intentMeta(qualityScore: number | null): { label: string; color:
   return { label: "Intent unclear", color: "gray" };
 }
 
+const MESSAGE_KIND_META: Record<string, { label: string; color: BadgeColor }> = {
+  existing_customer: { label: "Existing customer", color: "blue" },
+  billing: { label: "Billing", color: "amber" },
+  callback: { label: "Callback", color: "blue" },
+  question: { label: "Question", color: "gray" },
+  general: { label: "Message", color: "gray" },
+};
+
+/** The badge for a non-job MESSAGE row — used in place of the Hot/Warm/Cool tier.
+ *  A message has no priorityScore, so tierMeta would render a misleading
+ *  "Unscored"; this shows what kind of message it is instead. */
+export function messageKindMeta(messageKind: string | null): { label: string; color: BadgeColor } {
+  return (messageKind && MESSAGE_KIND_META[messageKind]) || { label: "Message", color: "gray" };
+}
+
 const STATUS_META: Record<string, { label: string; color: BadgeColor }> = {
   new: { label: "New", color: "gray" },
   contacted: { label: "Contacted", color: "blue" },

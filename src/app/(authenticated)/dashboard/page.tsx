@@ -9,6 +9,7 @@ import {
   getRecentLeadsForActivity,
   getRecentCallsForActivity,
 } from "@/lib/db/queries/dashboard";
+import { getNewMessagesCount } from "@/lib/db/queries/leads";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel } from "@/lib/verticals/labels";
 import { tierMeta, intentMeta, highValueBadge, initials, timeAgoShort, fmtCents, fmtValueRange, sourceLabel, sourceSwatch } from "@/lib/leads/priority";
@@ -49,13 +50,14 @@ export default async function DashboardPage({
   const business = await getBusinessByClerkId(userId);
   if (!business) redirect("/onboarding");
 
-  const [metrics, sources, priorityLeads, recentLeads, recentCalls, verticalConfig] = await Promise.all([
+  const [metrics, sources, priorityLeads, recentLeads, recentCalls, verticalConfig, newMessages] = await Promise.all([
     getHomeMetrics(business.id, business.timezone),
     getSourceBreakdown(business.id),
     getPriorityQueue(business.id, 4),
     getRecentLeadsForActivity(business.id, 5),
     getRecentCallsForActivity(business.id, 5),
     getVerticalConfig(business.vertical),
+    getNewMessagesCount(business.id),
   ]);
 
   const isVoiceLive = Boolean(
@@ -166,6 +168,14 @@ export default async function DashboardPage({
             <Icon name="schedule" className="!text-[15px]" />
             {metrics.urgentAwaitingCallback} lead{metrics.urgentAwaitingCallback === 1 ? "" : "s"} awaiting callback
           </StatusPill>
+        )}
+        {newMessages > 0 && (
+          <Link href="/dashboard/leads?type=message">
+            <StatusPill color="gray">
+              <Icon name="chat_bubble" className="!text-[15px]" />
+              {newMessages} new message{newMessages === 1 ? "" : "s"}
+            </StatusPill>
+          </Link>
         )}
       </div>
 

@@ -23,6 +23,7 @@ const OUTCOME_LABELS: Record<string, string> = {
   ai_captured: "Captured by Callverted",
   transferred: "Transferred to team",
   abandoned: "Caller abandoned",
+  screened: "Screened (spam / wrong number)",
 };
 
 function fmtDuration(seconds: number | null) {

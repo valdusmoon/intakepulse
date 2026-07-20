@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { checkServiceArea, getPriceRangeForCategory, deriveIntakeStatus, canWarmTransfer } from "./actions";
+import { checkServiceArea, getPriceRangeForCategory, deriveIntakeStatus, canWarmTransfer, captureLead } from "./actions";
 import { makeFlowContext, makeSession } from "../state-machine/mockFlowContext";
 import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 
@@ -11,9 +11,15 @@ vi.mock("@/lib/db/queries/pricingRules", () => ({ getActivePricingRule: vi.fn() 
 vi.mock("@/lib/db/queries/leads", () => ({ createLead: vi.fn() }));
 vi.mock("@/lib/db/queries/calls", () => ({ updateCall: vi.fn() }));
 vi.mock("@/lib/leads/assess", () => ({ assessLead: vi.fn() }));
-vi.mock("@/lib/email/notifications", () => ({ sendLeadPacketEmail: vi.fn() }));
+vi.mock("@/lib/email/notifications", () => ({ sendLeadPacketEmail: vi.fn(), sendMessageNotificationEmail: vi.fn() }));
 vi.mock("@/lib/twilio/client", () => ({ updateCallWithTwiml: vi.fn() }));
+// Must be mocked: push/send imports the db client, which throws at module load
+// without DATABASE_URL and takes this whole test file down with it.
+vi.mock("@/lib/push/send", () => ({ sendLeadPushNotification: vi.fn() }));
 import { getActivePricingRule } from "@/lib/db/queries/pricingRules";
+import { createLead } from "@/lib/db/queries/leads";
+import { assessLead } from "@/lib/leads/assess";
+import { sendLeadPacketEmail, sendMessageNotificationEmail } from "@/lib/email/notifications";
 
 describe("checkServiceArea", () => {
   it("is eligible by default when the business has no configured service area", () => {
@@ -218,5 +224,49 @@ describe("deriveIntakeStatus", () => {
       }),
     });
     expect(deriveIntakeStatus(ctx)).toBe("completed");
+  });
+});
+
+describe("captureLead — job vs message", () => {
+  beforeEach(() => {
+    vi.mocked(createLead).mockReset().mockResolvedValue({ id: "lead-1" } as never);
+    vi.mocked(assessLead).mockReset().mockResolvedValue({ urgencyReasoning: "u", qualityReasoning: "q", recommendedActions: [] } as never);
+    vi.mocked(sendLeadPacketEmail).mockReset();
+    vi.mocked(sendMessageNotificationEmail).mockReset();
+  });
+
+  it("a job call is scored, assessed, and sent as a lead packet, with leadType 'job'", async () => {
+    const ctx = makeFlowContext({
+      session: makeSession({
+        // no leadType set → defaults to 'job'
+        conversationContext: { transcript: [], actionsTaken: [], answers: { service_type: "water", urgency: "emergency" } },
+      }),
+    });
+
+    await captureLead(ctx);
+
+    expect(createLead).toHaveBeenCalledWith(expect.objectContaining({ leadType: "job", messageKind: null }));
+    expect(assessLead).toHaveBeenCalledTimes(1);
+    expect(sendLeadPacketEmail).toHaveBeenCalledTimes(1);
+    expect(sendMessageNotificationEmail).not.toHaveBeenCalled();
+  });
+
+  it("a message call is captured with leadType 'message' and is NOT scored, assessed, or sent as a lead packet", async () => {
+    const ctx = makeFlowContext({
+      session: makeSession({
+        leadType: "message",
+        messageKind: "billing",
+        conversationContext: { transcript: [], actionsTaken: [], answers: {}, reasonForCall: "question about my invoice" },
+      }),
+    });
+
+    await captureLead(ctx);
+
+    expect(createLead).toHaveBeenCalledWith(expect.objectContaining({ leadType: "message", messageKind: "billing", notes: "question about my invoice" }));
+    // The whole scoring/lead-packet pipeline is skipped for a message.
+    expect(assessLead).not.toHaveBeenCalled();
+    expect(sendLeadPacketEmail).not.toHaveBeenCalled();
+    // ...but the owner still gets a low-key message alert.
+    expect(sendMessageNotificationEmail).toHaveBeenCalledTimes(1);
   });
 });

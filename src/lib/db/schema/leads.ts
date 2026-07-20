@@ -29,6 +29,17 @@ export const leads = pgTable("leads", {
   // an unnecessary rename migration.
   leadStatus: text("lead_status").notNull().default("new"), // 'new' | 'qualified' | 'contacted' | 'booked' | 'estimate_sent' | 'converted' | 'lost'
 
+  // What KIND of contact this is — orthogonal to leadStatus (sales pipeline) and
+  // intakeStatus (intake completion). A 'job' is a real service request: scored,
+  // ranked, notified as a lead packet. A 'message' is a captured non-job contact
+  // (existing customer, billing, callback request, serve-area question, or an
+  // ambiguous non-job call) — NEVER scored, ranked, or counted as an opportunity;
+  // it stays leadStatus 'new' with null scores and only gets a low-key notification.
+  // Confident junk (wrong number / solicitation) creates no lead row at all.
+  leadType: text("lead_type").notNull().default("job"), // 'job' | 'message'
+  // Sub-label for a message: 'existing_customer' | 'billing' | 'callback' | 'question' | 'general'. Null for jobs.
+  messageKind: text("message_kind"),
+
   // Scores — denormalized from ai_assessments for list view performance (no join needed)
   urgencyScore: integer("urgency_score"),   // 1-10, set by scoring engine
   qualityScore: integer("quality_score"),   // 1-100, set by scoring engine

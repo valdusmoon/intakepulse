@@ -77,7 +77,9 @@ export async function getCallMetrics(businessId: string) {
       // every call the AI takes (overflow after no-answer, and immediate-AI). Scoping the
       // numerator here is what keeps the rate <= 100%: a team-answered call that later gets
       // a leadId attached (voice_human capture) has aiHandled=false and is correctly excluded.
-      aiHandledTotal: sql<number>`count(*) filter (where ${calls.aiHandled})`,
+      // 'screened' junk (wrong number / solicitation) is excluded too: the AI correctly took
+      // no lead, so it's not a failed capture and must not drag the completion rate down.
+      aiHandledTotal: sql<number>`count(*) filter (where ${calls.aiHandled} and ${calls.outcome} <> 'screened')`,
       // Resolved = the AI either captured a lead or warm-transferred the caller to a human.
       // These outcomes are mutually exclusive on a single call, so no double-counting.
       aiResolved: sql<number>`count(*) filter (where ${calls.aiHandled} and (${calls.leadId} is not null or ${calls.outcome} = 'transferred'))`,

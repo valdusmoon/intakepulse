@@ -5,7 +5,7 @@ import { getLeadsByBusiness } from "@/lib/db/queries/leads";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { withCustomServiceOptions } from "@/lib/verticals/customOptions";
 import { getAnswerOptionLabel, deriveServiceLabel } from "@/lib/verticals/labels";
-import { intentMeta, priorityMeta, sourceLabel, statusMeta, tierMeta } from "@/lib/leads/priority";
+import { intentMeta, priorityMeta, sourceLabel, statusMeta, tierMeta, messageKindMeta } from "@/lib/leads/priority";
 import {
   EXPORT_ROW_LIMIT,
   centsToDollars,
@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
   // from the Clerk session.
   const { searchParams } = req.nextUrl;
   const priority = searchParams.get("priority");
+  const type = searchParams.get("type");
   const opts = {
     leadStatus: searchParams.get("status") || undefined,
     source: searchParams.get("source") || undefined,
@@ -44,6 +45,7 @@ export async function GET(req: NextRequest) {
       | "warm"
       | "cool"
       | undefined,
+    leadType: (type === "job" || type === "message" ? type : undefined) as "job" | "message" | undefined,
     search: searchParams.get("search") || undefined,
   };
 
@@ -66,6 +68,7 @@ export async function GET(req: NextRequest) {
     "Name",
     "Phone",
     "Email",
+    "Type",
     "Source",
     "Status",
     "Priority tier",
@@ -93,6 +96,7 @@ export async function GET(req: NextRequest) {
       lead.callerName,
       lead.callerPhone,
       lead.callerEmail,
+      lead.leadType === "message" ? `Message — ${messageKindMeta(lead.messageKind).label}` : "Job",
       sourceLabel(lead.source),
       statusMeta(lead.leadStatus).label,
       tierMeta(lead.priorityScore).label,

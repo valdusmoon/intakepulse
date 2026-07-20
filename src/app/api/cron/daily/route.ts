@@ -44,6 +44,17 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
+      // Defensive guard: a non-job MESSAGE (billing question, existing customer,
+      // wrong-number-turned-message) must NEVER receive a "still need that service?
+      // finish your intake" sales drip. Follow-up scheduling isn't wired today
+      // (createFollowup is never called), but if it's ever added this keeps messages
+      // out of it. Drain the row rather than retry it.
+      if (lead.leadType === "message") {
+        await markFollowupSent(followup.id);
+        skipped++;
+        continue;
+      }
+
       await sendFollowupEmail({
         toEmail: lead.callerEmail,
         businessName: business.businessName,

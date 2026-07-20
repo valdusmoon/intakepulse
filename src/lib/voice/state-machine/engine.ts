@@ -23,7 +23,8 @@ import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 import { logger } from "@/lib/logger";
 import type { RealtimeClient } from "../realtime-client";
 import type { FlowContext } from "./types";
-import { matchDeterministicIntent, type GlobalIntent } from "./global-intent";
+import { matchDeterministicIntent, HARD_JUNK_INTENTS, type GlobalIntent } from "./global-intent";
+import type { MessageKind } from "../types/session";
 import { cleanSpokenName, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
 import { buildClassifyAnswerTool, buildClassifyServiceTool, buildExtractIntakeTool, DETECT_INTENT_TOOL, EXTRACT_ZIP_TOOL } from "./tools";
 import { validateExtraction } from "./extraction";
@@ -44,6 +45,7 @@ import {
   qualificationPrompt,
   questionDtmfMap,
   questionOptions,
+  screenedGoodbyeLine,
   startOverAckLine,
   transferringLine,
   wrapUpReasonPrompt,
@@ -62,6 +64,13 @@ const RETRY_LIMITS: Record<string, number> = { zip_code: 2 };
 function retryLimitFor(state: string): number {
   return RETRY_LIMITS[state] ?? 1;
 }
+
+// Non-job intents that must never hijack a real job. On the opener (extraction
+// decides) or once a job is already in progress, these are ignored so job signal
+// always wins; they only route to a message when there's no job to lose. (Explicit
+// redirects — leave_message / frustrated / wants_human — are honored regardless,
+// since the caller asked for them outright.)
+const JOB_DEFERRED_INTENTS: ReadonlySet<GlobalIntent> = new Set(["existing_customer", "billing", "callback_request"]);
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
@@ -84,11 +93,13 @@ export async function handleTranscript(ctx: FlowContext, client: RealtimeClient,
   // content to capture, not a command to route on.
   if (ctx.session.state !== "wrap_up_reason") {
     let intent = matchDeterministicIntent(transcript);
-    // On the opener, let extract_intake decide new-vs-existing — it also captures
-    // the reason ("following up on my water job" → customer_type existing AND
-    // service_type water), which the existing_customer shortcut would throw away,
-    // causing a redundant "what are you calling about?" later.
-    if (intent === "existing_customer" && ctx.session.state === "open_description") {
+    // Job signal wins. The "soft" non-job intents (existing customer, billing,
+    // callback) must never hijack a real job: on the opener, let extract_intake
+    // decide (it also captures the reason — "following up on my water job" fills
+    // customer_type existing AND service_type water — which the shortcut would
+    // throw away); and once a job is already in progress, keep the job rather than
+    // divert to a message. They only route to a message when there's no job to lose.
+    if (intent && JOB_DEFERRED_INTENTS.has(intent) && (ctx.session.state === "open_description" || hasJobSignal(ctx))) {
       intent = null;
     }
     if (intent) {
@@ -429,8 +440,11 @@ async function advance(ctx: FlowContext, client: RealtimeClient): Promise<void> 
   }
 
   // 2. Existing customer → skip qualification; get a name, a reason if we don't
-  //    already have one, then confirm.
+  //    already have one, then confirm. An existing customer isn't a new scored job
+  //    (extraction may have set isNewCustomer=false from "following up on my job"),
+  //    so it's a message unless a message intent already tagged a more specific kind.
   if (session.isNewCustomer === false) {
+    markMessage(ctx, session.messageKind ?? "existing_customer");
     if (!cc.callerName) enterName(ctx, client, existingCustomerAck());
     else proceedAfterNameWrapUp(ctx, client);
     return;
@@ -557,7 +571,11 @@ async function applyExtraction(ctx: FlowContext, client: RealtimeClient, args: u
         speak(ctx, client, descriptionRetryPrompt());
         return;
       }
-      await jumpToWrapUp(ctx, client, "No problem — I'll take a quick message for the team.");
+      // The opener had no job signal. If it was a clear non-job (e.g. "I need to
+      // pay my bill", "have someone call me back"), preserve that kind rather than
+      // filing a generic message; otherwise it's a general message.
+      const openerKind = messageKindForIntent(matchDeterministicIntent(lastUserUtterance(ctx) ?? "")) ?? "general";
+      await jumpToWrapUp(ctx, client, "No problem — I'll take a quick message for the team.", openerKind);
       return;
     }
   }
@@ -661,6 +679,7 @@ function enterName(ctx: FlowContext, client: RealtimeClient, prefix?: string): v
 
 function enterExistingCustomerPath(ctx: FlowContext, client: RealtimeClient, ackLine: string = existingCustomerAck()): void {
   ctx.session.isNewCustomer = false;
+  markMessage(ctx, "existing_customer");
   enterName(ctx, client, ackLine);
 }
 
@@ -743,11 +762,14 @@ function proceedPastName(ctx: FlowContext, client: RealtimeClient): void {
   }
 }
 
-async function jumpToWrapUp(ctx: FlowContext, client: RealtimeClient, ackLine?: string): Promise<void> {
-  // Reached via leave_message / frustrated / no-transfer — take a message rather
-  // than run qualification. Get a name first, then one open "what to pass along".
+async function jumpToWrapUp(ctx: FlowContext, client: RealtimeClient, ackLine?: string, kind: MessageKind = "general"): Promise<void> {
+  // Reached via leave_message / frustrated / no-transfer / billing / callback /
+  // question / empty-opener — take a message rather than run qualification. Get a
+  // name first, then one open "what to pass along". This is a non-job contact, so
+  // tag it as a message so captureLead skips scoring and just files it.
   ctx.session.isNewCustomer = false;
   ctx.session.wrapUpReasonMode = "message";
+  markMessage(ctx, kind);
   if (!ctx.session.conversationContext.callerName) {
     enterName(ctx, client, ackLine);
     return;
@@ -782,11 +804,57 @@ async function handleWantsHuman(ctx: FlowContext, client: RealtimeClient): Promi
   // No transfer number, or the only one we have is the line that already rang out
   // on this call — don't promise a transfer we can't (usefully) make. Take a message.
   if (!canWarmTransfer(ctx.session)) {
-    await jumpToWrapUp(ctx, client, noTransferAvailableLine());
+    await jumpToWrapUp(ctx, client, noTransferAvailableLine(), "callback");
     return;
   }
   speak(ctx, client, transferringLine());
   ctx.session.onResponseDone = () => transferCallAction(ctx); // fires only after the line finishes playing
+}
+
+/** True once the call has any real job signal — a captured service (structured or
+ *  off-list). Used to keep job intake from being hijacked by a non-job intent and
+ *  to refuse to screen/abandon a call that already looks like a real opportunity. */
+function hasJobSignal(ctx: FlowContext): boolean {
+  const cc = ctx.session.conversationContext;
+  return Object.keys(cc.answers).length > 0 || !!cc.serviceRequested;
+}
+
+/** Tag this call as a captured message (not a scored job). captureLead reads
+ *  session.leadType to skip scoring/ranking and file it with a low-key alert. */
+function markMessage(ctx: FlowContext, kind: MessageKind): void {
+  ctx.session.leadType = "message";
+  ctx.session.messageKind = kind;
+}
+
+/** The message sub-label a non-job intent maps to, or null if the intent isn't a
+ *  message-producing one. */
+function messageKindForIntent(intent: GlobalIntent | null): MessageKind | null {
+  switch (intent) {
+    case "existing_customer":
+      return "existing_customer";
+    case "billing":
+      return "billing";
+    case "callback_request":
+    case "wants_human":
+      return "callback";
+    case "unsupported_question":
+      return "question";
+    case "leave_message":
+    case "frustrated":
+      return "general";
+    default:
+      return null;
+  }
+}
+
+/** Confident junk (wrong number / solicitation): end the call with NO lead. The
+ *  call row still records it — endCall reads session.screened → outcome 'screened' —
+ *  so it's auditable but never pollutes the leads inbox or the completion rate. */
+async function enterScreenedHangup(ctx: FlowContext, client: RealtimeClient): Promise<void> {
+  ctx.session.screened = true;
+  ctx.session.state = "end";
+  speak(ctx, client, screenedGoodbyeLine());
+  ctx.session.onResponseDone = () => ctx.onComplete();
 }
 
 // ─── Global intent dispatch ─────────────────────────────────────────────────────
@@ -817,7 +885,41 @@ async function handleGlobalIntent(ctx: FlowContext, client: RealtimeClient, inte
       speak(ctx, client, retryPromptText(ctx));
       return;
     case "unsupported_question":
-      speak(ctx, client, `I can take the details of your request, but the team will need to answer that directly. ${retryPromptText(ctx)}`);
+      // Serve-area / hours / pricing question. If a job is already in progress,
+      // answer briefly and stay in the intake; otherwise there's nothing to score —
+      // capture it as a question message for the team to answer on callback.
+      if (hasJobSignal(ctx)) {
+        speak(ctx, client, `I can take the details of your request, but the team will need to answer that directly. ${retryPromptText(ctx)}`);
+      } else {
+        await jumpToWrapUp(ctx, client, "I'll pass that question to the team so they can get back to you.", "question");
+      }
+      return;
+    case "billing":
+      // Existing-account money matter — not a new job. Keep any job already in
+      // progress; otherwise take a billing message.
+      if (hasJobSignal(ctx)) {
+        await degradeAndContinue(ctx, client);
+      } else {
+        await jumpToWrapUp(ctx, client, "Sure — I can take a message about that for the team.", "billing");
+      }
+      return;
+    case "callback_request":
+      if (hasJobSignal(ctx)) {
+        await degradeAndContinue(ctx, client);
+      } else {
+        await jumpToWrapUp(ctx, client, "Sure — I'll have the team call you back.", "callback");
+      }
+      return;
+    case "wrong_number":
+    case "solicitation":
+      // Confident junk → end with no lead (calls.outcome 'screened'). But never
+      // drop a call that already has real job signal — that's contradictory, so
+      // treat it as ambiguous and keep the job.
+      if (hasJobSignal(ctx)) {
+        await degradeAndContinue(ctx, client);
+      } else {
+        await enterScreenedHangup(ctx, client);
+      }
       return;
     default:
       await handleStateFailure(ctx, client);

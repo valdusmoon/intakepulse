@@ -8,7 +8,7 @@ import { getPendingFollowup } from "@/lib/db/queries/followups";
 import { getCallByLeadId } from "@/lib/db/queries/calls";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { formatIntakeAnswers, deriveServiceLabel, isOffListService } from "@/lib/verticals/labels";
-import { tierMeta, highValueBadge, intentMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort } from "@/lib/leads/priority";
+import { tierMeta, highValueBadge, intentMeta, messageKindMeta, sourceLabel, fmtCents, fmtValueRange, timeAgoShort } from "@/lib/leads/priority";
 import { formatInTimezone } from "@/lib/utils/datetime";
 import { Card, CardHeader, CardTitle, CardBody, Badge, Icon } from "@/components/dashboard/v2/primitives";
 import { LeadDetailClient } from "./_client";
@@ -69,9 +69,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     getVerticalConfig(business.vertical),
   ]);
 
+  const isMessage = lead.leadType === "message";
   const tier = tierMeta(lead.priorityScore);
   const highValue = highValueBadge(lead.estimatedValueLow);
   const intent = intentMeta(lead.qualityScore);
+  const messageBadge = messageKindMeta(lead.messageKind);
   const timeline = buildTimeline(call, lead);
   const formattedAnswers = formatIntakeAnswers(verticalConfig?.questions ?? [], lead.intakeAnswers);
   const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
@@ -91,9 +93,15 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="font-cv-heading text-[34px] leading-[1.15] tracking-tight">{displayName}</h1>
-            <Badge color={tier.color}>{tier.label}</Badge>
-            {highValue && <Badge color={highValue.color}>{highValue.label}</Badge>}
-            <Badge color={intent.color}>{intent.label}</Badge>
+            {isMessage ? (
+              <Badge color={messageBadge.color}>{messageBadge.label}</Badge>
+            ) : (
+              <>
+                <Badge color={tier.color}>{tier.label}</Badge>
+                {highValue && <Badge color={highValue.color}>{highValue.label}</Badge>}
+                <Badge color={intent.color}>{intent.label}</Badge>
+              </>
+            )}
           </div>
           <p className="mt-[7px] text-cv-muted text-sm">
             {sourceLabel(lead.source)} · captured {timeAgoShort(lead.createdAt)} ago · {lead.callerPhone}
@@ -125,8 +133,25 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="!text-base">Opportunity summary</CardTitle>
+              <CardTitle className="!text-base">{isMessage ? "Message" : "Opportunity summary"}</CardTitle>
             </CardHeader>
+            {isMessage ? (
+              <CardBody className="flex flex-col gap-4">
+                <div className="p-3.5 bg-cv-surface-subtle border border-cv-border rounded-[10px] text-[13px] leading-relaxed">
+                  {lead.notes ?? "No message details were captured — call back to follow up."}
+                </div>
+                <div className="grid grid-cols-2 gap-3.5">
+                  <div>
+                    <span className="block text-[10px] uppercase tracking-wide font-extrabold text-cv-muted">Type</span>
+                    <strong className="block mt-[5px] text-[13px]">{messageBadge.label}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] uppercase tracking-wide font-extrabold text-cv-muted">Source</span>
+                    <strong className="block mt-[5px] text-[13px]">{sourceLabel(lead.source)}</strong>
+                  </div>
+                </div>
+              </CardBody>
+            ) : (
             <CardBody className="flex flex-col gap-4">
               {assessment ? (
                 <div className="flex flex-col gap-3">
@@ -179,6 +204,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 </div>
               </div>
             </CardBody>
+            )}
           </Card>
 
           {formattedAnswers.length > 0 && (

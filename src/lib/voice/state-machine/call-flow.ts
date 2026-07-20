@@ -155,6 +155,12 @@ export function goodbyeLine(): string {
   return "Thanks for calling — we'll get back to you shortly.";
 }
 
+/** Neutral sign-off for a screened call (wrong number / solicitation) — no lead is
+ *  taken, so it must NOT promise a callback the way goodbyeLine does. */
+export function screenedGoodbyeLine(): string {
+  return "No problem — thanks for calling. Goodbye.";
+}
+
 export function fallbackVoicemailLine(): string {
   return "I'm having trouble understanding — I'll save what we have so far and have the team call you back.";
 }

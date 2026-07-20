@@ -537,6 +537,7 @@ function NotificationsPanel({ business }: { business: Business }) {
   const [ownerEmail, setOwnerEmail] = useState(business.ownerEmail);
   const [ownerPhone, setOwnerPhone] = useState(business.ownerPhone ?? "");
   const [qualifiedLead, setQualifiedLead] = useState(business.notificationPreferences?.qualifiedLead ?? true);
+  const [messageNotification, setMessageNotification] = useState(business.notificationPreferences?.messageNotification ?? true);
   const [weeklyReport, setWeeklyReport] = useState(business.notificationPreferences?.weeklyReport ?? true);
   const { loading, saved, error, save } = useSave();
 
@@ -567,6 +568,13 @@ function NotificationsPanel({ business }: { business: Business }) {
         </div>
         <div className="flex justify-between items-center py-3.5 border-t border-cv-border">
           <div>
+            <strong className="block text-xs">Notify me for messages</strong>
+            <span className="block text-cv-muted text-[10px] mt-1">A low-key email when a caller leaves a non-job message — an existing customer, a billing or callback request, or a question. Not a scored lead.</span>
+          </div>
+          <Toggle checked={messageNotification} onChange={setMessageNotification} />
+        </div>
+        <div className="flex justify-between items-center py-3.5 border-t border-cv-border">
+          <div>
             <strong className="block text-xs">Weekly performance report</strong>
             <span className="block text-cv-muted text-[10px] mt-1">Seven-day summary of captured, contacted, won, and lost leads.</span>
           </div>
@@ -583,7 +591,7 @@ function NotificationsPanel({ business }: { business: Business }) {
             save({
               ownerEmail,
               ownerPhone: ownerPhone || null,
-              notificationPreferences: { ...business.notificationPreferences, qualifiedLead, weeklyReport },
+              notificationPreferences: { ...business.notificationPreferences, qualifiedLead, messageNotification, weeklyReport },
             })
           }
         >

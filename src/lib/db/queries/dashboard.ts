@@ -43,7 +43,9 @@ export async function getHomeMetrics(businessId: string, timezone: string) {
       snapshotConverted: sql<number>`count(*) filter (where ${leads.leadStatus} = 'converted' and ${leads.createdAt} >= ${snapshotSince.toISOString()})`,
     })
     .from(leads)
-    .where(and(eq(leads.businessId, businessId), isNull(leads.deletedAt)));
+    // Job leads only — every home metric here is about scored opportunities/revenue;
+    // non-job 'message' rows must not inflate totalLeads, the conversion snapshot, etc.
+    .where(and(eq(leads.businessId, businessId), eq(leads.leadType, "job"), isNull(leads.deletedAt)));
 
   const n = (v: unknown) => Number(v ?? 0);
   const wonThisMonth = n(row.wonRevenueThisMonth);
@@ -74,7 +76,8 @@ export async function getSourceBreakdown(businessId: string) {
   const rows = await db
     .select({ source: leads.source, count: sql<number>`count(*)` })
     .from(leads)
-    .where(and(eq(leads.businessId, businessId), isNull(leads.deletedAt)))
+    // Job leads only — the channel mix reflects opportunities, not messages.
+    .where(and(eq(leads.businessId, businessId), eq(leads.leadType, "job"), isNull(leads.deletedAt)))
     .groupBy(leads.source)
     .orderBy(desc(sql`count(*)`));
 
@@ -93,19 +96,24 @@ export async function getSourceBreakdown(businessId: string) {
 // leads. A lead drops off once it's marked contacted/booked/etc. Falls back to -1 so any
 // unscored 'new' lead sorts last.
 export async function getPriorityQueue(businessId: string, limit = 4) {
+  // Job leads only — a non-job 'message' is leadStatus 'new' but has no priority
+  // score, so it would sit at the bottom of the "call first" queue as "Unscored".
+  // The queue is for scored opportunities; messages live in the leads inbox.
   return db
     .select()
     .from(leads)
-    .where(and(eq(leads.businessId, businessId), inArray(leads.leadStatus, ["new", "qualified"]), isNull(leads.deletedAt)))
+    .where(and(eq(leads.businessId, businessId), eq(leads.leadType, "job"), inArray(leads.leadStatus, ["new", "qualified"]), isNull(leads.deletedAt)))
     .orderBy(desc(sql`coalesce(${leads.priorityScore}, -1)`), leads.createdAt)
     .limit(limit);
 }
 
 export async function getRecentLeadsForActivity(businessId: string, limit = 5) {
+  // Job leads only — the home "recent activity" feed narrates captured/qualified
+  // opportunities; a message has no service/score to render there.
   return db
     .select()
     .from(leads)
-    .where(and(eq(leads.businessId, businessId), isNull(leads.deletedAt)))
+    .where(and(eq(leads.businessId, businessId), eq(leads.leadType, "job"), isNull(leads.deletedAt)))
     .orderBy(desc(leads.updatedAt))
     .limit(limit);
 }
@@ -127,6 +135,7 @@ export async function getReportsFunnel(businessId: string, days?: number) {
     .where(
       and(
         eq(leads.businessId, businessId),
+        eq(leads.leadType, "job"), // funnel is job opportunities only — messages don't "convert"
         isNull(leads.deletedAt),
         since ? sql`${leads.createdAt} >= ${since.toISOString()}` : undefined
       )
@@ -149,6 +158,7 @@ export async function getChannelPerformance(businessId: string, days?: number) {
     .where(
       and(
         eq(leads.businessId, businessId),
+        eq(leads.leadType, "job"), // per-channel performance = job opportunities only
         isNull(leads.deletedAt),
         since ? sql`${leads.createdAt} >= ${since.toISOString()}` : undefined
       )
@@ -177,7 +187,8 @@ export async function getDailyCapturedVsWon(businessId: string, days = 14, timez
       captured: sql<number>`count(*)`,
     })
     .from(leads)
-    .where(and(eq(leads.businessId, businessId), isNull(leads.deletedAt), sql`${leads.createdAt} >= ${since.toISOString()}`))
+    // Job leads only — the "captured" trend line counts opportunities, not messages.
+    .where(and(eq(leads.businessId, businessId), eq(leads.leadType, "job"), isNull(leads.deletedAt), sql`${leads.createdAt} >= ${since.toISOString()}`))
     // Group by the day expression's ordinal position — reusing the sql fragment here
     // would re-emit its bound tz param at a second position, which Postgres won't match.
     .groupBy(sql`1`);

@@ -74,7 +74,8 @@ export const trialReminders = inngest.createFunction(
           businessName: business.businessName,
           stage,
           billingUrl: `${APP_URL}/dashboard/billing`,
-          stats,
+          // Count job leads only in the "you captured X" figure — messages aren't leads.
+          stats: { ...stats, total: stats.jobTotal },
         });
         // Record the stage only after a successful send so a failure retries.
         await updateBusiness(business.id, { trialReminderStage: stage });

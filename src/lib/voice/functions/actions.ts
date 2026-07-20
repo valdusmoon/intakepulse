@@ -10,9 +10,9 @@ import { createLead } from "@/lib/db/queries/leads";
 import { updateCall } from "@/lib/db/queries/calls";
 import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
 import { assessLead } from "@/lib/leads/assess";
-import { sendLeadPacketEmail } from "@/lib/email/notifications";
+import { sendLeadPacketEmail, sendMessageNotificationEmail } from "@/lib/email/notifications";
 import { sendLeadPushNotification } from "@/lib/push/send";
-import { buildLeadPushPayload } from "@/lib/push/payload";
+import { buildLeadPushPayload, buildMessagePushPayload } from "@/lib/push/payload";
 import { updateCallWithTwiml } from "@/lib/twilio/client";
 import { generateTransferTwiml } from "@/lib/twilio/twiml";
 import { logger } from "@/lib/logger";
@@ -112,12 +112,21 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
     ? { ...session.conversationContext.answers, zip_code: zip }
     : session.conversationContext.answers;
 
+  // A non-job call (existing customer, billing, callback, a question, or an
+  // ambiguous non-job) is captured as a MESSAGE: filed + routed, but never scored,
+  // ranked, or counted as an opportunity. Confident junk never reaches captureLead
+  // at all (the engine ends those with no lead).
+  const leadType = session.leadType ?? "job";
+  const messageKind = session.messageKind ?? null;
+
   const lead = await createLead({
     businessId: business.id,
     callerPhone: session.callerPhone,
     callerName: session.conversationContext.callerName ?? null,
     source: session.isTestCall ? "voice_test" : "voice_overflow",
     callStatus: "missed",
+    leadType,
+    messageKind,
     intakeStatus: deriveIntakeStatus(ctx),
     intakeAnswers: answers,
     serviceRequested: session.conversationContext.serviceRequested ?? null,
@@ -128,6 +137,15 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
   session.leadId = lead.id;
   if (!session.isTestCall) {
     await updateCall(session.callId, { leadId: lead.id, outcome: "ai_captured" });
+  }
+
+  // Message path: skip scoring/assessment entirely (leadStatus stays 'new', scores
+  // stay null) and send a low-key "new message" alert instead of a lead packet.
+  if (leadType === "message") {
+    if (!session.isTestCall) {
+      await notifyMessageCaptured(ctx, lead.id, messageKind);
+    }
+    return { leadId: lead.id };
   }
 
   const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions, verticalConfig.baseValueLow, {
@@ -175,6 +193,41 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
   }
 
   return { leadId: lead.id };
+}
+
+/**
+ * Low-key operator alert for a captured MESSAGE (non-job). Deliberately NOT the
+ * "New Qualified Lead" packet — no scores, no value, no Hot/Warm/Cool. Email is
+ * gated on the messageNotification pref (default on); push reuses pushNewLead.
+ */
+async function notifyMessageCaptured(ctx: FlowContext, leadId: string, messageKind: string | null): Promise<void> {
+  const { session, business } = ctx;
+  const callerName = session.conversationContext.callerName ?? null;
+  const notes = session.conversationContext.reasonForCall ?? null;
+
+  if (business.notificationPreferences?.messageNotification !== false) {
+    try {
+      await sendMessageNotificationEmail({
+        ownerEmail: business.ownerEmail,
+        ownerName: business.ownerName,
+        businessName: business.businessName,
+        leadId,
+        callerName,
+        callerPhone: session.callerPhone,
+        messageKind,
+        notes,
+      });
+    } catch (err) {
+      logger.error("Failed to send message notification email", { leadId, error: String(err) });
+    }
+  }
+
+  if (business.notificationPreferences?.pushNewLead !== false) {
+    await sendLeadPushNotification(
+      business.id,
+      buildMessagePushPayload({ leadId, callerName, messageKind, notes }),
+    );
+  }
 }
 
 /**

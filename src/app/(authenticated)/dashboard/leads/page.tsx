@@ -5,7 +5,7 @@ import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { getLeadsByBusiness } from "@/lib/db/queries/leads";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
 import { deriveServiceLabel, deriveReasonLine } from "@/lib/verticals/labels";
-import { tierMeta, highValueBadge, intentMeta, statusMeta, sourceLabel, timeAgoShort, fmtValueRange } from "@/lib/leads/priority";
+import { tierMeta, highValueBadge, intentMeta, statusMeta, sourceLabel, timeAgoShort, fmtValueRange, messageKindMeta } from "@/lib/leads/priority";
 import { Card, Badge, LinkButton, DownloadLink, Icon } from "@/components/dashboard/v2/primitives";
 import { FilterSelect } from "./_filter-select";
 import { LeadRowActions } from "./lead-row-actions";
@@ -37,6 +37,12 @@ const SOURCES = [
   { value: "manual", label: "Manual" },
 ];
 
+const TYPES = [
+  { value: "", label: "Jobs & messages" },
+  { value: "job", label: "Jobs" },
+  { value: "message", label: "Messages" },
+];
+
 const SOURCE_ICON: Record<string, string> = {
   voice_overflow: "call",
   voice_human: "support_agent",
@@ -49,7 +55,7 @@ const SOURCE_ICON: Record<string, string> = {
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; source?: string; priority?: string; search?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; source?: string; priority?: string; type?: string; search?: string; page?: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
@@ -61,6 +67,7 @@ export default async function LeadsPage({
   const status = sp.status ?? "";
   const source = sp.source ?? "";
   const priority = (sp.priority ?? "") as "" | "hot" | "warm" | "cool";
+  const type = (sp.type ?? "") as "" | "job" | "message";
   const search = sp.search ?? "";
   const page = Math.max(1, Number(sp.page ?? 1));
   const limit = 25;
@@ -71,6 +78,7 @@ export default async function LeadsPage({
       leadStatus: status || undefined,
       source: source || undefined,
       priority: priority || undefined,
+      leadType: type || undefined,
       search: search || undefined,
       limit,
       offset,
@@ -83,6 +91,7 @@ export default async function LeadsPage({
       ...(status && { status }),
       ...(source && { source }),
       ...(priority && { priority }),
+      ...(type && { type }),
       ...(search && { search }),
       ...(page > 1 && { page: String(page) }),
     });
@@ -90,7 +99,7 @@ export default async function LeadsPage({
     return `/dashboard/leads?${base.toString()}`;
   }
 
-  const hasFilters = Boolean(status || source || priority || search);
+  const hasFilters = Boolean(status || source || priority || type || search);
 
   // The export route takes the same filter params as this page (minus paging — it
   // exports every matching lead), so the file matches the list on screen.
@@ -98,6 +107,7 @@ export default async function LeadsPage({
     ...(status && { status }),
     ...(source && { source }),
     ...(priority && { priority }),
+    ...(type && { type }),
     ...(search && { search }),
   }).toString();
   const exportHref = `/api/export/leads${exportQuery ? `?${exportQuery}` : ""}`;
@@ -126,6 +136,7 @@ export default async function LeadsPage({
             {priority && <input type="hidden" name="priority" value={priority} />}
             {source && <input type="hidden" name="source" value={source} />}
             {status && <input type="hidden" name="status" value={status} />}
+            {type && <input type="hidden" name="type" value={type} />}
             <input
               type="search"
               name="search"
@@ -136,9 +147,10 @@ export default async function LeadsPage({
           </form>
           {/* Dropdowns filter immediately on change — no reason to batch a
               single discrete choice behind a separate "Apply" step. */}
-          <FilterSelect name="priority" value={priority} options={PRIORITIES} currentParams={{ search, priority, source, status }} />
-          <FilterSelect name="source" value={source} options={SOURCES} currentParams={{ search, priority, source, status }} />
-          <FilterSelect name="status" value={status} options={STATUSES} currentParams={{ search, priority, source, status }} />
+          <FilterSelect name="type" value={type} options={TYPES} currentParams={{ search, priority, source, status, type }} />
+          <FilterSelect name="priority" value={priority} options={PRIORITIES} currentParams={{ search, priority, source, status, type }} />
+          <FilterSelect name="source" value={source} options={SOURCES} currentParams={{ search, priority, source, status, type }} />
+          <FilterSelect name="status" value={status} options={STATUSES} currentParams={{ search, priority, source, status, type }} />
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {hasFilters && (
@@ -173,9 +185,13 @@ export default async function LeadsPage({
               </thead>
               <tbody>
                 {leadRows.map((lead) => {
+                  // A non-job message has no tier/intent/value — render its kind + the
+                  // captured note instead of misleading "Unscored"/"Intent unclear".
+                  const isMessage = lead.leadType === "message";
                   const tier = tierMeta(lead.priorityScore);
                   const highValue = highValueBadge(lead.estimatedValueLow);
                   const intent = intentMeta(lead.qualityScore);
+                  const messageBadge = messageKindMeta(lead.messageKind);
                   const status = statusMeta(lead.leadStatus);
                   const service = deriveServiceLabel(verticalConfig, lead.intakeAnswers, lead.serviceRequested);
                   const reason = deriveReasonLine(verticalConfig, lead.intakeAnswers);
@@ -194,23 +210,33 @@ export default async function LeadsPage({
                           <span className="text-xs text-cv-ink whitespace-nowrap">{sourceLabel(lead.source)}</span>
                         </div>
                       </td>
-                      <td className="px-3.5 py-3.5 text-xs align-middle">{service ?? "—"}</td>
+                      <td className="px-3.5 py-3.5 text-xs align-middle">{isMessage ? "—" : (service ?? "—")}</td>
                       <td className="px-3.5 py-3.5 align-middle">
                         <Badge color={status.color}>{status.label}</Badge>
                       </td>
                       <td className="px-3.5 py-3.5 align-middle">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <Badge color={tier.color}>{tier.label}</Badge>
-                          {highValue && <Badge color={highValue.color}>{highValue.label}</Badge>}
-                        </div>
+                        {isMessage ? (
+                          <Badge color={messageBadge.color}>{messageBadge.label}</Badge>
+                        ) : (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge color={tier.color}>{tier.label}</Badge>
+                            {highValue && <Badge color={highValue.color}>{highValue.label}</Badge>}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3.5 py-3.5 text-xs align-middle text-cv-muted max-w-[240px] leading-relaxed">
-                        <Badge color={intent.color} className="mr-1.5">
-                          {intent.label}
-                        </Badge>
-                        {reason ?? "No additional detail captured."}
+                        {isMessage ? (
+                          lead.notes ?? "No message details captured."
+                        ) : (
+                          <>
+                            <Badge color={intent.color} className="mr-1.5">
+                              {intent.label}
+                            </Badge>
+                            {reason ?? "No additional detail captured."}
+                          </>
+                        )}
                       </td>
-                      <td className="px-3.5 py-3.5 align-middle font-cv-mono font-bold text-xs whitespace-nowrap">{value ?? "—"}</td>
+                      <td className="px-3.5 py-3.5 align-middle font-cv-mono font-bold text-xs whitespace-nowrap">{isMessage ? "—" : (value ?? "—")}</td>
                       <td className="px-3.5 py-3.5 align-middle font-cv-mono text-xs">{timeAgoShort(lead.createdAt)}</td>
                       <td className="px-3.5 py-3.5 align-middle text-right">
                         {/* hasEmail is false until a "request project details" email endpoint actually exists — see lead-row-actions.tsx */}

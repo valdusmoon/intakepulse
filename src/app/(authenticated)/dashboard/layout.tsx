@@ -59,7 +59,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const bannerState = getBannerState(business);
   const [newLeadsCount, recentNewLeads] = await Promise.all([
     getNewLeadsCount(business.id),
-    getLeadsByBusiness(business.id, { leadStatus: "new", limit: 5 }),
+    getLeadsByBusiness(business.id, { leadStatus: "new", leadType: "job", limit: 5 }),
   ]);
   const isVoiceLive = Boolean(
     business.twilioPhoneNumber && !business.isPaused && hasPaymentOnFile(business)

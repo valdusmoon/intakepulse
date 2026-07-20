@@ -40,8 +40,9 @@ export const weeklyReport = inngest.createFunction(
 
       const stats = await getLeadStatsForPeriod(business.id, sevenDaysAgo);
 
-      // Don't email owners with zero activity — nothing useful to report
-      if (stats.total === 0) {
+      // Don't email owners with zero JOB activity — a week of only non-job messages
+      // isn't a performance report worth sending.
+      if (stats.jobTotal === 0) {
         skipped++;
         continue;
       }
@@ -53,7 +54,9 @@ export const weeklyReport = inngest.createFunction(
           businessName: business.businessName,
           businessId: business.id,
           weekOf,
-          stats,
+          // Headline "new leads" reflects job leads only — messages are captured but
+          // aren't leads, so they must not inflate the reported count.
+          stats: { ...stats, total: stats.jobTotal },
         });
         sent++;
         logger.info("weekly-report: sent", { businessId: business.id });

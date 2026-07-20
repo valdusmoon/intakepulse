@@ -50,8 +50,9 @@ export const monthlyRoiRecap = inngest.createFunction(
 
       const stats = await getLeadStatsBetween(business.id, firstOfPrevMonth, firstOfThisMonth);
 
-      // Nothing captured last month — skip rather than send an empty recap.
-      if (stats.total === 0) {
+      // No JOB leads last month — skip rather than send an empty recap (a month of
+      // only non-job messages has no ROI story to tell).
+      if (stats.jobTotal === 0) {
         skipped++;
         continue;
       }
@@ -63,7 +64,8 @@ export const monthlyRoiRecap = inngest.createFunction(
           businessName: business.businessName,
           monthLabel,
           dashboardUrl: `${APP_URL}/dashboard`,
-          stats,
+          // Headline reflects job leads only — messages aren't leads.
+          stats: { ...stats, total: stats.jobTotal },
         });
         await updateBusiness(business.id, { monthlyRecapSentFor: periodKey });
         sent++;

@@ -83,7 +83,10 @@ export const activationNudges = inngest.createFunction(
       // live number, AND at least one captured lead — then there's nothing to
       // nudge and we skip the rest of the series.
       const stats = await getLeadStatsForPeriod(business.id, business.createdAt);
-      const activated = hasPaymentOnFile(business) && !!business.twilioPhoneNumber && stats.total > 0;
+      // Count job leads only — a lone non-job message (a wrong number filed as a
+      // message, a billing question) is not "you've captured your first lead" and
+      // must not silence the go-live nudge series.
+      const activated = hasPaymentOnFile(business) && !!business.twilioPhoneNumber && stats.jobTotal > 0;
       if (activated) {
         skipped++;
         continue;

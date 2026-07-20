@@ -10,8 +10,12 @@ vi.mock("@/lib/db/queries/calls", () => ({ updateCall: vi.fn() }));
 vi.mock("@/lib/leads/assess", () => ({ assessLead: vi.fn() }));
 vi.mock("@/lib/email/notifications", () => ({ sendLeadPacketEmail: vi.fn() }));
 vi.mock("@/lib/twilio/client", () => ({ updateCallWithTwiml: vi.fn() }));
+// Must be mocked: push/send imports the db client, which throws at module load
+// without DATABASE_URL and takes this whole test file down with it.
+vi.mock("@/lib/push/send", () => ({ sendLeadPushNotification: vi.fn() }));
 
 import * as engine from "./engine";
+import { createLead } from "@/lib/db/queries/leads";
 import { makeFlowContext, makeVerticalConfig, makeSession } from "./mockFlowContext";
 import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 import type { FlowContext } from "./types";
@@ -196,6 +200,82 @@ describe("adaptive engine flow", () => {
     await engine.handleTranscript(ctx, client, "tell them my invoice looks wrong");
     expect(ctx.session.conversationContext.reasonForCall).toBe("tell them my invoice looks wrong");
     expect(ctx.session.state).toBe("confirmation");
+  });
+});
+
+describe("leadType: non-job calls become messages, junk gets screened", () => {
+  let ctx: FlowContext;
+  let client: ReturnType<typeof mockClient>;
+
+  beforeEach(() => {
+    ctx = ctxFor();
+    client = mockClient();
+    vi.mocked(createLead).mockReset();
+  });
+
+  it("an existing customer is tagged leadType 'message' (existing_customer)", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "existing" });
+    expect(ctx.session.leadType).toBe("message");
+    expect(ctx.session.messageKind).toBe("existing_customer");
+  });
+
+  it("'just take a message' is tagged leadType 'message' (general)", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleTranscript(ctx, client, "just take a message");
+    expect(ctx.session.leadType).toBe("message");
+    expect(ctx.session.messageKind).toBe("general");
+  });
+
+  it("a billing intent with no job in progress becomes a billing message", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "detect_intent", { intent: "billing" });
+    expect(ctx.session.leadType).toBe("message");
+    expect(ctx.session.messageKind).toBe("billing");
+    expect(ctx.session.state).toBe("name");
+  });
+
+  it("a callback request with no job in progress becomes a callback message", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "detect_intent", { intent: "callback_request" });
+    expect(ctx.session.leadType).toBe("message");
+    expect(ctx.session.messageKind).toBe("callback");
+  });
+
+  it("a serve-area / hours / pricing question with no job becomes a question message", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "detect_intent", { intent: "unsupported_question" });
+    expect(ctx.session.leadType).toBe("message");
+    expect(ctx.session.messageKind).toBe("question");
+  });
+
+  it("a confident-junk wrong number is screened with NO lead created", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleTranscript(ctx, client, "sorry, wrong number");
+    expect(ctx.session.screened).toBe(true);
+    expect(ctx.session.state).toBe("end");
+    expect(ctx.session.leadType).toBeUndefined(); // never tagged a message either
+    expect(createLead).not.toHaveBeenCalled();
+  });
+
+  it("job signal wins: 'wrong number' AFTER a service was captured does NOT screen the call", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { service_type: "water" });
+    expect(ctx.session.state).toBe("zip_code"); // job in progress
+    await engine.handleTranscript(ctx, client, "sorry wrong number");
+    // Contradictory with a real job → not screened; the intake continues.
+    expect(ctx.session.screened).toBeFalsy();
+    expect(ctx.session.state).not.toBe("end");
+  });
+
+  it("an ambiguous empty opener falls through to a general message (never screened, never dropped)", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", {}); // nothing extracted → one retry
+    expect(ctx.session.state).toBe("open_description");
+    await engine.handleToolCall(ctx, client, "extract_intake", {}); // still nothing → take a message
+    expect(ctx.session.leadType).toBe("message");
+    expect(ctx.session.messageKind).toBe("general");
+    expect(ctx.session.screened).toBeFalsy();
   });
 });
 

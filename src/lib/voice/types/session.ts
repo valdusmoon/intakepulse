@@ -26,6 +26,15 @@ export type VoiceState =
   | "end"
   | "fallback_voicemail";
 
+/**
+ * What kind of contact a captured call is. 'job' runs the full scoring pipeline
+ * and lands as a ranked lead packet; 'message' is captured + routed but never
+ * scored. See leads.leadType. Confident junk isn't a lead type at all — it
+ * creates no lead row (session.screened → calls.outcome 'screened').
+ */
+export type LeadType = "job" | "message";
+export type MessageKind = "existing_customer" | "billing" | "callback" | "question" | "general";
+
 export interface SessionState {
   streamSid?: string;
   lastAssistantItem?: string;
@@ -82,6 +91,17 @@ export interface SessionState {
   // I tell the team you're calling about?") vs "message" ("what would you like me
   // to pass along?"). Both capture into conversationContext.reasonForCall.
   wrapUpReasonMode?: "existing" | "message";
+  // What kind of contact this call is. Defaults to a scored 'job'; the engine
+  // flips it to 'message' at any non-job terminal (existing customer, billing,
+  // callback, serve-area question, or an ambiguous non-job call). captureLead
+  // reads this to decide whether to score+rank+lead-notify or just capture the
+  // message with a low-key alert. messageKind is the message sub-label.
+  leadType?: LeadType;
+  messageKind?: MessageKind;
+  // Set only for confident junk (deterministic wrong-number / solicitation match).
+  // enterScreenedHangup sets this and does NOT capture a lead; endCall then reports
+  // outcome "screened" so the junk call is recorded without polluting the inbox.
+  screened?: boolean;
   // Retry counter per state key — reset on successful transition into a new state
   attempts: Partial<Record<VoiceState, number>>;
   isNewCustomer?: boolean;
@@ -204,7 +224,10 @@ export interface BusinessCallData {
   customServiceOptions: CustomServiceOption[];
 }
 
-export type CallOutcome = "in_progress" | "business_answered" | "ai_captured" | "transferred" | "abandoned" | "error";
+// "screened" = a confident-junk call (wrong number / solicitation) the AI ended
+// without creating any lead — recorded on the call so it's auditable but kept out
+// of the leads inbox and the AI-completion-rate denominator.
+export type CallOutcome = "in_progress" | "business_answered" | "ai_captured" | "transferred" | "abandoned" | "screened" | "error";
 
 export interface EndCallData {
   endedAt: Date;

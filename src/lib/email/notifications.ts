@@ -1227,6 +1227,86 @@ export async function sendLeadPacketEmail(params: LeadPacketParams) {
   });
 }
 
+// ─── Non-job message notification ────────────────────────────────────────────
+
+const MESSAGE_KIND_LABELS: Record<string, string> = {
+  existing_customer: "Existing customer",
+  billing: "Billing",
+  callback: "Callback request",
+  question: "Question",
+  general: "Message",
+};
+
+interface MessageNotificationParams {
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  leadId: string;
+  callerName: string | null;
+  callerPhone: string;
+  messageKind: string | null;
+  notes: string | null;
+}
+
+/**
+ * Low-key alert for a captured non-job MESSAGE. Deliberately plain vs the lead
+ * packet: a neutral slate header (not the urgent priority color), no scores, no
+ * value estimate, no "recommended actions" — it's a message to return, not an
+ * opportunity to chase.
+ */
+export async function sendMessageNotificationEmail(params: MessageNotificationParams) {
+  const { ownerEmail, businessName, leadId, callerName, callerPhone, messageKind, notes } = params;
+  const leadUrl = `${APP_URL}/dashboard/leads/${leadId}`;
+  const displayName = callerName ?? "Unknown caller";
+  const kindLabel = (messageKind && MESSAGE_KIND_LABELS[messageKind]) || "Message";
+  const messageBody = notes?.trim() || "No message details were captured — call back to follow up.";
+
+  const html = emailWrapper(`
+    <!-- Header: neutral slate, NOT the urgent lead color -->
+    <tr><td style="padding:20px 24px 16px;background:#334155;">
+      <p style="margin:0;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.05em;">New Message</p>
+      <p style="margin:4px 0 0;font-size:22px;font-weight:700;color:#ffffff;">${kindLabel}</p>
+    </td></tr>
+
+    <!-- Caller -->
+    <tr><td style="padding:20px 24px 0;">
+      <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Caller</p>
+      <p style="margin:0;font-size:18px;font-weight:700;color:#111827;">${displayName}</p>
+      <a href="tel:${callerPhone}" style="display:inline-block;margin-top:6px;font-size:15px;color:#334155;font-weight:600;text-decoration:none;">📞 ${callerPhone}</a>
+    </td></tr>
+
+    <!-- Message -->
+    <tr><td style="padding:16px 24px 0;">
+      <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Message</p>
+      <div style="background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;padding:14px 16px;">
+        <p style="margin:0;font-size:14px;color:#111827;line-height:1.5;">${messageBody}</p>
+      </div>
+    </td></tr>
+
+    <!-- CTAs -->
+    <tr><td style="padding:20px 24px;">
+      <table cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding-right:8px;">
+            <a href="${leadUrl}" style="display:inline-block;background:#334155;color:#ffffff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">View Message</a>
+          </td>
+          <td>
+            <a href="tel:${callerPhone}" style="display:inline-block;background:#f3f4f6;color:#111827;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;">Call Back</a>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+
+    ${emailFooter(businessName)}
+  `);
+
+  await emailClient.send({
+    to: ownerEmail,
+    subject: `[Message] ${kindLabel} — ${displayName}`,
+    html,
+  });
+}
+
 // ─── Follow-up email to prospect ─────────────────────────────────────────────
 
 export async function sendFollowupEmail({

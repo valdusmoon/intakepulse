@@ -31,17 +31,20 @@ export async function getLeadsByBusiness(
   opts: {
     leadStatus?: string;
     source?: string;
+    // "job" | "message" — scope to a contact kind. Omit for the unified inbox.
+    leadType?: string;
     priority?: "hot" | "warm" | "cool";
     search?: string;
     limit?: number;
     offset?: number;
   } = {}
 ) {
-  const { leadStatus, source, priority, search, limit = 25, offset = 0 } = opts;
+  const { leadStatus, source, leadType, priority, search, limit = 25, offset = 0 } = opts;
 
   const filters: SQL[] = [eq(leads.businessId, businessId), isNull(leads.deletedAt)];
   if (leadStatus) filters.push(eq(leads.leadStatus, leadStatus));
   if (source) filters.push(eq(leads.source, source));
+  if (leadType) filters.push(eq(leads.leadType, leadType));
   // Tier thresholds mirror PRIORITY_TIERS in scoring.ts (Hot >= 65, Warm 40-64, Cool < 40).
   if (priority === "hot") filters.push(sql`${leads.priorityScore} >= 65`);
   if (priority === "warm") filters.push(sql`${leads.priorityScore} >= 40 and ${leads.priorityScore} < 65`);
@@ -84,10 +87,22 @@ export async function deleteLead(id: string) {
 }
 
 export async function getNewLeadsCount(businessId: string) {
+  // Sidebar "new leads" badge = actionable scored jobs only. A non-job message is
+  // leadStatus 'new' too, but it's not a lead to work, so it must not inflate this.
   const [row] = await db
     .select({ count: sql<number>`count(*)` })
     .from(leads)
-    .where(and(eq(leads.businessId, businessId), eq(leads.leadStatus, "new"), isNull(leads.deletedAt)));
+    .where(and(eq(leads.businessId, businessId), eq(leads.leadStatus, "new"), eq(leads.leadType, "job"), isNull(leads.deletedAt)));
+  return Number(row.count);
+}
+
+export async function getNewMessagesCount(businessId: string) {
+  // Unworked non-job messages (existing customer, billing, callback, questions) —
+  // powers the dashboard "N new messages" indicator, kept separate from leads.
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(leads)
+    .where(and(eq(leads.businessId, businessId), eq(leads.leadStatus, "new"), eq(leads.leadType, "message"), isNull(leads.deletedAt)));
   return Number(row.count);
 }
 
@@ -95,6 +110,10 @@ export async function getLeadStatsForPeriod(businessId: string, since: Date) {
   const [row] = await db
     .select({
       total: sql<number>`count(*)`,
+      // Job leads only — excludes non-job 'message' rows (existing customer,
+      // billing, callback, questions). This is the count that should drive
+      // "have they captured a real lead yet?" signals (e.g. activation).
+      jobTotal: sql<number>`count(*) filter (where ${leads.leadType} = 'job')`,
       missedCalls: sql<number>`count(*) filter (where ${leads.source} = 'voice_overflow')`,
       intakeCompleted: sql<number>`count(*) filter (where ${leads.intakeStatus} = 'completed')`,
       // Denominator for the completion rate: only leads where intake actually ran. Manual,
@@ -112,6 +131,7 @@ export async function getLeadStatsForPeriod(businessId: string, since: Date) {
   const intakeEligible = Number(row.intakeEligible);
   return {
     total,
+    jobTotal: Number(row.jobTotal),
     missedCalls: Number(row.missedCalls),
     converted: Number(row.converted),
     estimatedRevenue: Number(row.estimatedRevenue),
@@ -125,6 +145,7 @@ export async function getLeadStatsBetween(businessId: string, since: Date, until
   const [row] = await db
     .select({
       total: sql<number>`count(*)`,
+      jobTotal: sql<number>`count(*) filter (where ${leads.leadType} = 'job')`,
       missedCalls: sql<number>`count(*) filter (where ${leads.source} = 'voice_overflow')`,
       intakeCompleted: sql<number>`count(*) filter (where ${leads.intakeStatus} = 'completed')`,
       // Denominator for the completion rate: only leads where intake actually ran. Manual,
@@ -149,6 +170,7 @@ export async function getLeadStatsBetween(businessId: string, since: Date, until
   const intakeEligible = Number(row.intakeEligible);
   return {
     total,
+    jobTotal: Number(row.jobTotal),
     missedCalls: Number(row.missedCalls),
     converted: Number(row.converted),
     estimatedRevenue: Number(row.estimatedRevenue),
