@@ -21,6 +21,9 @@ export type VoiceState =
   | "name"
   | "wrap_up_reason"
   | "callback_preference"
+  // One "anything important I missed?" beat before confirming — used for messages
+  // and routine/partial jobs (an emergency job skips straight to confirmation).
+  | "final_check"
   | "confirmation"
   | "create_lead"
   | "end"
@@ -98,10 +101,17 @@ export interface SessionState {
   // message with a low-key alert. messageKind is the message sub-label.
   leadType?: LeadType;
   messageKind?: MessageKind;
-  // Set only for confident junk (deterministic wrong-number / solicitation match).
+  // Set only for confident junk (triage contact_type wrong_number / solicitation).
   // enterScreenedHangup sets this and does NOT capture a lead; endCall then reports
   // outcome "screened" so the junk call is recorded without polluting the inbox.
   screened?: boolean;
+  // Why the call was screened ("wrong_number" | "solicitation") — persisted to
+  // calls.screened_reason so screening is auditable, not a black box.
+  screenedReason?: string;
+  // Set by the 3-minute graceful-close timer when a response is in flight. The
+  // engine checks it at the next safe boundary (handleTranscript / notifyResponseDone)
+  // and switches to closing rather than colliding with the in-flight turn.
+  closeRequested?: boolean;
   // Retry counter per state key — reset on successful transition into a new state
   attempts: Partial<Record<VoiceState, number>>;
   isNewCustomer?: boolean;

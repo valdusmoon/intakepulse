@@ -48,9 +48,13 @@ export function questionDtmfMap(question: VerticalQuestion): Record<string, stri
 
 export function greetingPrompt(ctx: FlowContext): string {
   const { business } = ctx;
+  // Free-flow, job-first, and framed as "I'll get this to the team" so questions
+  // and messages come out naturally too — not a category menu the caller has to
+  // classify themselves into. Keeps the AI self-identification (transparency /
+  // bot-disclosure) that the flow has always led with.
   const greeting =
     business.greetingMessage ||
-    `Thanks for calling ${business.businessName}. I'm their automated intake assistant.`;
+    `Thanks for calling ${business.businessName}. I'm the automated assistant — I can get this to the team.`;
 
   // Spoken recording disclosure — only when the business has recording enabled AND
   // a disclosure configured (never leak an empty/null value into speech). This is
@@ -69,6 +73,12 @@ export function greetingPrompt(ctx: FlowContext): string {
 /** Asked only when the opening description didn't make new-vs-existing clear. */
 export function newOrExistingPrompt(): string {
   return "Is this a new issue, or an existing job? Press 1 for new, press 2 for existing, or just tell me.";
+}
+
+/** The ONLY category question, and only when the opener was genuinely unclassifiable
+ *  (triage contact_type = "unclear"). This is the fallback tree, never the opener. */
+export function triageClarifyPrompt(): string {
+  return "Sure — is this about a new job, an existing job, or should I take a message?";
 }
 
 /** One focused re-ask when the opener was empty/gibberish — gives concrete
@@ -159,6 +169,19 @@ export function goodbyeLine(): string {
  *  taken, so it must NOT promise a callback the way goodbyeLine does. */
 export function screenedGoodbyeLine(): string {
   return "No problem — thanks for calling. Goodbye.";
+}
+
+/** The "anything I missed?" beat before confirming — used for messages and
+ *  routine/partial jobs (an emergency job skips straight to confirmation). One
+ *  chance to add context; a question here is captured for the team, not answered. */
+export function finalCheckPrompt(): string {
+  return "I'll send this to the team now. Is there anything important I missed?";
+}
+
+/** Spoken when the ~3-minute soft cap is hit — wrap the call gracefully and send
+ *  what we have to the team rather than let it run on. */
+export function gracefulCloseLine(): string {
+  return "I have what I need to get this to the team — I'll send it over now so they can follow up.";
 }
 
 export function fallbackVoicemailLine(): string {

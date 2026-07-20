@@ -23,10 +23,10 @@ import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 import { logger } from "@/lib/logger";
 import type { RealtimeClient } from "../realtime-client";
 import type { FlowContext } from "./types";
-import { matchDeterministicIntent, HARD_JUNK_INTENTS, type GlobalIntent } from "./global-intent";
+import { matchDeterministicIntent, type GlobalIntent } from "./global-intent";
 import type { MessageKind } from "../types/session";
 import { cleanSpokenName, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
-import { buildClassifyAnswerTool, buildClassifyServiceTool, buildExtractIntakeTool, DETECT_INTENT_TOOL, EXTRACT_ZIP_TOOL } from "./tools";
+import { buildClassifyAnswerTool, buildClassifyServiceTool, buildExtractIntakeTool, EXTRACT_ZIP_TOOL } from "./tools";
 import { validateExtraction } from "./extraction";
 import {
   CALLBACK_DTMF,
@@ -35,9 +35,10 @@ import {
   NEW_OR_EXISTING_OPTIONS,
   callbackPreferencePrompt,
   confirmationLine,
-  descriptionRetryPrompt,
   existingCustomerAck,
+  finalCheckPrompt,
   goodbyeLine,
+  gracefulCloseLine,
   greetingPrompt,
   namePrompt,
   newOrExistingPrompt,
@@ -48,6 +49,7 @@ import {
   screenedGoodbyeLine,
   startOverAckLine,
   transferringLine,
+  triageClarifyPrompt,
   wrapUpReasonPrompt,
   zipPrompt,
 } from "./call-flow";
@@ -65,13 +67,6 @@ function retryLimitFor(state: string): number {
   return RETRY_LIMITS[state] ?? 1;
 }
 
-// Non-job intents that must never hijack a real job. On the opener (extraction
-// decides) or once a job is already in progress, these are ignored so job signal
-// always wins; they only route to a message when there's no job to lose. (Explicit
-// redirects — leave_message / frustrated / wants_human — are honored regardless,
-// since the caller asked for them outright.)
-const JOB_DEFERRED_INTENTS: ReadonlySet<GlobalIntent> = new Set(["existing_customer", "billing", "callback_request"]);
-
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export function startCall(ctx: FlowContext, client: RealtimeClient): void {
@@ -87,19 +82,24 @@ export function startCall(ctx: FlowContext, client: RealtimeClient): void {
 export async function handleTranscript(ctx: FlowContext, client: RealtimeClient, transcript: string): Promise<void> {
   ctx.session.conversationContext.transcript.push({ role: "user", message: transcript });
 
-  // Cheap, deterministic global-intent check first — no model call. Skipped in
-  // wrap_up_reason: there the caller's whole utterance IS the free-form message,
-  // so a phrase like "following up on my job" or "tell them I want a person" is
-  // content to capture, not a command to route on.
-  if (ctx.session.state !== "wrap_up_reason") {
+  // Out of time (3-min soft cap fired mid-turn): wrap up now rather than start
+  // another round. Skipped once we're already in a closing/terminal state.
+  if (ctx.session.closeRequested && !isClosing(ctx)) {
+    await enterGracefulClose(ctx, client);
+    return;
+  }
+
+  // Cheap, deterministic escape check first — no model call. This is just the
+  // handful of unambiguous phrases ("talk to a person", "take a message"); the
+  // real job-vs-message-vs-junk decision is the model's extract_intake triage,
+  // not here. Skipped in wrap_up_reason / final_check, where the caller's whole
+  // utterance IS the free-form content to capture, not a command to route on.
+  if (ctx.session.state !== "wrap_up_reason" && ctx.session.state !== "final_check") {
     let intent = matchDeterministicIntent(transcript);
-    // Job signal wins. The "soft" non-job intents (existing customer, billing,
-    // callback) must never hijack a real job: on the opener, let extract_intake
-    // decide (it also captures the reason — "following up on my water job" fills
-    // customer_type existing AND service_type water — which the shortcut would
-    // throw away); and once a job is already in progress, keep the job rather than
-    // divert to a message. They only route to a message when there's no job to lose.
-    if (intent && JOB_DEFERRED_INTENTS.has(intent) && (ctx.session.state === "open_description" || hasJobSignal(ctx))) {
+    // On the opener, let extract_intake's triage decide new-vs-existing / message
+    // rather than the existing-customer shortcut (which would throw away any reason
+    // the opener also stated).
+    if (intent === "existing_customer" && ctx.session.state === "open_description") {
       intent = null;
     }
     if (intent) {
@@ -204,15 +204,6 @@ export async function handleToolCall(ctx: FlowContext, client: RealtimeClient, n
     return;
   }
 
-  if (name === "detect_intent") {
-    const intent = args?.intent as GlobalIntent | undefined;
-    if (intent && intent !== "unknown") {
-      await handleGlobalIntent(ctx, client, intent);
-    } else {
-      await degradeAndContinue(ctx, client);
-    }
-    return;
-  }
 }
 
 /** Wired to the OpenAI response.done event — fires and clears any pending
@@ -229,11 +220,20 @@ export function notifyResponseDone(ctx: FlowContext, client: RealtimeClient): vo
   ctx.session.responseActive = false;
 
   const cb = ctx.session.onResponseDone;
-  if (!cb) return;
-  ctx.session.onResponseDone = undefined;
-  const result = cb();
-  if (result instanceof Promise) {
-    ctx.session.pendingContinuation = result;
+  if (cb) {
+    ctx.session.onResponseDone = undefined;
+    const result = cb();
+    if (result instanceof Promise) {
+      ctx.session.pendingContinuation = result;
+    }
+  }
+
+  // The 3-min soft cap fired mid-turn and set closeRequested. Now that this turn
+  // has finished, close gracefully — but only if the callback above didn't start a
+  // new response or queue its own continuation (in which case defer to the next
+  // notifyResponseDone rather than collide).
+  if (ctx.session.closeRequested && !isClosing(ctx) && !ctx.session.responseActive && !ctx.session.onResponseDone) {
+    void enterGracefulClose(ctx, client);
   }
 }
 
@@ -307,7 +307,7 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
         // Already urgent enough (or the vertical has a strong urgency signal) —
         // don't make the caller answer a near-duplicate question.
         ctx.session.conversationContext.callbackPreference = "as soon as possible";
-        enterConfirmation(ctx, client);
+        enterClose(ctx, client);
       } else {
         enterCallbackPreference(ctx, client);
       }
@@ -317,8 +317,21 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
     return;
   }
 
+  if (state === "final_check") {
+    // The "anything important I missed?" beat. Whatever they add is appended to the
+    // note (a question here is captured for the team, not answered) — then close.
+    const extra = transcript.trim();
+    if (extra && !/^(no|nope|nah|that'?s (it|all|everything)|nothing|i'?m good|all good)\b/i.test(extra)) {
+      const prior = ctx.session.conversationContext.reasonForCall;
+      ctx.session.conversationContext.reasonForCall = prior ? `${prior} — ${extra}` : extra;
+    }
+    enterConfirmation(ctx, client);
+    return;
+  }
+
   if (state === "wrap_up_reason") {
-    // Free-form single turn — anything non-trivial is the reason/message.
+    // Free-form single turn — anything non-trivial is the reason/message. They just
+    // had their open turn, so close straight (no redundant "anything I missed?").
     const reason = transcript.trim();
     if (reason) {
       ctx.session.conversationContext.reasonForCall = reason;
@@ -414,7 +427,7 @@ async function applyStateAnswer(ctx: FlowContext, client: RealtimeClient, value:
 
   if (ctx.session.state === "callback_preference") {
     ctx.session.conversationContext.callbackPreference = value;
-    enterConfirmation(ctx, client);
+    enterClose(ctx, client);
     return;
   }
 }
@@ -559,28 +572,68 @@ async function applyExtraction(ctx: FlowContext, client: RealtimeClient, args: u
     return;
   }
 
-  // Open description yielded nothing usable → one focused re-ask with examples,
-  // then take a message. Never dead-end a bare/gibberish opener.
+  // The single silent triage. Extraction has already run (job signal always wins):
+  // if the caller stated any job field, or the model classified this as a job, fall
+  // through to the job flow. Otherwise route by contact_type into exactly one of the
+  // three endings (job / message / screened), a transfer, or one clarification.
   if (fromState === "open_description") {
-    const gotSomething =
-      ctx.session.isNewCustomer !== undefined || Object.keys(cc.answers).length > 0 || !!cc.zipCode;
-    if (!gotSomething) {
-      const openAttempts = (ctx.session.attempts["open_description"] ?? 0) + 1;
-      ctx.session.attempts["open_description"] = openAttempts;
-      if (openAttempts <= 1) {
-        speak(ctx, client, descriptionRetryPrompt());
-        return;
+    const jobFieldsFound = Object.keys(cc.answers).length > 0;
+    const contactType = typeof (args as { contact_type?: unknown })?.contact_type === "string"
+      ? (args as { contact_type: string }).contact_type
+      : undefined;
+    const messageKindArg = normalizeMessageKind((args as { message_kind?: unknown })?.message_kind);
+
+    // Route only when there's no job signal AND the model explicitly classified a
+    // non-job contact_type. A missing contact_type or contact_type="job" falls
+    // through to the normal job flow — job signal always wins.
+    if (!jobFieldsFound) {
+      switch (contactType) {
+        case "message":
+          markMessage(ctx, messageKindArg ?? "general");
+          await jumpToWrapUp(ctx, client, "Got it — I'll pass that along to the team.", messageKindArg ?? "general");
+          return;
+        case "wrong_number":
+        case "solicitation":
+          await enterScreenedHangup(ctx, client, contactType);
+          return;
+        case "wants_human":
+          await handleWantsHuman(ctx, client);
+          return;
+        case "unclear":
+          return await clarifyOrTakeMessage(ctx, client);
       }
-      // The opener had no job signal. If it was a clear non-job (e.g. "I need to
-      // pay my bill", "have someone call me back"), preserve that kind rather than
-      // filing a generic message; otherwise it's a general message.
-      const openerKind = messageKindForIntent(matchDeterministicIntent(lastUserUtterance(ctx) ?? "")) ?? "general";
-      await jumpToWrapUp(ctx, client, "No problem — I'll take a quick message for the team.", openerKind);
-      return;
+
+      // Missing contact_type + a totally empty opener (no fields, no new/existing,
+      // no ZIP) → same clarify-then-message safety net, so a silent/gibberish opener
+      // never dead-ends. (The real model always returns contact_type; this is the
+      // robustness backstop.)
+      const gotSomething = ctx.session.isNewCustomer !== undefined || !!cc.zipCode;
+      if (contactType === undefined && !gotSomething) {
+        return await clarifyOrTakeMessage(ctx, client);
+      }
     }
   }
 
   await advance(ctx, client);
+}
+
+/** One 3-way clarification for an unclassifiable opener, then default to a general
+ *  message so the call never loops or drops. */
+async function clarifyOrTakeMessage(ctx: FlowContext, client: RealtimeClient): Promise<void> {
+  const attempts = (ctx.session.attempts["open_description"] ?? 0) + 1;
+  ctx.session.attempts["open_description"] = attempts;
+  if (attempts <= 1) {
+    speak(ctx, client, triageClarifyPrompt());
+    return;
+  }
+  markMessage(ctx, "general");
+  await jumpToWrapUp(ctx, client, "No problem — I'll take a quick message for the team.", "general");
+}
+
+/** Coerce a raw message_kind from the model to a known MessageKind, or undefined. */
+function normalizeMessageKind(raw: unknown): MessageKind | undefined {
+  const kinds: MessageKind[] = ["existing_customer", "billing", "callback", "question", "general"];
+  return typeof raw === "string" && (kinds as string[]).includes(raw) ? (raw as MessageKind) : undefined;
 }
 
 function enterQualificationFor(ctx: FlowContext, client: RealtimeClient, question: VerticalQuestion): void {
@@ -630,6 +683,49 @@ function enterConfirmation(ctx: FlowContext, client: RealtimeClient): void {
   ctx.session.state = "confirmation";
   ctx.session.onResponseDone = () => finishCall(ctx, client);
   speakConfirmation(ctx, client);
+}
+
+/** The close decision, once everything's collected. An emergency job gets a
+ *  frictionless straight confirmation; a message or a routine/partial job gets one
+ *  "anything important I missed?" beat first. */
+function enterClose(ctx: FlowContext, client: RealtimeClient): void {
+  const isEmergencyJob =
+    ctx.session.leadType !== "message" && ctx.session.conversationContext.answers.urgency === "emergency";
+  if (isEmergencyJob) {
+    enterConfirmation(ctx, client);
+    return;
+  }
+  ctx.session.state = "final_check";
+  speak(ctx, client, finalCheckPrompt());
+}
+
+/** Whether a close/terminal sequence is already underway — so the graceful-close
+ *  timer never re-triggers on top of an in-progress ending. */
+function isClosing(ctx: FlowContext): boolean {
+  const s = ctx.session.state;
+  return s === "final_check" || s === "confirmation" || s === "create_lead" || s === "end";
+}
+
+/** Called by the 3-minute soft-cap timer (from the stream route). If we can speak
+ *  now, close gracefully; otherwise flag it and let the next safe boundary
+ *  (handleTranscript / notifyResponseDone) pick it up without colliding with an
+ *  in-flight turn. */
+export async function requestGracefulClose(ctx: FlowContext, client: RealtimeClient): Promise<void> {
+  if (isClosing(ctx)) return;
+  if (ctx.session.responseActive || ctx.session.onResponseDone) {
+    ctx.session.closeRequested = true;
+    return;
+  }
+  await enterGracefulClose(ctx, client);
+}
+
+/** Soft-cap close: say we have enough, then capture what exists and hang up.
+ *  Skips the "anything I missed?" beat — we're out of time. */
+async function enterGracefulClose(ctx: FlowContext, client: RealtimeClient): Promise<void> {
+  ctx.session.closeRequested = false;
+  ctx.session.state = "end";
+  ctx.session.onResponseDone = () => finishCall(ctx, client);
+  speak(ctx, client, gracefulCloseLine());
 }
 
 /**
@@ -719,17 +815,17 @@ async function degradeAndContinue(ctx: FlowContext, client: RealtimeClient): Pro
 
   if (state === "callback_preference") {
     cc.callbackPreference = cc.callbackPreference ?? "as soon as possible";
-    enterConfirmation(ctx, client);
+    enterClose(ctx, client);
     return;
   }
 
   if (state === "new_or_existing") {
-    await jumpToWrapUp(ctx, client, "No problem — I'll take a quick message for the team.");
+    await jumpToWrapUp(ctx, client, "No problem — I'll take a quick message for the team.", "general");
     return;
   }
 
   // wrap_up_reason or any other state → confirm/save what we have.
-  enterConfirmation(ctx, client);
+  enterClose(ctx, client);
 }
 
 /** Capture the caller's own words as an off-list service (no configured match,
@@ -756,7 +852,7 @@ function proceedPastName(ctx: FlowContext, client: RealtimeClient): void {
     proceedAfterNameWrapUp(ctx, client);
   } else if (!shouldAskCallbackPreference(ctx)) {
     cc.callbackPreference = "as soon as possible";
-    enterConfirmation(ctx, client);
+    enterClose(ctx, client);
   } else {
     enterCallbackPreference(ctx, client);
   }
@@ -781,7 +877,9 @@ async function jumpToWrapUp(ctx: FlowContext, client: RealtimeClient, ackLine?: 
  *  open reason turn if we don't already know why they called, else confirm. */
 function proceedAfterNameWrapUp(ctx: FlowContext, client: RealtimeClient): void {
   if (hasKnownReason(ctx)) {
-    enterConfirmation(ctx, client);
+    // Reason already known → no open turn was needed, so give the one "anything I
+    // missed?" beat here (enterClose) rather than confirming blind.
+    enterClose(ctx, client);
   } else {
     enterWrapUpReason(ctx, client, ctx.session.wrapUpReasonMode ?? "existing");
   }
@@ -811,14 +909,6 @@ async function handleWantsHuman(ctx: FlowContext, client: RealtimeClient): Promi
   ctx.session.onResponseDone = () => transferCallAction(ctx); // fires only after the line finishes playing
 }
 
-/** True once the call has any real job signal — a captured service (structured or
- *  off-list). Used to keep job intake from being hijacked by a non-job intent and
- *  to refuse to screen/abandon a call that already looks like a real opportunity. */
-function hasJobSignal(ctx: FlowContext): boolean {
-  const cc = ctx.session.conversationContext;
-  return Object.keys(cc.answers).length > 0 || !!cc.serviceRequested;
-}
-
 /** Tag this call as a captured message (not a scored job). captureLead reads
  *  session.leadType to skip scoring/ranking and file it with a low-key alert. */
 function markMessage(ctx: FlowContext, kind: MessageKind): void {
@@ -826,38 +916,19 @@ function markMessage(ctx: FlowContext, kind: MessageKind): void {
   ctx.session.messageKind = kind;
 }
 
-/** The message sub-label a non-job intent maps to, or null if the intent isn't a
- *  message-producing one. */
-function messageKindForIntent(intent: GlobalIntent | null): MessageKind | null {
-  switch (intent) {
-    case "existing_customer":
-      return "existing_customer";
-    case "billing":
-      return "billing";
-    case "callback_request":
-    case "wants_human":
-      return "callback";
-    case "unsupported_question":
-      return "question";
-    case "leave_message":
-    case "frustrated":
-      return "general";
-    default:
-      return null;
-  }
-}
-
-/** Confident junk (wrong number / solicitation): end the call with NO lead. The
- *  call row still records it — endCall reads session.screened → outcome 'screened' —
- *  so it's auditable but never pollutes the leads inbox or the completion rate. */
-async function enterScreenedHangup(ctx: FlowContext, client: RealtimeClient): Promise<void> {
+/** Confident junk (triage contact_type wrong_number / solicitation): end the call
+ *  with NO lead. The call row still records it — endCall reads session.screened →
+ *  outcome 'screened' and session.screenedReason → the reason — so it's auditable
+ *  but never pollutes the leads inbox or the completion rate. */
+async function enterScreenedHangup(ctx: FlowContext, client: RealtimeClient, reason: string): Promise<void> {
   ctx.session.screened = true;
+  ctx.session.screenedReason = reason;
   ctx.session.state = "end";
   speak(ctx, client, screenedGoodbyeLine());
   ctx.session.onResponseDone = () => ctx.onComplete();
 }
 
-// ─── Global intent dispatch ─────────────────────────────────────────────────────
+// ─── Global intent dispatch (the cheap deterministic escapes only) ───────────────
 
 async function handleGlobalIntent(ctx: FlowContext, client: RealtimeClient, intent: GlobalIntent): Promise<void> {
   switch (intent) {
@@ -868,10 +939,10 @@ async function handleGlobalIntent(ctx: FlowContext, client: RealtimeClient, inte
       enterExistingCustomerPath(ctx, client);
       return;
     case "leave_message":
-      await jumpToWrapUp(ctx, client, "No problem, I'll take a quick message.");
+      await jumpToWrapUp(ctx, client, "No problem, I'll take a quick message.", "general");
       return;
     case "frustrated":
-      await jumpToWrapUp(ctx, client, "I understand — let's make this quick.");
+      await jumpToWrapUp(ctx, client, "I understand — let's make this quick.", "general");
       return;
     case "start_over":
       ctx.session.conversationContext.answers = {};
@@ -884,45 +955,6 @@ async function handleGlobalIntent(ctx: FlowContext, client: RealtimeClient, inte
     case "repeat":
       speak(ctx, client, retryPromptText(ctx));
       return;
-    case "unsupported_question":
-      // Serve-area / hours / pricing question. If a job is already in progress,
-      // answer briefly and stay in the intake; otherwise there's nothing to score —
-      // capture it as a question message for the team to answer on callback.
-      if (hasJobSignal(ctx)) {
-        speak(ctx, client, `I can take the details of your request, but the team will need to answer that directly. ${retryPromptText(ctx)}`);
-      } else {
-        await jumpToWrapUp(ctx, client, "I'll pass that question to the team so they can get back to you.", "question");
-      }
-      return;
-    case "billing":
-      // Existing-account money matter — not a new job. Keep any job already in
-      // progress; otherwise take a billing message.
-      if (hasJobSignal(ctx)) {
-        await degradeAndContinue(ctx, client);
-      } else {
-        await jumpToWrapUp(ctx, client, "Sure — I can take a message about that for the team.", "billing");
-      }
-      return;
-    case "callback_request":
-      if (hasJobSignal(ctx)) {
-        await degradeAndContinue(ctx, client);
-      } else {
-        await jumpToWrapUp(ctx, client, "Sure — I'll have the team call you back.", "callback");
-      }
-      return;
-    case "wrong_number":
-    case "solicitation":
-      // Confident junk → end with no lead (calls.outcome 'screened'). But never
-      // drop a call that already has real job signal — that's contradictory, so
-      // treat it as ambiguous and keep the job.
-      if (hasJobSignal(ctx)) {
-        await degradeAndContinue(ctx, client);
-      } else {
-        await enterScreenedHangup(ctx, client);
-      }
-      return;
-    default:
-      await handleStateFailure(ctx, client);
   }
 }
 
@@ -949,17 +981,11 @@ async function handleStateFailure(ctx: FlowContext, client: RealtimeClient): Pro
     return;
   }
 
-  // Silent safety net: is the caller actually trying to reach a human or leave a
-  // message? (Most such phrasings are already caught deterministically on every
-  // turn; this is the fallback classifier.) If not, gracefully degrade THIS
-  // field — capture what we have and continue. We never route a call to voicemail.
-  ctx.session.responseActive = true;
-  client.createResponse({
-    instructions: "The caller's last answer didn't match what was asked. Classify what they actually want.",
-    output_modalities: ["text"],
-    tools: [DETECT_INTENT_TOOL],
-    tool_choice: { type: "function", name: "detect_intent" },
-  });
+  // Retries exhausted on a non-primary field → gracefully degrade: capture what we
+  // have and keep moving toward a saved lead. No mid-flow model re-triage — the
+  // deterministic escapes already catch "talk to a person" / "take a message", and
+  // the opener triage classified the call; a blunt degrade beats an FAQ loop.
+  await degradeAndContinue(ctx, client);
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────

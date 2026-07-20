@@ -46,7 +46,8 @@ describe("greetingPrompt", () => {
   it("falls back to a generic greeting when no custom greetingMessage is set", () => {
     const ctx = makeFlowContext();
     expect(greetingPrompt(ctx)).toContain("Thanks for calling Blue Star Restoration");
-    expect(greetingPrompt(ctx)).toContain("automated intake assistant");
+    expect(greetingPrompt(ctx)).toContain("automated assistant");
+    expect(greetingPrompt(ctx)).toContain("get this to the team");
   });
 
   it("uses the business's custom greetingMessage when set", () => {
@@ -71,7 +72,7 @@ describe("greetingPrompt", () => {
 
   it("always identifies itself as an automated assistant, regardless of recording settings", () => {
     const ctx = makeFlowContext({ business: makeBusiness({ recordingEnabled: false, recordingDisclosure: null }) });
-    expect(greetingPrompt(ctx)).toContain("I'm their automated intake assistant");
+    expect(greetingPrompt(ctx)).toContain("automated assistant");
   });
 });
 

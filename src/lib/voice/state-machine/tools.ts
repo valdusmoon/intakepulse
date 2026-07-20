@@ -29,6 +29,27 @@ export interface FunctionDefinition {
  */
 export function buildExtractIntakeTool(questions: VerticalQuestion[]): FunctionDefinition {
   const properties: Record<string, unknown> = {
+    // The single silent triage: why the caller is calling. Code routes on this
+    // (job flow vs message vs screened vs transfer vs one clarification) — the
+    // model only classifies, never drives.
+    contact_type: {
+      type: "string",
+      enum: ["job", "message", "wrong_number", "solicitation", "wants_human", "unclear"],
+      description:
+        "Why the caller is calling, from their first answer. " +
+        "\"job\" = they want service/work done or are reporting a problem to fix (even if vague). " +
+        "\"message\" = a non-job matter for the team: an existing customer, a billing/account question, a request to be called back, a general question (hours, service area, pricing), or any message to pass along. " +
+        "\"wrong_number\" = they clearly misdialed. " +
+        "\"solicitation\" = a sales/marketing/vendor pitch (SEO, ads, business loans, etc). " +
+        "\"wants_human\" = they explicitly asked to speak to a person. " +
+        "\"unclear\" = you genuinely cannot tell. Prefer \"unclear\" over guessing.",
+    },
+    message_kind: {
+      type: "string",
+      enum: ["existing_customer", "billing", "callback", "question", "general"],
+      description:
+        "Only when contact_type is \"message\": existing_customer (already a customer / about an existing job or appointment), billing (a bill, invoice, payment, or refund), callback (asked to be called back), question (asked something the team must answer — hours, service area, pricing), or general.",
+    },
     customer_type: {
       type: "string",
       enum: ["new", "existing", "unclear"],
@@ -57,10 +78,11 @@ export function buildExtractIntakeTool(questions: VerticalQuestion[]): FunctionD
     name: "extract_intake",
     type: "function",
     description:
-      "Capture every field the caller has ALREADY mentioned in their own words, in a single pass. " +
-      "Include a field only if the caller clearly indicated it — omit anything they did not say. " +
+      "Capture every job-intake field the caller has ALREADY mentioned in their own words, in a single pass, " +
+      "AND classify why they are calling (contact_type, always required). " +
+      "Include a job field only if the caller clearly indicated it — omit anything they did not say. " +
       "Do not guess or infer beyond what was actually stated.",
-    parameters: { type: "object", properties },
+    parameters: { type: "object", properties, required: ["contact_type"] },
   };
 }
 
@@ -129,36 +151,3 @@ export const EXTRACT_ZIP_TOOL: FunctionDefinition = {
   },
 };
 
-/**
- * Fallback-only global intent classifier — invoked when a state's own
- * classification fails to match an allowed value, not on every turn.
- */
-export const DETECT_INTENT_TOOL: FunctionDefinition = {
-  name: "detect_intent",
-  type: "function",
-  description:
-    "The caller's answer didn't fit what was asked. Classify what they actually seem to want.",
-  parameters: {
-    type: "object",
-    properties: {
-      intent: {
-        type: "string",
-        enum: [
-          "wants_human",
-          "existing_customer",
-          "unsupported_question",
-          "leave_message",
-          "start_over",
-          "repeat",
-          "frustrated",
-          "billing",
-          "callback_request",
-          "wrong_number",
-          "solicitation",
-          "unknown",
-        ],
-      },
-    },
-    required: ["intent"],
-  },
-};

@@ -157,7 +157,12 @@ export default async function CallsPage({
               </thead>
               <tbody>
                 {callRows.map((call) => {
-                  const meta = OUTCOME_META[call.outcome] ?? OUTCOME_META.in_progress;
+                  const baseMeta = OUTCOME_META[call.outcome] ?? OUTCOME_META.in_progress;
+                  // Surface the specific screening reason (wrong number vs solicitation).
+                  const meta =
+                    call.outcome === "screened" && call.screenedReason
+                      ? { ...baseMeta, sub: `${call.screenedReason.replace(/_/g, " ")} — no lead taken` }
+                      : baseMeta;
                   const service = deriveServiceLabel(verticalConfig, call.leadIntakeAnswers);
                   const priority = call.leadId ? priorityMeta(call.leadUrgencyScore) : null;
                   return (

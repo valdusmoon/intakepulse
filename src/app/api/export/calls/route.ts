@@ -73,7 +73,9 @@ export async function GET(req: NextRequest) {
     csvDateTime(call.createdAt, business.timezone),
     call.callerPhone,
     call.calledNumber,
-    OUTCOME_LABELS[call.outcome] ?? call.outcome,
+    call.outcome === "screened" && call.screenedReason
+      ? `${OUTCOME_LABELS.screened} — ${call.screenedReason.replace(/_/g, " ")}`
+      : OUTCOME_LABELS[call.outcome] ?? call.outcome,
     call.aiHandled,
     fmtDuration(call.durationSeconds),
     call.durationSeconds,

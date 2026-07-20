@@ -152,6 +152,16 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
     (ws as any).openaiClient = openaiClient;
     (ws as any).ctx = ctx;
 
+    // Soft cap — at 3 min, gracefully switch to closing rather than let a rambling
+    // or stuck call run to the hard cap. Routes into the engine's normal close path
+    // (gated on responseActive so it queues behind an in-flight turn).
+    (ws as any).gracefulTimer = setTimeout(() => {
+      logger.info("Graceful-close soft cap reached — wrapping up", {
+        correlationId: session.correlationId,
+      });
+      void engine.requestGracefulClose(ctx, openaiClient);
+    }, TIMEOUTS.GRACEFUL_CLOSE_DURATION);
+
     // Hard safety cap — see constants.ts for why this sits under Vercel's 300s ceiling
     (ws as any).safetyTimer = setTimeout(() => {
       logger.warn("Call duration limit reached — forcing disconnect", {
@@ -177,8 +187,10 @@ async function cleanupConnection(ws: WebSocket): Promise<void> {
   const ctx = (ws as any).ctx as FlowContext | undefined;
   const openaiClient = (ws as any).openaiClient as RealtimeClient | undefined;
   const safetyTimer = (ws as any).safetyTimer as NodeJS.Timeout | undefined;
+  const gracefulTimer = (ws as any).gracefulTimer as NodeJS.Timeout | undefined;
 
   if (safetyTimer) clearTimeout(safetyTimer);
+  if (gracefulTimer) clearTimeout(gracefulTimer);
   if (ctx?.session.silenceTimeout) clearTimeout(ctx.session.silenceTimeout);
   if (openaiClient) openaiClient.close();
 

@@ -109,13 +109,13 @@ describe("adaptive engine flow", () => {
     expect(ctx.session.state).toBe("zip_code");
   });
 
-  it("an empty opener re-asks the description once, then takes a message (never dead-ends)", async () => {
+  it("an empty opener asks the 3-way clarification once, then takes a message (never dead-ends)", async () => {
     engine.startCall(ctx, client);
-    // 1st empty opener → one focused re-ask, still gathering the description.
+    // 1st empty opener → one 3-way clarification, still gathering.
     await engine.handleToolCall(ctx, client, "extract_intake", {});
     expect(ctx.session.state).toBe("open_description");
     const reask = [...ctx.session.conversationContext.transcript].reverse().find((t) => t.role === "assistant")?.message ?? "";
-    expect(reask.toLowerCase()).toContain("quick description");
+    expect(reask.toLowerCase()).toContain("take a message");
 
     // 2nd empty opener → take a message (name ask), NOT voicemail.
     await engine.handleToolCall(ctx, client, "extract_intake", {});
@@ -153,12 +153,16 @@ describe("adaptive engine flow", () => {
     expect(ctx.session.state).toBe("confirmation");
   });
 
-  it("existing customer whose opener already gave a reason skips the reason ask", async () => {
+  it("existing customer whose opener already gave a reason skips the reason ask (gets the final-check beat)", async () => {
     engine.startCall(ctx, client);
     await engine.handleToolCall(ctx, client, "extract_intake", { customer_type: "existing", service_type: "water" });
     expect(ctx.session.state).toBe("name");
     await engine.handleTranscript(ctx, client, "Sam");
-    // service_type already known → straight to confirmation, no reason turn.
+    // Reason already known → no open reason turn; a message gets the one "anything
+    // I missed?" beat instead of confirming blind.
+    expect(ctx.session.state).toBe("final_check");
+    // Answering the beat → confirmation.
+    await engine.handleTranscript(ctx, client, "no that's it");
     expect(ctx.session.state).toBe("confirmation");
   });
 
@@ -227,35 +231,52 @@ describe("leadType: non-job calls become messages, junk gets screened", () => {
     expect(ctx.session.messageKind).toBe("general");
   });
 
-  it("a billing intent with no job in progress becomes a billing message", async () => {
+  it("triage → billing becomes a billing message", async () => {
     engine.startCall(ctx, client);
-    await engine.handleToolCall(ctx, client, "detect_intent", { intent: "billing" });
+    await engine.handleToolCall(ctx, client, "extract_intake", { contact_type: "message", message_kind: "billing" });
     expect(ctx.session.leadType).toBe("message");
     expect(ctx.session.messageKind).toBe("billing");
     expect(ctx.session.state).toBe("name");
   });
 
-  it("a callback request with no job in progress becomes a callback message", async () => {
+  it("triage → callback becomes a callback message", async () => {
     engine.startCall(ctx, client);
-    await engine.handleToolCall(ctx, client, "detect_intent", { intent: "callback_request" });
+    await engine.handleToolCall(ctx, client, "extract_intake", { contact_type: "message", message_kind: "callback" });
     expect(ctx.session.leadType).toBe("message");
     expect(ctx.session.messageKind).toBe("callback");
   });
 
-  it("a serve-area / hours / pricing question with no job becomes a question message", async () => {
+  it("triage → a serve-area / hours / pricing question becomes a question message", async () => {
     engine.startCall(ctx, client);
-    await engine.handleToolCall(ctx, client, "detect_intent", { intent: "unsupported_question" });
+    await engine.handleToolCall(ctx, client, "extract_intake", { contact_type: "message", message_kind: "question" });
     expect(ctx.session.leadType).toBe("message");
     expect(ctx.session.messageKind).toBe("question");
   });
 
-  it("a confident-junk wrong number is screened with NO lead created", async () => {
+  it("triage → wrong_number is screened with NO lead + a screenedReason", async () => {
     engine.startCall(ctx, client);
-    await engine.handleTranscript(ctx, client, "sorry, wrong number");
+    await engine.handleToolCall(ctx, client, "extract_intake", { contact_type: "wrong_number" });
     expect(ctx.session.screened).toBe(true);
+    expect(ctx.session.screenedReason).toBe("wrong_number");
     expect(ctx.session.state).toBe("end");
     expect(ctx.session.leadType).toBeUndefined(); // never tagged a message either
     expect(createLead).not.toHaveBeenCalled();
+  });
+
+  it("triage → solicitation is screened with NO lead", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { contact_type: "solicitation" });
+    expect(ctx.session.screened).toBe(true);
+    expect(ctx.session.screenedReason).toBe("solicitation");
+    expect(createLead).not.toHaveBeenCalled();
+  });
+
+  it("job signal wins: a captured service routes to the job flow even if contact_type says message", async () => {
+    engine.startCall(ctx, client);
+    await engine.handleToolCall(ctx, client, "extract_intake", { contact_type: "message", service_type: "water" });
+    // A real service outranks the classifier → job flow (ZIP next), never a message.
+    expect(ctx.session.leadType).toBeUndefined();
+    expect(ctx.session.state).toBe("zip_code");
   });
 
   it("job signal wins: 'wrong number' AFTER a service was captured does NOT screen the call", async () => {

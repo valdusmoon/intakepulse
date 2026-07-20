@@ -10,9 +10,18 @@ export const TIMEOUTS = {
   ONGOING_SILENCE: 60_000,
 
   /**
-   * Maximum call duration before forced disconnect. Kept under Vercel Hobby's
-   * hard 300s (5min) per-WebSocket-connection cap — the instruction builder's
-   * wrap-up guard (Phase 5) should trigger before this fires in practice.
+   * Soft cap: at 3 minutes the AI gracefully switches to closing (says it has
+   * enough, captures what exists, hangs up) rather than letting a rambling/stuck
+   * call run on — see engine.requestGracefulClose. This should fire before the
+   * hard cap below in practice.
+   */
+  GRACEFUL_CLOSE_DURATION: 3 * 60 * 1000,
+
+  /**
+   * Hard cap: maximum call duration before forced disconnect. Kept under Vercel
+   * Hobby's hard 300s (5min) per-WebSocket-connection cap. The graceful close
+   * above should trigger first; this is the backstop (WS close → cleanupConnection
+   * force-captures a partial lead).
    */
   MAX_CALL_DURATION: 4.5 * 60 * 1000,
 

@@ -23,8 +23,11 @@ export const calls = pgTable("calls", {
 
   status: text("status").notNull().default("initiated"), // 'initiated' | 'ringing' | 'answered' | 'missed' | 'voicemail'
 
-  // 'in_progress' | 'business_answered' | 'ai_captured' | 'transferred' | 'abandoned'
+  // 'in_progress' | 'business_answered' | 'ai_captured' | 'transferred' | 'abandoned' | 'screened'
   outcome: text("outcome").notNull().default("in_progress"),
+  // Why a call was screened (outcome='screened'): 'wrong_number' | 'solicitation'.
+  // Null for every other outcome. Makes junk-screening auditable, not a black box.
+  screenedReason: text("screened_reason"),
   // True once the AI overflow receptionist took over this call
   aiHandled: boolean("ai_handled").notNull().default(false),
 

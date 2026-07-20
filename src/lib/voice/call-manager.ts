@@ -241,6 +241,9 @@ export async function endCall(session: SessionState): Promise<void> {
     await updateCall(session.callId, {
       status: "answered",
       outcome,
+      // Why it was screened (wrong_number / solicitation) — null for every other
+      // outcome; set by enterScreenedHangup.
+      screenedReason: outcome === "screened" ? session.screenedReason ?? null : null,
       endedAt: new Date(),
       durationSeconds,
       transcript: session.conversationContext.transcript,
