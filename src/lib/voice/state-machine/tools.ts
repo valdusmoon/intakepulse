@@ -37,11 +37,12 @@ export function buildExtractIntakeTool(questions: VerticalQuestion[]): FunctionD
       enum: ["job", "message", "wrong_number", "solicitation", "wants_human", "unclear"],
       description:
         "Why the caller is calling, from their first answer. " +
-        "\"job\" = they want service/work done or are reporting a problem to fix (even if vague). " +
-        "\"message\" = a non-job matter for the team: an existing customer, a billing/account question, a request to be called back, a general question (hours, service area, pricing), or any message to pass along. " +
+        "\"job\" = they are reporting a problem they CURRENTLY HAVE or want service/work done (even if vague). " +
+        "Merely asking ABOUT a service, or price-shopping (\"how much is mold remediation\", \"do you do X\") WITHOUT describing a problem they actually have, is NOT a job — that's a \"message\". " +
+        "\"message\" = a non-job matter for the team: an existing customer, a billing/account question, a request to be called back, a general question (hours, service area, pricing, price-shopping), a vendor/applicant, or any message to pass along. " +
         "\"wrong_number\" = they clearly misdialed. " +
-        "\"solicitation\" = a sales/marketing/vendor pitch (SEO, ads, business loans, etc). " +
-        "\"wants_human\" = they explicitly asked to speak to a person. " +
+        "\"solicitation\" = anyone trying to SELL to or pitch the business (SEO, marketing, insurance, staffing, financing, ads, etc) — INCLUDING when they ask to reach \"the owner\" or \"a decision-maker\" in order to sell or offer something. Classify a sales pitch as solicitation even if they ask for the owner. " +
+        "\"wants_human\" = a CUSTOMER (not a salesperson) explicitly asks to speak to a real person about their own issue. " +
         "\"unclear\" = you genuinely cannot tell. Prefer \"unclear\" over guessing.",
     },
     message_kind: {
@@ -81,6 +82,8 @@ export function buildExtractIntakeTool(questions: VerticalQuestion[]): FunctionD
       "Capture every job-intake field the caller has ALREADY mentioned in their own words, in a single pass, " +
       "AND classify why they are calling (contact_type, always required). " +
       "Include a job field only if the caller clearly indicated it — omit anything they did not say. " +
+      "Only fill a service/problem field when the caller describes a problem they ACTUALLY HAVE; if they are merely asking " +
+      "about a service or price-shopping (contact_type \"message\"), leave the job fields empty. " +
       "Do not guess or infer beyond what was actually stated.",
     parameters: { type: "object", properties, required: ["contact_type"] },
   };

@@ -92,10 +92,19 @@ const NAME_LEAD_FILLER = /^\s*(yeah|yes|yep|sure|ok|okay|um+|uh+|hi|hello|hey|we
  * The result is only trusted when looksLikeName() agrees; otherwise the engine falls
  * back to a model extraction. Never over-trust this: real callers ramble.
  */
+// An introducer immediately followed by the name ("... it's Ed Nakamura").
+const NAME_INTRODUCER = /\b(?:my name is|the name is|name'?s|name is|this is|i'?m|i am|it'?s|its)\s+([A-Za-z][^.,!?;]*)/i;
+
 export function cleanSpokenName(transcript: string): string {
-  let s = transcript.trim();
-  let prev = "";
-  while (s !== prev) { prev = s; s = s.replace(NAME_LEAD_FILLER, ""); }
+  // Prefer the text right AFTER an introducer — handles filler BEFORE the name
+  // ("yeah, of course, it's Ed Nakamura" → "Ed Nakamura"), which a leading-strip
+  // would miss. The capture must start with a letter so "it's... uh" doesn't match.
+  const intro = transcript.match(NAME_INTRODUCER);
+  let s = intro ? intro[1].trim() : transcript.trim();
+  if (!intro) {
+    let prev = "";
+    while (s !== prev) { prev = s; s = s.replace(NAME_LEAD_FILLER, ""); }
+  }
   // Cut at the first sentence boundary and drop any trailing "and/but/, ..." clause.
   s = s.split(/[.!?;]/)[0];
   s = s.replace(/\s+(and|but)\s+.*$/i, "").split(",")[0];
@@ -115,7 +124,36 @@ const NAME_STOPWORDS = new Set([
   "no", "yes", "yeah", "yep", "nope", "nah", "bye", "goodbye", "okay", "ok", "hi", "hello", "hey",
   "thanks", "thank", "you", "sure", "nevermind", "nothing", "none", "wrong", "number", "sorry",
   "stop", "help", "what", "who", "why", "wait", "um", "uh", "please", "good",
+  "never", "mind", "maybe", "guess", "know", "dunno", "course", "of", "yep", "yup", "here",
 ]);
+
+/**
+ * The deterministic name decision, used by the engine: returns a trusted name, or
+ * null meaning "not confident — hand to the model extractor". We only trust the
+ * deterministic clean for a SHORT answer (≤6 words), because "it's X" is ambiguous
+ * over a long/rambly turn ("it's really urgent" vs "it's Ed Nakamura, and…") — the
+ * LLM resolves those. Refusals are handled by the engine before this. Never returns
+ * filler ("No", "of course") thanks to looksLikeName's stopword guard.
+ */
+export function trustDeterministicName(transcript: string): string | null {
+  if (isNameRefusal(transcript)) return null;
+  // A strong, unambiguous introducer ("my name is X", "this is X") — trust the
+  // extraction (nobody says "my name is really urgent").
+  const strong = transcript.match(/\b(?:my name is|the name is|name'?s|name is|this is)\s+([A-Za-z][^.,!?;]*)/i);
+  if (strong) {
+    const n = strong[1].split(",")[0].replace(/[.!?,]+$/, "").trim();
+    return looksLikeName(n) ? n : null;
+  }
+  // No introducer: trust ONLY a very short (≤3-word), clean, name-shaped answer
+  // ("Marcus Webb", "it's Sarah"). Anything longer or phrase-like ("how does this
+  // work", "yeah of course it's Ed…") is ambiguous → hand to the model extractor.
+  const words = transcript.trim().split(/\s+/).filter(Boolean).length;
+  if (words <= 3) {
+    const cleaned = cleanSpokenName(transcript);
+    if (looksLikeName(cleaned)) return cleaned;
+  }
+  return null;
+}
 
 /** A conservative "does this look like an actual name?" check — 1-4 alphabetic
  *  tokens, reasonable length, not just filler words. Anything else goes to the

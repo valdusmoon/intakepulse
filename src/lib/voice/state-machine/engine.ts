@@ -25,7 +25,7 @@ import type { RealtimeClient } from "../realtime-client";
 import type { FlowContext } from "./types";
 import { matchDeterministicIntent, type GlobalIntent } from "./global-intent";
 import type { MessageKind } from "../types/session";
-import { cleanSpokenName, isNameRefusal, looksLikeName, mentionsServiceNeed, isNegatedOptionMatch, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
+import { isNameRefusal, trustDeterministicName, mentionsServiceNeed, isNegatedOptionMatch, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
 import { extractCallerNameLLM } from "./name-extract";
 import { buildClassifyAnswerTool, buildClassifyServiceTool, buildExtractIntakeTool, EXTRACT_ZIP_TOOL } from "./tools";
 import { validateExtraction } from "./extraction";
@@ -312,10 +312,11 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
       proceedPastName(ctx, client);
       return;
     }
-    // Deterministic-first: a clean, name-shaped answer is used with no model call.
-    const cleaned = cleanSpokenName(transcript);
-    if (looksLikeName(cleaned)) {
-      applyCallerName(ctx, client, cleaned);
+    // Deterministic-first: a short, clean, name-shaped answer is used with no model
+    // call. A longer/rambly answer is low-confidence → model extraction.
+    const fast = trustDeterministicName(transcript);
+    if (fast) {
+      applyCallerName(ctx, client, fast);
       return;
     }
     // Low confidence (rambling / embedded name) → surgical gpt-4o-mini extraction,
@@ -323,8 +324,6 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
     const extracted = await extractCallerNameLLM(transcript);
     if (extracted) {
       applyCallerName(ctx, client, extracted);
-    } else if (looksLikeName(cleaned)) {
-      applyCallerName(ctx, client, cleaned);
     } else {
       proceedPastName(ctx, client);
     }

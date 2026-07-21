@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { tryMatchOptionLabel, tryMatchOrdinal, tryExtractZipDeterministic, cleanSpokenName, looksLikeName, isNameRefusal, mentionsServiceNeed, isNegatedOptionMatch, type OptionLike } from "./deterministic";
+import { tryMatchOptionLabel, tryMatchOrdinal, tryExtractZipDeterministic, cleanSpokenName, looksLikeName, isNameRefusal, trustDeterministicName, mentionsServiceNeed, isNegatedOptionMatch, type OptionLike } from "./deterministic";
 
 const DAMAGE: OptionLike[] = [
   { label: "Water", value: "water" },
@@ -92,10 +92,21 @@ describe("name resolution — real spoken input", () => {
     expect(cleanSpokenName("Yeah, it's Dolores Rivera. I have State Farm insurance too")).toBe("Dolores Rivera");
     expect(cleanSpokenName("Sure, it's Hank Ford")).toBe("Hank Ford");
     expect(cleanSpokenName("um, Marcus Bell")).toBe("Marcus Bell");
+    expect(cleanSpokenName("Yeah, of course, it's Ed Nakamura")).toBe("Ed Nakamura");
+    expect(cleanSpokenName("Marcus Webb")).toBe("Marcus Webb");
     expect(looksLikeName(cleanSpokenName("Yeah, it's Dolores Rivera. I have State Farm insurance too"))).toBe(true);
   });
-  it("flags rambly/non-name answers as low-confidence (→ model fallback)", () => {
-    expect(looksLikeName(cleanSpokenName("I already told you three times, it's really urgent"))).toBe(false);
+  it("trustDeterministicName: trusts short/introduced clean names, hands ambiguous ones to the model", () => {
+    expect(trustDeterministicName("Marcus Webb")).toBe("Marcus Webb");
+    expect(trustDeterministicName("it's Sarah")).toBe("Sarah");
+    expect(trustDeterministicName("my name is Daniel")).toBe("Daniel");
+    expect(trustDeterministicName("this is Cora Diaz")).toBe("Cora Diaz");
+    // Rambly / phrase-like / declined → null (→ LLM fallback), never a garbage name.
+    expect(trustDeterministicName("Yeah, of course, it's Ed Nakamura")).toBeNull(); // long → LLM
+    expect(trustDeterministicName("How does this work")).toBeNull();
+    expect(trustDeterministicName("I already told you three times, it's really urgent")).toBeNull();
+    expect(trustDeterministicName("No, all good, thanks, bye")).toBeNull();
+    expect(trustDeterministicName("I'd rather not say")).toBeNull();
   });
   it("rejects one-word filler answers as names ('No', 'bye', 'okay thanks')", () => {
     expect(looksLikeName(cleanSpokenName("No, all good. Thanks, bye."))).toBe(false);
