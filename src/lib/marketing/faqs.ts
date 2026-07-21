@@ -28,7 +28,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: "What happens if the caller wants a person?",
-    a: "Callverted can capture the request, mark the lead accordingly, and optionally warm-transfer to a number you configure, so a true emergency reaches a human right away.",
+    a: "Callverted takes down who they are and what they need, marks it accordingly, and alerts your team right away by text and push so someone can call them back fast.",
   },
   {
     q: "How fast can we launch?",

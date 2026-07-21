@@ -113,7 +113,6 @@ function CallSetupPanel({ business }: { business: Business }) {
   const [overflowMode, setOverflowMode] = useState(business.overflowMode);
   const routing = useSave();
 
-  const [urgentTransferNumber, setUrgentTransferNumber] = useState(business.urgentTransferNumber ?? "");
   const [recordingEnabled, setRecordingEnabled] = useState(business.recordingEnabled);
   const [recordingDisclosure, setRecordingDisclosure] = useState(business.recordingDisclosure ?? "");
   const [recError, setRecError] = useState("");
@@ -194,10 +193,6 @@ function CallSetupPanel({ business }: { business: Business }) {
           </div>
         </CardHeader>
         <CardBody className="flex flex-col gap-4">
-          <FormGroup label="Urgent transfer number (optional)" help="If a caller asks for a person, the AI can transfer them here live. Use a reliably-staffed line (an on-call phone) — not the number Callverted already rings, or it'll just ring out again.">
-            <Field className="font-cv-mono" value={urgentTransferNumber} onChange={(e) => setUrgentTransferNumber(e.target.value)} placeholder="+1 (555) 000-0000" />
-          </FormGroup>
-
           <div className="rounded-xl border border-cv-border p-4 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -244,7 +239,6 @@ function CallSetupPanel({ business }: { business: Business }) {
               }
               setRecError("");
               experience.save({
-                urgentTransferNumber: urgentTransferNumber || null,
                 recordingEnabled,
                 recordingDisclosure: recordingDisclosure.trim() || null,
               });

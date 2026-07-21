@@ -32,7 +32,7 @@ export const COMPARISONS: Comparison[] = [
       { dimension: "Caller effort", them: "Caller must explain everything to a recording", us: "Guided questions, answered in ~40 seconds" },
       { dimension: "Qualification", them: "None", us: "Service type, urgency, value, service-area fit" },
       { dimension: "What you get", them: "A vague message, if they leave one", us: "A scored lead with summary and transcript" },
-      { dimension: "Emergency handling", them: "Sits until you check messages", us: "Can warm-transfer true emergencies to a human" },
+      { dimension: "Emergency handling", them: "Sits until you check messages", us: "Flags true emergencies and alerts your team instantly" },
       { dimension: "Hang-up rate", them: "Most callers hang up on voicemail", us: "The call is answered before they give up" },
     ],
     bottomLine:
@@ -54,7 +54,7 @@ export const COMPARISONS: Comparison[] = [
     rows: [
       { dimension: "Who does the work", them: "The caller, who must read and reply to a text", us: "Callverted, which answers and asks the questions" },
       { dimension: "Speed to qualified", them: "Only as fast as the caller texts back", us: "Qualified during the call itself" },
-      { dimension: "Emergency fit", them: "Weak; a flooding-basement caller won't stop to text", us: "Strong: live answer, optional warm transfer" },
+      { dimension: "Emergency fit", them: "Weak; a flooding-basement caller won't stop to text", us: "Strong: live 24/7 answer with instant emergency alerts" },
       { dimension: "Detail captured", them: "Whatever the caller types, if anything", us: "Structured: service, urgency, value, ZIP, more" },
       { dimension: "Drop-off", them: "Many never reply to the text", us: "The call is handled before they move on" },
     ],
@@ -70,7 +70,7 @@ export const COMPARISONS: Comparison[] = [
     alternative: "Answering service",
     metaTitle: "Callverted vs a Traditional Answering Service | Callverted",
     metaDescription:
-      "A human answering service takes a message. Callverted runs a real intake, scores the lead, and can transfer emergencies. Compare for home-service businesses.",
+      "A human answering service takes a message. Callverted runs a real intake, scores the lead, and flags emergencies for an instant alert. Compare for home-service businesses.",
     h1: "Callverted vs. a traditional answering service",
     intro:
       "A human answering service will pick up, but most just take a message and pass it along, with no qualification and a per-minute bill that climbs with every call. Here's how an intake-focused AI compares.",
@@ -79,13 +79,13 @@ export const COMPARISONS: Comparison[] = [
       { dimension: "Consistency", them: "Varies by operator and script adherence", us: "Same rigid intake every time" },
       { dimension: "Cost model", them: "Per-minute, scales up with volume", us: "Flat monthly; spikes don't spike the bill" },
       { dimension: "After-call output", them: "A message", us: "A scored lead with summary and transcript" },
-      { dimension: "Emergency routing", them: "Depends on the service", us: "Configurable warm transfer to your on-call" },
+      { dimension: "Emergency routing", them: "Depends on the service", us: "Flags emergencies and alerts your on-call instantly" },
       { dimension: "Availability", them: "24/7 (at a cost)", us: "24/7" },
     ],
     bottomLine:
       "An answering service tells you someone called. Callverted tells you who, what they need, how urgent it is, and what it's worth, for a flat price that doesn't punish a busy month.",
     faqs: [
-      { q: "Do I lose the human touch?", a: "Your team is still the human touch. Callverted only covers the calls you'd otherwise miss, and can transfer live to a person for emergencies." },
+      { q: "Do I lose the human touch?", a: "Your team is still the human touch. Callverted only covers the calls you'd otherwise miss, and flags emergencies so a real person gets alerted right away." },
       { q: "Is it cheaper than an answering service?", a: "For most home-service businesses, yes, especially in busy months, since it's a flat rate instead of per-minute." },
     ],
   },

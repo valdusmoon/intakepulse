@@ -20,7 +20,6 @@ interface TurnMeta {
   priceEligible: boolean | null;
   priceMessage: string | null;
   reasonForCall: string | null;
-  transferred: boolean | null;
 }
 
 interface TurnResponse {
@@ -634,7 +633,6 @@ function CallInspector({
   if (meta?.reasonForCall) captured.push({ label: "Reason", value: meta.reasonForCall });
   if (meta?.callbackPreference) captured.push({ label: "Callback", value: meta.callbackPreference });
   if (meta?.priceMessage) captured.push({ label: "Estimate", value: meta.priceMessage });
-  if (meta?.transferred) captured.push({ label: "Transfer", value: "Bridged to human" });
 
   return (
     <Card>

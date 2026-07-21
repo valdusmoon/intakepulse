@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { checkServiceArea, getPriceRangeForCategory, deriveIntakeStatus, canWarmTransfer, captureLead } from "./actions";
+import { checkServiceArea, getPriceRangeForCategory, deriveIntakeStatus, captureLead } from "./actions";
 import { makeFlowContext, makeSession } from "../state-machine/mockFlowContext";
 import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 
@@ -12,7 +12,6 @@ vi.mock("@/lib/db/queries/leads", () => ({ createLead: vi.fn() }));
 vi.mock("@/lib/db/queries/calls", () => ({ updateCall: vi.fn() }));
 vi.mock("@/lib/leads/assess", () => ({ assessLead: vi.fn() }));
 vi.mock("@/lib/email/notifications", () => ({ sendLeadPacketEmail: vi.fn(), sendMessageNotificationEmail: vi.fn() }));
-vi.mock("@/lib/twilio/client", () => ({ updateCallWithTwiml: vi.fn() }));
 // Must be mocked: push/send imports the db client, which throws at module load
 // without DATABASE_URL and takes this whole test file down with it.
 vi.mock("@/lib/push/send", () => ({ sendLeadPushNotification: vi.fn() }));
@@ -80,63 +79,6 @@ describe("getPriceRangeForCategory", () => {
     const ctx = makeFlowContext({ business: { ...makeFlowContext().business, id: "biz-42" } });
     await getPriceRangeForCategory(ctx, "ac_repair");
     expect(getActivePricingRule).toHaveBeenCalledWith("biz-42", "ac_repair");
-  });
-});
-
-describe("canWarmTransfer (dead-end forwarding-number guard)", () => {
-  it("is false when no urgent transfer number is configured", () => {
-    expect(canWarmTransfer(makeSession({ urgentTransferNumber: null }))).toBe(false);
-  });
-
-  it("is true when a transfer number is set and the business line was never rung this call (ai_immediate)", () => {
-    // businessLineAlreadyTried false → even the same number is fine (it was never dialed).
-    expect(
-      canWarmTransfer(makeSession({
-        urgentTransferNumber: "+15551234567",
-        forwardingNumber: "+15551234567",
-        businessLineAlreadyTried: false,
-      })),
-    ).toBe(true);
-  });
-
-  it("is FALSE when the transfer number is the same line that already rang out this call", () => {
-    expect(
-      canWarmTransfer(makeSession({
-        urgentTransferNumber: "+15551234567",
-        forwardingNumber: "+15551234567",
-        businessLineAlreadyTried: true,
-      })),
-    ).toBe(false);
-  });
-
-  it("treats differently-formatted versions of the same number as equal (normalized)", () => {
-    expect(
-      canWarmTransfer(makeSession({
-        urgentTransferNumber: "(555) 123-4567",
-        forwardingNumber: "+1 555-123-4567",
-        businessLineAlreadyTried: true,
-      })),
-    ).toBe(false);
-  });
-
-  it("is true when the transfer number is a DIFFERENT line than the one that rang out (on-call/partner)", () => {
-    expect(
-      canWarmTransfer(makeSession({
-        urgentTransferNumber: "+15559999999",
-        forwardingNumber: "+15551234567",
-        businessLineAlreadyTried: true,
-      })),
-    ).toBe(true);
-  });
-
-  it("is true when there is no forwarding number to compare against", () => {
-    expect(
-      canWarmTransfer(makeSession({
-        urgentTransferNumber: "+15551234567",
-        forwardingNumber: null,
-        businessLineAlreadyTried: true,
-      })),
-    ).toBe(true);
   });
 });
 

@@ -109,20 +109,12 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
       return false;
     }
 
-    // In ring_then_ai the AI only reaches this stream after the business's own
-    // line rang out (see /api/twilio/voice/status), so that number is already a
-    // dead end for a warm transfer on this call. In ai_immediate (or with no
-    // forwarding number) it was never dialed.
-    const businessLineAlreadyTried = business.overflowMode !== "ai_immediate" && !!business.forwardingNumber;
     const session = createSession({
       callSid,
       callId: call.id,
       businessId: business.id,
       businessName: business.businessName,
-      urgentTransferNumber: business.urgentTransferNumber,
       callerPhone: call.callerPhone,
-      forwardingNumber: business.forwardingNumber,
-      businessLineAlreadyTried,
     });
     session.streamSid = data.start.streamSid;
 

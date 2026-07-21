@@ -14,24 +14,6 @@ function getClient(): twilio.Twilio {
 }
 
 /**
- * Redirect a live, in-progress call to new TwiML by URL.
- * Used for warm transfer — e.g. dialing an urgent-transfer number mid-call.
- */
-export async function redirectCall(callSid: string, twimlUrl: string): Promise<void> {
-  const client = getClient();
-  await client.calls(callSid).update({ url: twimlUrl, method: "POST" });
-}
-
-/**
- * Redirect a live, in-progress call directly to inline TwiML (no hosted URL needed).
- * Used by the transfer_call tool to warm-transfer to a business's urgent line.
- */
-export async function updateCallWithTwiml(callSid: string, twiml: string): Promise<void> {
-  const client = getClient();
-  await client.calls(callSid).update({ twiml });
-}
-
-/**
  * End a live call immediately.
  */
 export async function hangupCall(callSid: string): Promise<void> {

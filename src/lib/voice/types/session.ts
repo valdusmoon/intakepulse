@@ -52,14 +52,6 @@ export interface SessionState {
   callId: string; // Callverted `calls` row id
   businessId: string;
   businessName: string;
-  urgentTransferNumber: string | null;
-  // The line Callverted rings first (ring_then_ai). Kept on the session so a
-  // warm transfer can refuse to dial a number that already rang out this call.
-  forwardingNumber: string | null;
-  // True when the business's own line was dialed and went unanswered before the
-  // AI took over on THIS call (ring_then_ai overflow). Used to suppress a warm
-  // transfer back to that same number — it would just ring out again.
-  businessLineAlreadyTried: boolean;
   callStartTime: Date;
 
   // True only for a session driven by the admin test-call harness (no real
@@ -115,11 +107,6 @@ export interface SessionState {
   // Retry counter per state key — reset on successful transition into a new state
   attempts: Partial<Record<VoiceState, number>>;
   isNewCustomer?: boolean;
-  // Set when transferCallAction successfully bridges the call to a human —
-  // endCall uses this so a successful transfer reports outcome "transferred"
-  // rather than "abandoned" once the WS closes (the transfer itself doesn't
-  // create a lead; a human is already handling the caller live).
-  transferred?: boolean;
   // Set the first time a real qualification answer is recorded. Distinct from
   // isNewCustomer, which global intents like jumpToWrapUp force to false even
   // when qualification had already genuinely started — deriveIntakeStatus
@@ -223,7 +210,6 @@ export interface BusinessCallData {
   timezone: string;
   forwardingNumber: string | null;
   overflowMode: string;
-  urgentTransferNumber: string | null;
   greetingMessage: string | null;
   aiInstructions: string | null;
   recordingEnabled: boolean;
@@ -237,6 +223,8 @@ export interface BusinessCallData {
 // "screened" = a confident-junk call (wrong number / solicitation) the AI ended
 // without creating any lead — recorded on the call so it's auditable but kept out
 // of the leads inbox and the AI-completion-rate denominator.
+// "transferred" is LEGACY: the AI no longer bridges calls to a human (warm transfer
+// was removed), but the value is kept so historical call rows still read/render.
 export type CallOutcome = "in_progress" | "business_answered" | "ai_captured" | "transferred" | "abandoned" | "screened" | "error";
 
 export interface EndCallData {

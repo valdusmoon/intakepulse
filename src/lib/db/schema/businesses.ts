@@ -67,9 +67,6 @@ export const businesses = pgTable("businesses", {
   // Spoken disclosure text if recordingEnabled — read by the AI at call start
   recordingDisclosure: text("recording_disclosure"),
 
-  // Number to warm-transfer to when the AI classifies a call as urgent/emergency
-  urgentTransferNumber: text("urgent_transfer_number"),
-
   // Spoken opening line — falls back to a generated default if unset
   greetingMessage: text("greeting_message"),
   // Free-text appended to the AI's system instructions for business-specific nuance

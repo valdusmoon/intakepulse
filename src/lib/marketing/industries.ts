@@ -79,7 +79,7 @@ export const INDUSTRIES: Industry[] = [
       },
       {
         q: "Can it tell an emergency no-heat call from a routine tune-up?",
-        a: "Yes. It asks urgency and service type up front, tags true emergencies, and can warm-transfer to your on-call tech if you enable that, so a frozen-pipe risk doesn't sit in a queue behind a filter change.",
+        a: "Yes. It asks urgency and service type up front, tags true emergencies, and alerts your on-call tech right away, so a frozen-pipe risk doesn't sit in a queue behind a filter change.",
       },
       {
         q: "Will it quote HVAC prices to my customers?",
@@ -126,7 +126,7 @@ export const INDUSTRIES: Industry[] = [
     faqs: [
       {
         q: "Can Callverted handle after-hours plumbing emergencies?",
-        a: "That's the point. It answers 24/7, flags a burst pipe or sewer backup as an emergency, and can warm-transfer to your on-call plumber immediately if you turn that on, so the most valuable calls never hit voicemail.",
+        a: "That's the point. It answers 24/7, flags a burst pipe or sewer backup as an emergency, and alerts your on-call plumber immediately, so the most valuable calls never hit voicemail.",
       },
       {
         q: "How is this different from a missed-call text-back?",
@@ -184,8 +184,8 @@ export const INDUSTRIES: Industry[] = [
         a: "It asks whether the loss is covered by insurance and notes it on the lead, along with cause of loss and rooms affected, so your estimator can prep the claim conversation before calling back.",
       },
       {
-        q: "Can it route to my on-call crew for a true emergency?",
-        a: "Yes. Emergencies can warm-transfer to a number you configure, so an active water loss reaches a human immediately instead of waiting for a callback.",
+        q: "How fast does a true emergency reach my on-call crew?",
+        a: "Instantly. Callverted flags an active water loss as an emergency and alerts your on-call crew right away by text and push, so it reaches a human fast instead of waiting for a callback.",
       },
     ],
     related: ["plumbing", "hvac", "general-contracting"],
@@ -228,7 +228,7 @@ export const INDUSTRIES: Industry[] = [
     faqs: [
       {
         q: "Can Callverted flag an electrical safety emergency?",
-        a: "Yes. It asks urgency and service type, tags no-power and sparking-panel calls as emergencies, and can warm-transfer to your on-call electrician so a fire-risk call reaches a human right away.",
+        a: "Yes. It asks urgency and service type, tags no-power and sparking-panel calls as emergencies, and alerts your on-call electrician so a fire-risk call reaches a human right away.",
       },
       {
         q: "Does it handle both service calls and big installs?",

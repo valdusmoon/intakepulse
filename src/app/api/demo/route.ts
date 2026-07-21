@@ -55,7 +55,6 @@ const DEMO_BUSINESS: BusinessCallData = {
   timezone: "America/New_York",
   forwardingNumber: null,
   overflowMode: "ai_immediate",
-  urgentTransferNumber: null,
   greetingMessage: null,
   aiInstructions: null,
   recordingEnabled: false,
@@ -159,7 +158,6 @@ function restoreOrCreateSession(incomingState: SessionState | undefined): Sessio
     callId: `demo-${id}`,
     businessId: DEMO_BUSINESS.id,
     businessName: DEMO_BUSINESS.businessName,
-    urgentTransferNumber: null,
     callerPhone: DEMO_CALLER,
   });
   session.isDemo = true;

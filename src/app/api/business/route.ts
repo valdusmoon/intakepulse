@@ -158,12 +158,6 @@ export async function PATCH(req: NextRequest) {
     body.twilioPhoneNumber = r.normalized;
   }
 
-  if (body.urgentTransferNumber) {
-    const r = validateAndNormalizePhone(body.urgentTransferNumber);
-    if (!r.isValid) return NextResponse.json({ error: r.error }, { status: 422 });
-    body.urgentTransferNumber = r.normalized;
-  }
-
   // Timezone drives server-side date formatting + report bucketing (AT TIME ZONE),
   // so only accept known IANA zones — an arbitrary string would throw at format time.
   if (body.timezone && !SUPPORTED_TIMEZONES.some((t) => t.value === body.timezone)) {
@@ -175,7 +169,7 @@ export async function PATCH(req: NextRequest) {
     "serviceArea", "timezone",
     "forwardingNumber", "notificationPreferences",
     "twilioPhoneNumber", "overflowMode", "recordingEnabled", "recordingDisclosure",
-    "urgentTransferNumber", "greetingMessage", "aiInstructions", "voiceName", "callTimeoutSeconds",
+    "greetingMessage", "aiInstructions", "voiceName", "callTimeoutSeconds",
     "isPaused", // pause/resume the live line (churn-deflection alternative to canceling)
     "numberPublished", // activation: owner confirms they published their Callverted number
   ] as const;

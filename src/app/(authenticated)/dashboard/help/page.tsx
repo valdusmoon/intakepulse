@@ -250,7 +250,6 @@ export default function HelpPage() {
                 <BulletList items={[
                   "Business answered: your team picked up before Callverted stepped in.",
                   "Captured by Callverted: no one answered in time, so the AI took the call and ran qualification.",
-                  "Transferred to team: the caller asked for a person and Callverted bridged them live.",
                   "Caller abandoned: the caller hung up before completing the intake questions.",
                 ]} />
               </InfoCard>
@@ -342,7 +341,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Call setup</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Set the number your team&apos;s calls forward to, how long it rings before Callverted takes over, and whether Callverted rings alongside your team first or answers immediately. You can also customize the AI&apos;s greeting, choose its voice, set an urgent transfer number for live emergency transfers, add extra instructions for the AI, and optionally enable call recording with a spoken disclosure.
+                  Set the number your team&apos;s calls forward to, how long it rings before Callverted takes over, and whether Callverted rings alongside your team first or answers immediately. You can also customize the AI&apos;s greeting, choose its voice, add extra instructions for the AI, and optionally enable call recording with a spoken disclosure.
                 </p>
               </InfoCard>
               <InfoCard>

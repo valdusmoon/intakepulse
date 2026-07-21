@@ -13,12 +13,9 @@ import { assessLead } from "@/lib/leads/assess";
 import { sendLeadPacketEmail, sendMessageNotificationEmail } from "@/lib/email/notifications";
 import { sendLeadPushNotification } from "@/lib/push/send";
 import { buildLeadPushPayload, buildMessagePushPayload } from "@/lib/push/payload";
-import { updateCallWithTwiml } from "@/lib/twilio/client";
-import { generateTransferTwiml } from "@/lib/twilio/twiml";
 import { logger } from "@/lib/logger";
 import { getVisibleQuestions, type Answers } from "@/lib/verticals/filterAnswers";
 import type { FlowContext } from "../state-machine/types";
-import type { SessionState } from "../types/session";
 
 export interface ServiceAreaResult {
   eligible: boolean;
@@ -246,44 +243,3 @@ export function captureLeadOnce(ctx: FlowContext): Promise<CaptureLeadResult> {
   return ctx.session.leadCapturePromise;
 }
 
-/**
- * Whether a live warm transfer is possible for this call. Requires a configured
- * urgent-transfer number AND — when the business's own line already rang out on
- * this call (ring_then_ai) — that the transfer number is a *different* line.
- * Transferring back to the number Callverted just tried would only ring out
- * again, so we take a message instead.
- */
-export function canWarmTransfer(session: SessionState): boolean {
-  if (!session.urgentTransferNumber) return false;
-  if (session.businessLineAlreadyTried && session.forwardingNumber) {
-    // Compare the last 10 significant digits directly rather than via a strict
-    // phone validator: differently-formatted versions of the same US line still
-    // match, and we never fail open (allow a dead-end transfer) just because a
-    // validator rejected an oddly-formatted number.
-    const last10 = (p: string) => p.replace(/\D/g, "").slice(-10);
-    const transferTo = last10(session.urgentTransferNumber);
-    const alreadyTried = last10(session.forwardingNumber);
-    if (transferTo.length === 10 && transferTo === alreadyTried) return false;
-  }
-  return true;
-}
-
-/**
- * Warm-transfers the live call to the business's urgent line. Triggered by the
- * engine on a detected wants_human/emergency-adjacent global intent — the model
- * never decides this on its own.
- */
-export async function transferCallAction(ctx: FlowContext): Promise<{ transferred: boolean }> {
-  const { session } = ctx;
-  if (!canWarmTransfer(session) || !session.urgentTransferNumber) return { transferred: false };
-
-  try {
-    await updateCallWithTwiml(session.callSid, generateTransferTwiml(session.urgentTransferNumber));
-    session.conversationContext.actionsTaken.push(`transferred to ${session.urgentTransferNumber}`);
-    session.transferred = true;
-    return { transferred: true };
-  } catch (err) {
-    logger.error("Failed to transfer call", { correlationId: session.correlationId, error: String(err) });
-    return { transferred: false };
-  }
-}

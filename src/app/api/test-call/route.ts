@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to load business data" }, { status: 500 });
   }
 
-  const session = restoreOrCreateSession(incomingState, business.id, business.businessName, business.urgentTransferNumber);
+  const session = restoreOrCreateSession(incomingState, business.id, business.businessName);
 
   const ctx = await buildFlowContext(businessCallData, session, () => {
     // No real WebSocket for a test session to close.
@@ -164,7 +164,6 @@ export async function POST(req: NextRequest) {
       priceEligible: cc.priceEligible ?? null,
       priceMessage: cc.priceMessage ?? null,
       reasonForCall: cc.reasonForCall ?? null,
-      transferred: ctx.session.transferred ?? null,
     },
   });
 }
@@ -172,8 +171,7 @@ export async function POST(req: NextRequest) {
 function restoreOrCreateSession(
   incomingState: SessionState | undefined,
   businessId: string,
-  businessName: string,
-  urgentTransferNumber: string | null
+  businessName: string
 ): SessionState {
   if (incomingState) {
     return { ...incomingState, callStartTime: new Date(incomingState.callStartTime) };
@@ -184,7 +182,6 @@ function restoreOrCreateSession(
     callId: `test-${sessionId}`,
     businessId,
     businessName,
-    urgentTransferNumber,
     callerPhone: TEST_CALLER_PHONE,
   });
   session.isTestCall = true;

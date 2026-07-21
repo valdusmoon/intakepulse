@@ -29,10 +29,7 @@ export function createSession(opts: {
   callId: string;
   businessId: string;
   businessName: string;
-  urgentTransferNumber: string | null;
   callerPhone: string;
-  forwardingNumber?: string | null;
-  businessLineAlreadyTried?: boolean;
 }): SessionState {
   return {
     streamSid: undefined,
@@ -51,9 +48,6 @@ export function createSession(opts: {
     callId: opts.callId,
     businessId: opts.businessId,
     businessName: opts.businessName,
-    urgentTransferNumber: opts.urgentTransferNumber,
-    forwardingNumber: opts.forwardingNumber ?? null,
-    businessLineAlreadyTried: opts.businessLineAlreadyTried ?? false,
     callStartTime: new Date(),
     state: "greeting",
     qualificationIndex: 0,
@@ -79,7 +73,6 @@ export async function loadBusinessCallData(
     timezone: business.timezone,
     forwardingNumber: business.forwardingNumber,
     overflowMode: business.overflowMode,
-    urgentTransferNumber: business.urgentTransferNumber,
     greetingMessage: business.greetingMessage,
     aiInstructions: business.aiInstructions,
     recordingEnabled: business.recordingEnabled,
@@ -218,18 +211,14 @@ Summary:`;
  */
 export async function endCall(session: SessionState): Promise<void> {
   const durationSeconds = Math.floor((Date.now() - session.callStartTime.getTime()) / 1000);
-  // A lead takes priority (it exists regardless of a later transfer attempt),
-  // then a successful warm transfer — a human is already handling the caller
-  // live, so this wasn't abandoned even though no lead was created for it. A
-  // confident-junk call (screened) also created no lead by design — it's not an
-  // abandoned opportunity, so it gets its own outcome rather than "abandoned".
+  // A lead takes priority. A confident-junk call (screened) created no lead by
+  // design — it's not an abandoned opportunity, so it gets its own outcome rather
+  // than "abandoned". Everything else with no lead is a genuine drop-off.
   const outcome: CallOutcome = session.leadId
     ? "ai_captured"
-    : session.transferred
-      ? "transferred"
-      : session.screened
-        ? "screened"
-        : "abandoned";
+    : session.screened
+      ? "screened"
+      : "abandoned";
 
   // Persist the critical fields first, with no external API call in the way —
   // this runs right after the caller's connection has already closed, and an

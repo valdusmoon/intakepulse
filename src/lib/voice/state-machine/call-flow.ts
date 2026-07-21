@@ -48,13 +48,6 @@ export function questionDtmfMap(question: VerticalQuestion): Record<string, stri
 
 export function greetingPrompt(ctx: FlowContext): string {
   const { business } = ctx;
-  // Free-flow, job-first, and framed as "I'll get this to the team" so questions
-  // and messages come out naturally too — not a category menu the caller has to
-  // classify themselves into. Keeps the AI self-identification (transparency /
-  // bot-disclosure) that the flow has always led with.
-  const greeting =
-    business.greetingMessage ||
-    `Thanks for calling ${business.businessName}. I'm the automated assistant — I can get this to the team.`;
 
   // Spoken recording disclosure — only when the business has recording enabled AND
   // a disclosure configured (never leak an empty/null value into speech). This is
@@ -64,10 +57,19 @@ export function greetingPrompt(ctx: FlowContext): string {
   const disclosure =
     business.recordingEnabled && business.recordingDisclosure ? `${business.recordingDisclosure} ` : "";
 
-  // Open broad instead of leading with a new/existing menu — the caller's own
-  // description is run through extract_intake, which usually fills several
-  // fields at once so the engine can skip straight past what they've told us.
-  return `${greeting} ${disclosure}Briefly, what's going on?`;
+  // Custom greeting: keep the owner's line intact and slot any disclosure right
+  // after it, before the open question.
+  if (business.greetingMessage) {
+    return `${business.greetingMessage} ${disclosure}Briefly, what's going on?`;
+  }
+
+  // Default greeting: lead with the business name, place the recording disclosure
+  // BEFORE the bot self-identifies (so the notice lands first), then an open,
+  // job-first question. Free-flow instead of a new/existing menu — the caller's
+  // own description runs through extract_intake, which usually fills several fields
+  // at once so the engine can skip straight past what they've told us. Keeps the AI
+  // self-identification (transparency / bot-disclosure) the flow has always led with.
+  return `Thanks for calling ${business.businessName}. ${disclosure}I'm the automated assistant and can get this to the team. Briefly, what's going on?`;
 }
 
 /** Asked only when the opening description didn't make new-vs-existing clear. */
@@ -192,14 +194,10 @@ export function existingCustomerAck(): string {
   return "Got it — I'll pass this along so the team can follow up on that.";
 }
 
-export function noTransferAvailableLine(): string {
+export function humanCallbackLine(): string {
   return "I'll make sure the team calls you back as soon as possible.";
 }
 
 export function startOverAckLine(): string {
   return "Okay, let's start over.";
-}
-
-export function transferringLine(): string {
-  return "Let me transfer you to the team right now.";
 }

@@ -80,8 +80,9 @@ export async function getCallMetrics(businessId: string) {
       // 'screened' junk (wrong number / solicitation) is excluded too: the AI correctly took
       // no lead, so it's not a failed capture and must not drag the completion rate down.
       aiHandledTotal: sql<number>`count(*) filter (where ${calls.aiHandled} and ${calls.outcome} <> 'screened')`,
-      // Resolved = the AI either captured a lead or warm-transferred the caller to a human.
-      // These outcomes are mutually exclusive on a single call, so no double-counting.
+      // Resolved = the AI captured a lead (or, on legacy rows, warm-transferred the
+      // caller to a human — warm transfer has since been removed, but historical
+      // 'transferred' rows still count as resolved). Mutually exclusive, no double-count.
       aiResolved: sql<number>`count(*) filter (where ${calls.aiHandled} and (${calls.leadId} is not null or ${calls.outcome} = 'transferred'))`,
     })
     .from(calls)

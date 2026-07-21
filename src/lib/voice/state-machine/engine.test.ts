@@ -9,7 +9,6 @@ vi.mock("@/lib/db/queries/leads", () => ({ createLead: vi.fn() }));
 vi.mock("@/lib/db/queries/calls", () => ({ updateCall: vi.fn() }));
 vi.mock("@/lib/leads/assess", () => ({ assessLead: vi.fn() }));
 vi.mock("@/lib/email/notifications", () => ({ sendLeadPacketEmail: vi.fn() }));
-vi.mock("@/lib/twilio/client", () => ({ updateCallWithTwiml: vi.fn() }));
 // Must be mocked: push/send imports the db client, which throws at module load
 // without DATABASE_URL and takes this whole test file down with it.
 vi.mock("@/lib/push/send", () => ({ sendLeadPushNotification: vi.fn() }));

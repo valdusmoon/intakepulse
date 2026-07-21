@@ -30,8 +30,8 @@ export interface FunctionDefinition {
 export function buildExtractIntakeTool(questions: VerticalQuestion[]): FunctionDefinition {
   const properties: Record<string, unknown> = {
     // The single silent triage: why the caller is calling. Code routes on this
-    // (job flow vs message vs screened vs transfer vs one clarification) — the
-    // model only classifies, never drives.
+    // (job flow vs message vs screened vs a callback message vs one clarification)
+    // — the model only classifies, never drives.
     contact_type: {
       type: "string",
       enum: ["job", "message", "wrong_number", "solicitation", "wants_human", "unclear"],

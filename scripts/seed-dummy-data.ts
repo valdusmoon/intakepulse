@@ -73,7 +73,6 @@ async function main() {
     callTimeoutSeconds: 20,
     recordingEnabled: false,
     recordingDisclosure: null,
-    urgentTransferNumber: "+15125550102",
     greetingMessage: null,
     aiInstructions: null,
     isPaused: false,

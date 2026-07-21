@@ -41,21 +41,20 @@ import {
   goodbyeLine,
   gracefulCloseLine,
   greetingPrompt,
+  humanCallbackLine,
   namePrompt,
   newOrExistingPrompt,
-  noTransferAvailableLine,
   qualificationPrompt,
   questionDtmfMap,
   questionOptions,
   screenedGoodbyeLine,
   startOverAckLine,
-  transferringLine,
   triageClarifyPrompt,
   wrapUpReasonPrompt,
   zipPrompt,
 } from "./call-flow";
 import { voiceReassuranceInstruction } from "@/lib/leads/reassurance";
-import { captureLeadOnce, checkServiceArea, transferCallAction, canWarmTransfer } from "../functions/actions";
+import { captureLeadOnce, checkServiceArea } from "../functions/actions";
 import { quoteForAnswers } from "@/lib/leads/quote";
 import { INTERRUPTION } from "../config/constants";
 
@@ -948,14 +947,11 @@ function hasKnownReason(ctx: FlowContext): boolean {
 }
 
 async function handleWantsHuman(ctx: FlowContext, client: RealtimeClient): Promise<void> {
-  // No transfer number, or the only one we have is the line that already rang out
-  // on this call — don't promise a transfer we can't (usefully) make. Take a message.
-  if (!canWarmTransfer(ctx.session)) {
-    await jumpToWrapUp(ctx, client, noTransferAvailableLine(), "callback");
-    return;
-  }
-  speak(ctx, client, transferringLine());
-  ctx.session.onResponseDone = () => transferCallAction(ctx); // fires only after the line finishes playing
+  // The AI never bridges a live call to a human — even in ai_immediate the owner
+  // opted into "capture and call back", and in ring_then_ai the line already rang
+  // out, so there's no human to hand back to. A caller who asks for a person gets a
+  // callback message: name + what to pass along, alerted like any other message.
+  await jumpToWrapUp(ctx, client, humanCallbackLine(), "callback");
 }
 
 /** Tag this call as a captured message (not a scored job). captureLead reads

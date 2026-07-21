@@ -69,15 +69,3 @@ export function generateStreamTwiml(opts: { wssUrl: string; callSid: string; tok
   </Connect>
 </Response>`;
 }
-
-/**
- * Warm-transfer a live call to another number (used by the transfer_call tool).
- */
-export function generateTransferTwiml(to: string): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial>
-    <Number>${escapeXml(to)}</Number>
-  </Dial>
-</Response>`;
-}
