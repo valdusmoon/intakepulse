@@ -242,6 +242,37 @@ export const POSTS: Post[] = [
       { type: "p", text: "None of that requires you to personally answer the phone at 3 a.m. It requires that the calls your team can't take are still answered, still qualified, and handed back as a ranked lead with the scope already captured, while the water is still spreading and the job is still yours to win." },
     ],
   },
+  {
+    slug: "emergency-electrician-after-hours",
+    title: "No power at 9 p.m.: why electrical emergencies go to whoever answers",
+    metaTitle: "Emergency Electrician Calls After Hours: Who Wins the Job | Callverted",
+    metaDescription:
+      "A burning smell, a dead panel, half the house dark: electrical emergencies feel dangerous and won't wait for a callback. Here's why they go to whoever answers.",
+    date: "2026-07-21",
+    readMinutes: 4,
+    excerpt:
+      "A burning smell or a dead panel at 9 p.m. is the most urgent, least patient call an electrician takes. It goes to whoever answers, not whoever's cheapest. Here's how to be that company.",
+    image: "/blog/emergency-electrician-after-hours.jpg",
+    imageAlt: "A glossy 3D electrical panel with a warning spark beside a darkened house and a brightly ringing phone.",
+    imagePrompt: "A glossy 3D breaker/electrical panel floating at a slight tilt with a small bright amber warning spark and a coral warning triangle beside it, a cute mostly-dark 3D house with one faintly glowing window nearby, and a blue smartphone with a glowing ring-notification, conveying an after-hours electrical emergency in a cheerful, bright, premium way.",
+    body: [
+      { type: "p", text: "Ask any electrician which calls matter most and it isn't the outlet swap booked a week out. It's the burning smell behind a panel, the breaker that won't reset, the half of the house that just went dark, and those calls rarely wait for business hours." },
+      { type: "h2", text: "An electrical emergency feels dangerous, and that changes the caller" },
+      { type: "p", text: "A leaking pipe is a mess. A hot panel or a scorched outlet is scary. The homeowner isn't just inconvenienced, they're worried the house could catch fire, and a frightened caller does not sit through a voicemail greeting. They hang up and dial the next electrician while they're still standing in the dark deciding whether to flip the main." },
+      { type: "h2", text: "The urgent calls arrive off the clock" },
+      { type: "p", text: "Electrical emergencies don't spread out politely across the workday. Panels trip under load when the AC or heat is running hardest, storms knock out power overnight, and the extension-cord-and-space-heater failures land on the coldest evenings. The calls worth the most are the ones most likely to come in after your team has gone home." },
+      { type: "h2", text: "The job goes to whoever picks up, not whoever's best" },
+      { type: "p", text: "At 9 p.m. with a burning smell in the wall, nobody is comparing reviews or collecting three quotes. The first electrician who answers, sounds like they can help, and can say when they'll arrive wins the job. Being more experienced or better priced than the shop across town doesn't matter if that shop answered and you didn't." },
+      { type: "h2", text: "What good after-hours coverage looks like for electrical" },
+      { type: "ul", items: [
+        "Answers live, 24/7, so a late-night no-power call never lands in voicemail.",
+        "Tells a true emergency (burning smell, sparking, a dead panel, exposed or arcing wiring) from a routine ask, and flags it.",
+        "Captures the details that size and triage the job: what's happening, whether it's one circuit or the whole house, whether there's smoke, heat, or a burning smell, and the age of the panel.",
+        "Flags a genuine hazard and alerts your on-call electrician instead of parking it until morning.",
+      ]},
+      { type: "p", text: "You can't answer the phone yourself at 9 p.m., and you shouldn't have to. The goal is simpler: make sure the electrical calls your team can't take are still answered, qualified, and handed back as a ranked lead with the hazard already flagged, while the customer is still standing in the dark and still yours to win." },
+    ],
+  },
 ];
 
 export function getPost(slug: string): Post | undefined {
