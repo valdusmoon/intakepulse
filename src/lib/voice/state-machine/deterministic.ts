@@ -83,13 +83,75 @@ export function tryExtractZipDeterministic(transcript: string): string | null {
   return match ? match[1] : null;
 }
 
+// Leading conversational filler before a name: "yeah, it's ...", "sure, my name is ...".
+const NAME_LEAD_FILLER = /^\s*(yeah|yes|yep|sure|ok|okay|um+|uh+|hi|hello|hey|well|so|and|it'?s|its|i'?m|im|i am|my name is|the name is|name'?s|name is|this is)[\s,.:;-]+/i;
+
 /**
- * Light cleanup for a spoken name — strips common lead-in phrases rather than
- * calling the model. "My name is Daniel" → "Daniel".
+ * Deterministic cleanup for a spoken name — strips lead-in filler and trims to the
+ * first clause. "Yeah, it's Dolores Rivera. I have insurance too." → "Dolores Rivera".
+ * The result is only trusted when looksLikeName() agrees; otherwise the engine falls
+ * back to a model extraction. Never over-trust this: real callers ramble.
  */
 export function cleanSpokenName(transcript: string): string {
-  return transcript
-    .replace(/^\s*(my name is|this is|it'?s|i'?m|i am)\s+/i, "")
-    .replace(/[.!?]+$/, "")
-    .trim();
+  let s = transcript.trim();
+  let prev = "";
+  while (s !== prev) { prev = s; s = s.replace(NAME_LEAD_FILLER, ""); }
+  // Cut at the first sentence boundary and drop any trailing "and/but/, ..." clause.
+  s = s.split(/[.!?;]/)[0];
+  s = s.replace(/\s+(and|but)\s+.*$/i, "").split(",")[0];
+  return s.replace(/[.!?,]+$/, "").trim();
+}
+
+// The caller declined to give a name ("I'd rather not say"). Distinct from an
+// unparseable answer — we proceed on their phone number, never store the refusal.
+const NAME_REFUSAL = /\b(rather not|prefer not|won'?t (say|give|tell)|do(n'?t| not) (want|wanna|care) to (say|give|tell)|not (comfortable|gonna|going to) (say|give|tell)|no name|why do you need|none of your|keep (it|that) private|anonymous)\b/i;
+export function isNameRefusal(transcript: string): boolean {
+  return NAME_REFUSAL.test(transcript);
+}
+
+// Common one-word non-name answers that would otherwise pass the shape check
+// ("No", "Bye", "okay thanks") — reject so they go to the model extractor / no-name.
+const NAME_STOPWORDS = new Set([
+  "no", "yes", "yeah", "yep", "nope", "nah", "bye", "goodbye", "okay", "ok", "hi", "hello", "hey",
+  "thanks", "thank", "you", "sure", "nevermind", "nothing", "none", "wrong", "number", "sorry",
+  "stop", "help", "what", "who", "why", "wait", "um", "uh", "please", "good",
+]);
+
+/** A conservative "does this look like an actual name?" check — 1-4 alphabetic
+ *  tokens, reasonable length, not just filler words. Anything else goes to the
+ *  model extractor. */
+export function looksLikeName(s: string): boolean {
+  if (!s || s.length > 40) return false;
+  const tokens = s.split(/\s+/).filter(Boolean);
+  if (tokens.length < 1 || tokens.length > 4) return false;
+  if (!tokens.every((t) => /^[A-Za-z][A-Za-z'’.-]*$/.test(t))) return false;
+  // "No", "okay thanks", "bye" — every token is filler, not a name.
+  if (tokens.every((t) => NAME_STOPWORDS.has(t.toLowerCase()))) return false;
+  return true;
+}
+
+// Words that indicate a caller actually has a restoration problem — used to refuse
+// to SCREEN (irreversibly drop) any call mentioning a real service need. Deliberately
+// the caller's problem nouns, not the industry name ("restoration"), which appears in
+// sales pitches. Erring toward a message beats ever screening a real job.
+const SERVICE_NEED = /\b(water|flood(ed|ing)?|leak(ing|s|ed)?|burst|pipe|sewage|sewer|backup|overflow(ing)?|fire|smoke|soot|mold|mould|mildew|damage|basement|ceiling|roof|attic|storm|wet|soaked|moisture|drywall|carpet|standing water)\b/i;
+export function mentionsServiceNeed(text: string): boolean {
+  return SERVICE_NEED.test(text);
+}
+
+/** True when the option that deterministically "matched" is actually NEGATED in the
+ *  transcript ("it's NOT an emergency" wrongly matching the emergency option). Lets
+ *  the engine discard a false keyword hit and defer to the model classifier. */
+export function isNegatedOptionMatch(transcript: string, value: string, options: OptionLike[]): boolean {
+  const opt = options.find((o) => o.value === value);
+  if (!opt) return false;
+  const keywords = [opt.label.toLowerCase(), opt.value.toLowerCase().replace(/_/g, " ")].filter((k) => k.length >= 3);
+  const t = transcript.toLowerCase();
+  return keywords.some((kw) =>
+    new RegExp(`\\b(not|isn'?t|no|don'?t|doesn'?t|didn'?t|never|not really|not an?)\\b[^.?!]{0,25}\\b${escapeRe(kw)}\\b`, "i").test(t)
+  );
+}
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

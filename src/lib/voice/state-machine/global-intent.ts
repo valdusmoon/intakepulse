@@ -19,7 +19,11 @@ export type GlobalIntent =
   | "leave_message"
   | "start_over"
   | "repeat"
-  | "frustrated";
+  | "frustrated"
+  // Caller realized they misdialed — the one junk phrase worth catching at ANY
+  // turn (the opener triage misses "realizes late" cases). Screened unless they
+  // also mentioned a real service need (guarded in the engine).
+  | "wrong_number";
 
 const PHRASE_PATTERNS: Array<{ intent: GlobalIntent; patterns: RegExp[] }> = [
   {
@@ -67,6 +71,14 @@ const PHRASE_PATTERNS: Array<{ intent: GlobalIntent; patterns: RegExp[] }> = [
       /\bforget (it|this)\b/i,
       /\bwaste of time\b/i,
       /\bfrustrat(ed|ing)\b/i,
+    ],
+  },
+  {
+    intent: "wrong_number",
+    patterns: [
+      /\bwrong number\b/i,
+      /\bwrong (business|place|company)\b/i,
+      /\b(dialed|called|got|have) the wrong\b/i,
     ],
   },
 ];

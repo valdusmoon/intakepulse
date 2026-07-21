@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { tryMatchOptionLabel, tryMatchOrdinal, tryExtractZipDeterministic, cleanSpokenName, type OptionLike } from "./deterministic";
+import { tryMatchOptionLabel, tryMatchOrdinal, tryExtractZipDeterministic, cleanSpokenName, looksLikeName, isNameRefusal, mentionsServiceNeed, isNegatedOptionMatch, type OptionLike } from "./deterministic";
 
 const DAMAGE: OptionLike[] = [
   { label: "Water", value: "water" },
@@ -84,5 +84,54 @@ describe("cleanSpokenName", () => {
   it("strips lead-ins", () => {
     expect(cleanSpokenName("my name is Daniel")).toBe("Daniel");
     expect(cleanSpokenName("it's Sarah.")).toBe("Sarah");
+  });
+});
+
+describe("name resolution — real spoken input", () => {
+  it("pulls the name out of a rambling answer", () => {
+    expect(cleanSpokenName("Yeah, it's Dolores Rivera. I have State Farm insurance too")).toBe("Dolores Rivera");
+    expect(cleanSpokenName("Sure, it's Hank Ford")).toBe("Hank Ford");
+    expect(cleanSpokenName("um, Marcus Bell")).toBe("Marcus Bell");
+    expect(looksLikeName(cleanSpokenName("Yeah, it's Dolores Rivera. I have State Farm insurance too"))).toBe(true);
+  });
+  it("flags rambly/non-name answers as low-confidence (→ model fallback)", () => {
+    expect(looksLikeName(cleanSpokenName("I already told you three times, it's really urgent"))).toBe(false);
+  });
+  it("rejects one-word filler answers as names ('No', 'bye', 'okay thanks')", () => {
+    expect(looksLikeName(cleanSpokenName("No, all good. Thanks, bye."))).toBe(false);
+    expect(looksLikeName("No")).toBe(false);
+    expect(looksLikeName("okay thanks")).toBe(false);
+  });
+  it("detects a name refusal", () => {
+    expect(isNameRefusal("I'd rather not give my name over the phone")).toBe(true);
+    expect(isNameRefusal("why do you need my name")).toBe(true);
+    expect(isNameRefusal("Marcus Bell")).toBe(false);
+  });
+});
+
+describe("screen-guard: mentionsServiceNeed", () => {
+  it("catches real restoration problems", () => {
+    expect(mentionsServiceNeed("my basement is flooding")).toBe(true);
+    expect(mentionsServiceNeed("there's mold behind my shower")).toBe(true);
+    expect(mentionsServiceNeed("smoke damage from a fire")).toBe(true);
+  });
+  it("does not fire on a plain sales pitch", () => {
+    expect(mentionsServiceNeed("I can improve your Google ranking")).toBe(false);
+    expect(mentionsServiceNeed("sorry, wrong number")).toBe(false);
+  });
+});
+
+describe("urgency negation guard", () => {
+  const URGENCY: OptionLike[] = [
+    { label: "Emergency", value: "emergency" },
+    { label: "Soon", value: "soon" },
+    { label: "Flexible", value: "flexible" },
+  ];
+  it("flags a negated emergency match so it doesn't route as emergency", () => {
+    expect(isNegatedOptionMatch("it doesn't seem like an emergency", "emergency", URGENCY)).toBe(true);
+    expect(isNegatedOptionMatch("it's not an emergency", "emergency", URGENCY)).toBe(true);
+  });
+  it("leaves a genuine emergency match alone", () => {
+    expect(isNegatedOptionMatch("yes it's an emergency, water everywhere", "emergency", URGENCY)).toBe(false);
   });
 });

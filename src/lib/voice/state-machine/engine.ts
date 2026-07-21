@@ -25,7 +25,8 @@ import type { RealtimeClient } from "../realtime-client";
 import type { FlowContext } from "./types";
 import { matchDeterministicIntent, type GlobalIntent } from "./global-intent";
 import type { MessageKind } from "../types/session";
-import { cleanSpokenName, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
+import { cleanSpokenName, isNameRefusal, looksLikeName, mentionsServiceNeed, isNegatedOptionMatch, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
+import { extractCallerNameLLM } from "./name-extract";
 import { buildClassifyAnswerTool, buildClassifyServiceTool, buildExtractIntakeTool, EXTRACT_ZIP_TOOL } from "./tools";
 import { validateExtraction } from "./extraction";
 import {
@@ -100,6 +101,14 @@ export async function handleTranscript(ctx: FlowContext, client: RealtimeClient,
     // rather than the existing-customer shortcut (which would throw away any reason
     // the opener also stated).
     if (intent === "existing_customer" && ctx.session.state === "open_description") {
+      intent = null;
+    }
+    // "Wrong number" is contradictory once a real job is in play — if this utterance
+    // mentions a service need, or the call already captured a service, keep the job
+    // rather than screen. Otherwise it screens (catches a misdial at any turn).
+    const cc = ctx.session.conversationContext;
+    const jobInProgress = Object.keys(cc.answers).length > 0 || !!cc.serviceRequested;
+    if (intent === "wrong_number" && (mentionsServiceNeed(transcript) || jobInProgress)) {
       intent = null;
     }
     if (intent) {
@@ -297,22 +306,27 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
   }
 
   if (state === "name") {
-    const name = cleanSpokenName(transcript);
-    if (name) {
-      ctx.session.conversationContext.callerName = name;
-      if (ctx.session.isNewCustomer === false) {
-        // Existing customer / message wrap-up — grab a reason if we don't have one.
-        proceedAfterNameWrapUp(ctx, client);
-      } else if (!shouldAskCallbackPreference(ctx)) {
-        // Already urgent enough (or the vertical has a strong urgency signal) —
-        // don't make the caller answer a near-duplicate question.
-        ctx.session.conversationContext.callbackPreference = "as soon as possible";
-        enterClose(ctx, client);
-      } else {
-        enterCallbackPreference(ctx, client);
-      }
+    // The caller declined — proceed on their phone number, never store the refusal
+    // as a name ("I'd rather not say" must not become the callback name).
+    if (isNameRefusal(transcript)) {
+      proceedPastName(ctx, client);
+      return;
+    }
+    // Deterministic-first: a clean, name-shaped answer is used with no model call.
+    const cleaned = cleanSpokenName(transcript);
+    if (looksLikeName(cleaned)) {
+      applyCallerName(ctx, client, cleaned);
+      return;
+    }
+    // Low confidence (rambling / embedded name) → surgical gpt-4o-mini extraction,
+    // off the audio path. Null = declined/no name → proceed on the phone number.
+    const extracted = await extractCallerNameLLM(transcript);
+    if (extracted) {
+      applyCallerName(ctx, client, extracted);
+    } else if (looksLikeName(cleaned)) {
+      applyCallerName(ctx, client, cleaned);
     } else {
-      await handleStateFailure(ctx, client);
+      proceedPastName(ctx, client);
     }
     return;
   }
@@ -354,7 +368,9 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
   if (!options) return; // not currently awaiting an option-based answer (e.g. confirmation/end)
 
   const deterministic = tryMatchOptionLabel(transcript, options);
-  if (deterministic) {
+  // Trust a deterministic keyword hit UNLESS it's negated — "it's NOT an emergency"
+  // must not match the emergency option. A negated hit defers to the model classifier.
+  if (deterministic && !isNegatedOptionMatch(transcript, deterministic, options)) {
     await applyStateAnswer(ctx, client, deterministic);
     return;
   }
@@ -399,7 +415,10 @@ async function routeAnswer(ctx: FlowContext, client: RealtimeClient, transcript:
     instructions:
       `The caller was asked a multiple-choice question with these options: ${optionGuide}. ` +
       `They said: "${transcript}". Return the value for the option they chose — they may answer with ` +
-      `the option's number, its name, or a close synonym. If nothing clearly matches, return "unclear".`,
+      `the option's number, its name, or a close synonym. ` +
+      `Watch for NEGATION: if they say an option is NOT the case ("it's not an emergency", "no rush", "not urgent"), ` +
+      `do NOT pick that option — pick the one that matches what they actually mean. ` +
+      `If nothing clearly matches, return "unclear".`,
     output_modalities: ["text"],
     tools: [buildClassifyAnswerTool(allowedValues)],
     tool_choice: { type: "function", name: "classify_answer" },
@@ -590,11 +609,25 @@ async function applyExtraction(ctx: FlowContext, client: RealtimeClient, args: u
       switch (contactType) {
         case "message":
           markMessage(ctx, messageKindArg ?? "general");
+          // The opener IS the message content ("question about my invoice") — save
+          // it as the reason so we don't ask the caller to repeat what they just
+          // said, and it's never lost. hasKnownReason then routes name → final-check.
+          captureOpenerAsReason(ctx);
           await jumpToWrapUp(ctx, client, "Got it — I'll pass that along to the team.", messageKindArg ?? "general");
           return;
         case "wrong_number":
         case "solicitation":
-          await enterScreenedHangup(ctx, client, contactType);
+          // Screening is the one irreversible door (no record). NEVER screen a call
+          // that mentions a real service need — if the classifier says junk but the
+          // caller mentioned water/fire/mold/etc, take a message instead. Erring to a
+          // message beats ever losing a real job.
+          if (mentionsServiceNeed(lastUserUtterance(ctx) ?? "")) {
+            markMessage(ctx, "general");
+            captureOpenerAsReason(ctx);
+            await jumpToWrapUp(ctx, client, "Got it — I'll pass that along to the team.", "general");
+          } else {
+            await enterScreenedHangup(ctx, client, contactType);
+          }
           return;
         case "wants_human":
           await handleWantsHuman(ctx, client);
@@ -627,7 +660,18 @@ async function clarifyOrTakeMessage(ctx: FlowContext, client: RealtimeClient): P
     return;
   }
   markMessage(ctx, "general");
+  captureOpenerAsReason(ctx);
   await jumpToWrapUp(ctx, client, "No problem — I'll take a quick message for the team.", "general");
+}
+
+/** Seed reasonForCall from the caller's own words when an opener is routed to a
+ *  message — the opener is the message. Prevents asking them to repeat it, and
+ *  makes hasKnownReason true so the flow goes name → final-check, not a re-ask. */
+function captureOpenerAsReason(ctx: FlowContext): void {
+  const cc = ctx.session.conversationContext;
+  if (cc.reasonForCall) return;
+  const utterance = lastUserUtterance(ctx);
+  if (utterance) cc.reasonForCall = utterance;
 }
 
 /** Coerce a raw message_kind from the model to a known MessageKind, or undefined. */
@@ -844,8 +888,14 @@ function lastUserUtterance(ctx: FlowContext): string | undefined {
   return entry?.message?.trim() || undefined;
 }
 
-/** Proceed past the name step without a name (couldn't catch it) — the lead is
- *  saved with the caller's phone number; the team asks their name on callback. */
+/** Record the caller's name, then continue exactly as the no-name path would. */
+function applyCallerName(ctx: FlowContext, client: RealtimeClient, name: string): void {
+  ctx.session.conversationContext.callerName = name;
+  proceedPastName(ctx, client);
+}
+
+/** Proceed past the name step without a name (couldn't catch it, or they declined) —
+ *  the lead is saved with the caller's phone number; the team asks their name on callback. */
 function proceedPastName(ctx: FlowContext, client: RealtimeClient): void {
   const cc = ctx.session.conversationContext;
   if (ctx.session.isNewCustomer === false) {
@@ -954,6 +1004,11 @@ async function handleGlobalIntent(ctx: FlowContext, client: RealtimeClient, inte
       return;
     case "repeat":
       speak(ctx, client, retryPromptText(ctx));
+      return;
+    case "wrong_number":
+      // A misdial caught mid-call (the guard in handleTranscript already let any
+      // real-service-need "wrong number" through). End cleanly with no lead.
+      await enterScreenedHangup(ctx, client, "wrong_number");
       return;
   }
 }
