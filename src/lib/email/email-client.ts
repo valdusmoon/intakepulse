@@ -1,6 +1,6 @@
 import { getSuppressedSet, isEmailSuppressed } from "@/lib/db/queries/emailSuppressions";
 import { unsubscribeHeaders, withMarketingFooter } from "@/lib/email/unsubscribe";
-import { resend, FROM_EMAIL, REPLY_TO_EMAIL } from "@/lib/resend";
+import { getResend, FROM_EMAIL, REPLY_TO_EMAIL } from "@/lib/resend";
 
 const EMAIL_ENABLED = process.env.EMAIL_ENABLED === "true";
 
@@ -34,7 +34,7 @@ export const emailClient = {
       return { id: `test_${Date.now()}` };
     }
 
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from: FROM_EMAIL,
       replyTo: REPLY_TO_EMAIL,
       to: params.to,
@@ -61,7 +61,7 @@ export const emailClient = {
 
     for (let i = 0; i < emails.length; i += BATCH_SIZE) {
       const chunk = emails.slice(i, i + BATCH_SIZE);
-      await resend.batch.send(
+      await getResend().batch.send(
         chunk.map((e) => ({ from: FROM_EMAIL, replyTo: REPLY_TO_EMAIL, to: e.to, subject: e.subject, html: e.html }))
       );
     }
@@ -87,7 +87,7 @@ export const emailClient = {
       return { id: `test_${Date.now()}` };
     }
 
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from: FROM_EMAIL,
       replyTo: REPLY_TO_EMAIL,
       to: params.to,
@@ -123,7 +123,7 @@ export const emailClient = {
 
     for (let i = 0; i < deliverable.length; i += BATCH_SIZE) {
       const chunk = deliverable.slice(i, i + BATCH_SIZE);
-      await resend.batch.send(
+      await getResend().batch.send(
         chunk.map((e) => ({
           from: FROM_EMAIL,
           replyTo: REPLY_TO_EMAIL,

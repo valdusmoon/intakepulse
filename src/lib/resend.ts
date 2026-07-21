@@ -1,12 +1,25 @@
 import { Resend } from "resend";
 
-const resendApiKey = process.env.RESEND_API_KEY;
+let _resend: Resend | null = null;
 
-if (!resendApiKey) {
-  throw new Error("RESEND_API_KEY is not set in environment variables");
+/**
+ * Lazily construct the Resend client. The API key is read and validated on first
+ * send, NEVER at module load. A top-level throw here crashes `next build`'s
+ * page-data collection for every route that transitively imports this file
+ * whenever RESEND_API_KEY isn't in that environment's scope (e.g. preview
+ * deploys, or a prod env rotation) — a missing email key should fail an email
+ * send, not the whole build. Mirrors the lazy getClient() in lib/twilio/client.
+ */
+export function getResend(): Resend {
+  if (!_resend) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY is not set in environment variables");
+    }
+    _resend = new Resend(apiKey);
+  }
+  return _resend;
 }
-
-export const resend = new Resend(resendApiKey);
 
 export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
