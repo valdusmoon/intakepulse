@@ -70,7 +70,7 @@ export function MarketingFooter() {
               <span className="font-cv-heading text-base font-bold">Callverted</span>
             </Link>
             <p className="mt-3 text-[13px] text-white/45 leading-relaxed max-w-[220px]">
-              The missed-call lead recovery service for home-service trades. We answer the calls your team can&apos;t, then hand back ranked, callback-ready leads.
+              Inbound lead recovery for home-service trades. Callverted captures calls and web inquiries, recovers missed opportunities, and sends your team ranked, callback-ready lead packets.
             </p>
           </div>
 

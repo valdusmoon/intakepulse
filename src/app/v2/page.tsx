@@ -31,7 +31,7 @@ import { PricingCard } from "@/components/marketing/PricingCard";
  */
 
 export const metadata: Metadata = {
-  title: "Callverted | Capture Every Lead, Call Back the Hottest First",
+  title: "Callverted | Capture Every Lead, Call Back the Right Ones First",
   robots: { index: false, follow: false },
 };
 
@@ -84,7 +84,8 @@ const STEPS = [
   { icon: I.recover, t: "Capture", d: "Your phones ring first. If nobody picks up, Callverted answers live. Website and intake-link inquiries flow into the same system." },
   { icon: I.check, t: "Qualify", d: "It asks what a good dispatcher would ask: what happened, where, and how urgent. A few questions, not an interrogation." },
   { icon: I.dollar, t: "Quote from your rules", d: "Only prices you approved, repeated word for word. Anything else and it says your team will follow up. It never invents a number." },
-  { icon: I.list, t: "Rank and alert", d: "Your team gets a scored lead in about a minute: the job, the estimated value, and how fast to call back." },
+  { icon: I.chat, t: "Reassure", d: "It repeats their problem back, names your business, and asks them to wait for your callback. That buys your team time to reach them first." },
+  { icon: I.bell, t: "Rank and alert", d: "The lead is scored, then a notification hits your phone and inbox in about a minute: the job, the estimated value, and how fast to call back." },
 ];
 
 const SOURCES = [
@@ -120,6 +121,7 @@ const ASSURANCE = [
   "Your business name is what they remember, not ours",
   "It never promises a price or an arrival time on your behalf",
   "Every caller hears something, even at 2am",
+  "Every channel ends the same way, phone or web",
 ];
 
 const TRADES = [
@@ -176,10 +178,10 @@ export default function V2Page() {
                 <span className="h-1.5 w-1.5 rounded-full bg-landing-primary-glow" /> Built for restoration, HVAC, plumbing, and electrical
               </span>
               <h1 className="font-cv-heading text-[44px] sm:text-[62px] font-bold leading-[0.98] tracking-[-0.035em] mb-6 text-white">
-                Capture every lead. Call back the hottest first.
+                Capture every lead. Call back the right ones first.
               </h1>
               <p className="text-lg text-white/70 mb-8 max-w-lg leading-relaxed">
-                Callverted answers the calls your team misses, captures the ones they take, and qualifies every website inquiry. Each lead is scored and ranked, so your team calls the biggest, most urgent jobs back first.
+                Callverted answers the calls your team misses, captures the ones they take, and qualifies every website inquiry. Each lead is scored and ranked, so your team knows which jobs need the fastest callback.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <Link href="/sign-up" className="text-center font-semibold bg-landing-primary text-white px-7 py-3.5 rounded-xl hover:bg-blue-600 transition-colors shadow-[0_12px_34px_-8px_rgba(36,84,216,0.55)]">Start your free trial</Link>
@@ -220,9 +222,9 @@ export default function V2Page() {
             <h2 className="font-cv-heading text-3xl sm:text-[44px] font-bold tracking-[-0.035em] leading-[1.03] mb-4">From first ring to ranked lead in about a minute.</h2>
             <p className="text-[16px] text-[#667085] leading-relaxed">You keep your phones. Publish one Callverted number and it rings your team first, every time. Answer it and the call still gets logged. Miss it and Callverted picks up live.</p>
           </ScrollReveal>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {STEPS.map((s, i) => (
-              <ScrollReveal key={s.t} delay={i * 90} className="rounded-2xl border border-[#e3e7ed] bg-white p-6">
+              <ScrollReveal key={s.t} delay={i * 90} className="rounded-2xl border border-[#e3e7ed] bg-white p-5">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-landing-primary text-white font-cv-heading text-[15px] font-bold">{i + 1}</span>
                   <span className="text-landing-primary"><Icon d={s.icon} /></span>
@@ -245,7 +247,8 @@ export default function V2Page() {
             </h2>
             <p className="text-[15px] text-[#667085] leading-relaxed mb-6">
               No voicemail beep, no dead air. Callverted repeats their problem back in its own words, names your
-              business, and tells them your team already has it. They stop calling around.
+              business, and tells them your team already has it. They have a reason to wait for your callback
+              instead of calling around, which is the window your team needs to win the job.
             </p>
             <div className="space-y-3">
               {ASSURANCE.map((a) => (
@@ -365,7 +368,7 @@ export default function V2Page() {
           <div className="text-center max-w-2xl mx-auto mb-10">
             <Eyebrow className="mb-3">The category</Eyebrow>
             <h2 className="font-cv-heading text-3xl sm:text-4xl font-bold tracking-[-0.035em]">Not an answering service. A system for winning the callback.</h2>
-            <p className="mt-3 text-[15px] text-[#667085]">Answering the phone is the easy part. Callverted qualifies the job, scores the lead, and points your team at the callbacks worth winning.</p>
+            <p className="mt-3 text-[15px] text-[#667085]">Answering the phone is only the start. Callverted qualifies the job, scores the lead, reassures the customer, and points your team at the callbacks worth winning.</p>
           </div>
           <div className="rounded-3xl border border-[#e3e7ed] bg-white overflow-hidden">
             <div className="grid grid-cols-[1.4fr_1.1fr_1.2fr] sm:grid-cols-[1.6fr_1fr_1fr_1fr_1.1fr] bg-[#f9fafb] border-b border-[#e3e7ed] text-[11.5px] sm:text-[13px] font-bold">
@@ -462,7 +465,7 @@ export default function V2Page() {
         <ScrollReveal className="max-w-5xl mx-auto">
           <div className="relative overflow-hidden rounded-3xl px-8 sm:px-12 py-14 sm:py-16 text-center text-white shadow-[0_30px_60px_-24px_rgba(28,63,168,0.5)]" style={{ background: "linear-gradient(135deg, #2a5ae0 0%, #1c3fa8 55%, #16307e 100%)" }}>
             <h2 className="font-cv-heading text-3xl sm:text-[42px] font-bold tracking-[-0.035em] mb-4 leading-[1.05] max-w-2xl mx-auto">Stop letting good leads go cold.</h2>
-            <p className="text-white/70 mb-8 text-[15px] max-w-xl mx-auto">Every call answered. Every lead scored. Your team calling the right people back while the job is still up for grabs.</p>
+            <p className="text-white/70 mb-8 text-[15px] max-w-xl mx-auto">Every source captured. Every serious lead scored. Your team calling the right people back while the job is still up for grabs.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/sign-up" className="text-center font-semibold bg-white text-landing-primary px-6 py-3.5 rounded-xl hover:bg-[#f0f4ff] transition-colors shadow-lg whitespace-nowrap">Start your free trial</Link>
               <BookDemo className="text-center font-semibold text-white bg-white/10 border border-white/40 px-6 py-3.5 rounded-xl hover:bg-white/20 transition-colors whitespace-nowrap">Book a 15-min demo</BookDemo>

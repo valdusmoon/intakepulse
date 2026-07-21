@@ -12,6 +12,10 @@ const isPublicRoute = createRouteMatcher([
   '/about',
   '/v1', // throwaway landing-positioning variant (noindex) — public so it can be previewed
   '/v2', // throwaway landing-positioning variant (noindex) — public so it can be previewed
+  '/v3', // throwaway landing-layout draft (noindex) — public so it can be previewed
+  '/v4', // throwaway landing-layout draft (noindex) — public so it can be previewed
+  '/v5', // throwaway landing-layout draft (noindex) — public so it can be previewed
+  '/v6', // throwaway landing-layout draft (noindex) — public so it can be previewed
 
   '/blog(.*)',
   '/compare(.*)',
