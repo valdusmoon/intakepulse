@@ -21,6 +21,7 @@ interface Props {
   lead: {
     id: string;
     leadStatus: string;
+    leadType: string;
     notes: string | null;
     callerPhone: string;
     confirmedValue: number | null;
@@ -38,6 +39,9 @@ export function LeadDetailClient({ lead, hasPendingFollowup }: Props) {
   const [error, setError] = useState("");
   const [cancelingFollowup, setCancelingFollowup] = useState(false);
   const [followupCanceled, setFollowupCanceled] = useState(false);
+  const [reclassifying, setReclassifying] = useState(false);
+
+  const isMessage = lead.leadType === "message";
 
   async function saveOutcome() {
     setSaving(true);
@@ -79,6 +83,34 @@ export function LeadDetailClient({ lead, hasPendingFollowup }: Props) {
     }
   }
 
+  // Flip the lead's TYPE (docs/callverted-standard.md §7). Promotion leaves the
+  // job unscored (nothing to score on); demotion keeps it out of job metrics.
+  async function reclassify() {
+    const confirmMsg = isMessage
+      ? "Convert this message into a job? It joins your pipeline unscored, and you manage it from there."
+      : "File this job as a message? It leaves the ranked queue and your job metrics.";
+    if (!window.confirm(confirmMsg)) return;
+    setReclassifying(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadType: isMessage ? "job" : "message" }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error || "Failed to reclassify. Please try again.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Failed to reclassify. Check your connection and try again.");
+    } finally {
+      setReclassifying(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -109,6 +141,24 @@ export function LeadDetailClient({ lead, hasPendingFollowup }: Props) {
           {error && <p className="text-sm text-cv-red">{error}</p>}
           <Button variant="primary" onClick={saveOutcome} disabled={saving}>
             {saving ? "Saving…" : saved ? "Saved ✓" : "Save outcome"}
+          </Button>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardBody className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-extrabold uppercase tracking-wide text-cv-muted">
+              {isMessage ? "Turned into a real job?" : "Not actually a job?"}
+            </p>
+            <p className="text-xs text-cv-muted mt-1">
+              {isMessage
+                ? "Convert it to track this work in your pipeline."
+                : "File it as a message to keep your job metrics clean."}
+            </p>
+          </div>
+          <Button size="sm" onClick={reclassify} disabled={reclassifying}>
+            {reclassifying ? "Working…" : isMessage ? "Convert to job" : "File as message"}
           </Button>
         </CardBody>
       </Card>

@@ -149,7 +149,7 @@ export const INDUSTRIES: Industry[] = [
       "Water, fire, and mold jobs are won by the first company to answer. Callverted picks up the restoration calls you miss, qualifies the damage, and sends a ranked lead in minutes.",
     h1: "In restoration, the job goes to whoever answers first.",
     heroSub:
-      "Water and fire damage are emergencies measured in minutes, and the homeowner is calling every company on the search results. Callverted answers the restoration calls your crew can't, captures the cause and rooms affected, and gets you the lead before the next franchise does.",
+      "Water and fire damage are emergencies measured in minutes, and the homeowner is calling every company on the search results. Callverted answers the restoration calls your crew can't, captures the damage type, urgency, and location, and gets you the lead before the next franchise does.",
     painPoints: [
       "Restoration is a first-responder business. The company that answers first usually wins the whole job.",
       "Insured losses are high-value, and a homeowner in crisis has no patience for voicemail.",
@@ -161,15 +161,15 @@ export const INDUSTRIES: Industry[] = [
       captured: [
         { label: "Service", value: "Water damage" },
         { label: "Urgency", value: "Emergency" },
-        { label: "Cause", value: "Dishwasher line" },
-        { label: "Rooms affected", value: "3 rooms" },
+        { label: "Started", value: "Today" },
+        { label: "ZIP", value: "33618" },
         { label: "Est. value", value: "$4.5k–$9k+" },
       ],
     },
     asks: [
       "What do you need help with? Callers answer in their own words, and Callverted recognizes the job, whether it's water, fire or smoke, or mold damage.",
       "How urgent is it?",
-      "What caused it and how many rooms are affected, if the caller mentions it.",
+      "When the damage started, if the caller mentions it.",
       "Insurance or out of pocket, if it comes up.",
       "ZIP code and the best callback number.",
     ],
@@ -181,7 +181,7 @@ export const INDUSTRIES: Industry[] = [
       },
       {
         q: "Does Callverted capture insurance details?",
-        a: "It asks whether the loss is covered by insurance and notes it on the lead, along with cause of loss and rooms affected, so your estimator can prep the claim conversation before calling back.",
+        a: "It asks whether the loss is covered by insurance and notes it on the lead, along with when the damage started and where the job is, so your estimator can prep the claim conversation before calling back.",
       },
       {
         q: "How fast does a true emergency reach my on-call crew?",

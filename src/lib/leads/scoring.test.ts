@@ -241,8 +241,10 @@ describe("scoreLeadFromAnswers", () => {
       expect(s.priorityScore).toBeLessThan(EMERGENCY_PRIORITY_FLOOR);
     });
 
-    it("a critical-signal phrase in a free-text answer floors higher than a plain emergency", () => {
-      const s = scoreIn("restoration", { service_type: "water", urgency: "soon", cause: "active flooding in the basement" });
+    it("a critical-signal phrase in the caller's free text floors higher than a plain emergency", () => {
+      // The normalized question set has no free-text answers — caller words reach
+      // scoring via ScoringContext (signalText on voice/human, serviceRequested on web).
+      const s = scoreIn("restoration", { service_type: "water", urgency: "soon" }, { signalText: "active flooding in the basement" });
       expect(s.priorityScore).toBeGreaterThanOrEqual(CRITICAL_SIGNAL_PRIORITY_FLOOR);
       expect(tierOf(s.priorityScore)).toBe("Hot");
       expect(s.trace.floorsApplied).toContain("critical_signal_floor");

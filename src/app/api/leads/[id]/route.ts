@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { getLeadById, updateLead, deleteLead } from "@/lib/db/queries/leads";
+import { MESSAGE_KINDS } from "@/lib/leads/lead-taxonomy";
 
 async function getAuthorizedLead(userId: string, leadId: string) {
   const [business, lead] = await Promise.all([
@@ -42,12 +43,33 @@ export async function PATCH(
   const body = await req.json();
   // intakeStatus is deliberately not PATCHable here — it's system-derived from
   // the actual Q&A progress, not something a business owner manually toggles.
-  const allowed = ["leadStatus", "notes", "callerName", "callerEmail", "convertedAt", "confirmedValue"] as const;
+  const allowed = ["leadStatus", "notes", "callerName", "callerEmail", "convertedAt", "confirmedValue", "leadType", "messageKind"] as const;
   const safeBody = Object.fromEntries(
     allowed.filter((k) => k in body).map((k) => [k, body[k]])
   );
 
   const existing = result.lead;
+
+  // Reclassification (docs/callverted-standard.md §7): the owner can flip a lead's
+  // TYPE both directions — promote a message that turned into a real job, or file a
+  // mis-classified job as a message. Scores are never touched either way: a promoted
+  // message is an honest unscored job, and every queue/metric already guards on
+  // leadType, so reporting adjusts automatically.
+  if ("leadType" in safeBody) {
+    if (safeBody.leadType !== "job" && safeBody.leadType !== "message") {
+      return NextResponse.json({ error: "leadType must be 'job' or 'message'" }, { status: 422 });
+    }
+    if (safeBody.leadType === "job") {
+      safeBody.messageKind = null;
+    } else if (!MESSAGE_KINDS.includes(safeBody.messageKind)) {
+      safeBody.messageKind = "general";
+    }
+  } else if ("messageKind" in safeBody) {
+    // Standalone kind change is only meaningful on a lead that IS a message.
+    if (existing.leadType !== "message" || !MESSAGE_KINDS.includes(safeBody.messageKind)) {
+      return NextResponse.json({ error: "Invalid messageKind for this lead" }, { status: 422 });
+    }
+  }
 
   // Set convertedAt automatically when marking converted
   if (safeBody.leadStatus === "converted" && !safeBody.convertedAt) {

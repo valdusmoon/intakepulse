@@ -275,6 +275,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             lead={{
               id: lead.id,
               leadStatus: lead.leadStatus,
+              leadType: lead.leadType,
               notes: lead.notes,
               callerPhone: lead.callerPhone,
               confirmedValue: lead.confirmedValue,
