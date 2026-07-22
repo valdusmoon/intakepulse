@@ -1,4 +1,5 @@
 import type { BusinessNotificationPreferences, CustomServiceOption } from "@/lib/db/schema/businesses";
+import type { LeadType, MessageKind } from "@/lib/leads/lead-taxonomy";
 
 /**
  * Voice call session state and context — one instance per active Media Stream
@@ -34,9 +35,10 @@ export type VoiceState =
  * and lands as a ranked lead packet; 'message' is captured + routed but never
  * scored. See leads.leadType. Confident junk isn't a lead type at all — it
  * creates no lead row (session.screened → calls.outcome 'screened').
+ * Canonical definitions live in the shared cross-channel taxonomy module; this
+ * re-export keeps existing "../types/session" import sites working.
  */
-export type LeadType = "job" | "message";
-export type MessageKind = "existing_customer" | "billing" | "callback" | "question" | "general";
+export type { LeadType, MessageKind };
 
 export interface SessionState {
   streamSid?: string;

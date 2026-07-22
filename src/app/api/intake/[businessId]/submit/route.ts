@@ -9,9 +9,12 @@ import {
 } from "@/lib/db/queries/leads";
 import { cancelFollowupsForLead } from "@/lib/db/queries/followups";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
+import { withCustomServiceOptions } from "@/lib/verticals/customOptions";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
 import { assessLead } from "@/lib/leads/assess";
+import { classifyWebIntake, shouldRunValve, shouldUpgradeToJob } from "@/lib/leads/web-intake";
+import { notifyMessageCaptured } from "@/lib/leads/notify-message";
 import { generateReassurance, genericReassurance } from "@/lib/leads/reassurance";
 import { quoteForAnswers } from "@/lib/leads/quote";
 import { sendLeadPacketEmail } from "@/lib/email/notifications";
@@ -49,7 +52,8 @@ async function checkRateLimit(ip: string): Promise<boolean> {
 async function assessAndNotify(
   leadId: string,
   businessId: string,
-  answers: Answers
+  answers: Answers,
+  opts: { runValve: boolean; serviceRequested: string | null }
 ) {
   try {
     const business = await getBusinessById(businessId);
@@ -58,7 +62,48 @@ async function assessAndNotify(
     const config = await getVerticalConfig(business.vertical);
     if (!config) return;
 
-    const scores = scoreLeadFromAnswers(answers, config.scoringRules, config.questions, config.baseValueLow);
+    // Score/quote against the same question set the form rendered — the base
+    // vertical questions plus this business's custom service options.
+    const questions = withCustomServiceOptions(config.questions, business.customServiceOptions);
+
+    // Backend valve: an off-list ("Something else") submission may not be a job at
+    // all. Classify the free text; a clearly-non-job submission is filed as a
+    // MESSAGE (never scored) with a low-key alert — unlike a team-answered call,
+    // nobody at the business saw a web submission, so messages DO alert here.
+    // Fails open to job — a misfiled job beats a lost one.
+    if (opts.runValve && opts.serviceRequested) {
+      const verdict = await classifyWebIntake(opts.serviceRequested);
+      if (verdict.classification === "non_job_message") {
+        await updateLead(leadId, {
+          leadType: "message",
+          messageKind: verdict.messageKind,
+          notes: opts.serviceRequested,
+        });
+        const lead = await getLeadById(leadId);
+        if (lead) {
+          await notifyMessageCaptured({
+            business,
+            leadId,
+            callerName: lead.callerName,
+            callerPhone: lead.callerPhone,
+            messageKind: verdict.messageKind,
+            notes: opts.serviceRequested,
+          });
+        }
+        return; // no scoring, no assessment — leadStatus stays 'new', scores stay null
+      }
+      // service_request / unclear → it's a job. An existing MESSAGE lead
+      // resubmitting through the Other path gets upgraded (never the reverse).
+      const lead = await getLeadById(leadId);
+      if (lead?.leadType === "message") {
+        await updateLead(leadId, { leadType: "job", messageKind: null });
+      }
+    }
+
+    const scores = scoreLeadFromAnswers(answers, config.scoringRules, questions, config.baseValueLow, {
+      serviceRequested: opts.serviceRequested,
+      signalText: null,
+    });
     const reasoning = await assessLead(leadId, answers, scores, config.aiPromptTemplate);
 
     const lead = await getLeadById(leadId);
@@ -85,7 +130,7 @@ async function assessAndNotify(
         qualityReasoning: reasoning.qualityReasoning,
         recommendedActions: reasoning.recommendedActions,
         intakeAnswers: answers,
-        questions: config.questions,
+        questions,
       });
     } catch (err) {
       logger.error("lead packet email failed", { leadId, error: String(err) });
@@ -151,10 +196,20 @@ export async function POST(
     return NextResponse.json({ error: "Business not found." }, { status: 404 });
   }
 
+  // The same question set the form rendered — base vertical questions plus this
+  // business's custom service options (used for reassurance + quote below; the
+  // deferred scoring path re-derives it identically).
+  const config = await getVerticalConfig(business.vertical);
+  const questions = config ? withCustomServiceOptions(config.questions, business.customServiceOptions) : [];
+
   let lead = leadId ? await getLeadById(leadId) : null;
   if (!lead) {
     lead = await getLeadByPhoneAndBusiness(normalizedPhone, businessId);
   }
+  const wasNewLead = !lead;
+
+  const primaryKey = questions[0]?.key;
+  const hasStructuredPrimary = !!(primaryKey && answers?.[primaryKey]);
 
   const intakePayload = {
     callerName: callerName.trim(),
@@ -172,7 +227,13 @@ export async function POST(
   };
 
   if (lead) {
-    lead = await updateLead(lead.id, intakePayload);
+    // A message lead resubmitting with a real structured service answer is a job
+    // now — upgrade it (the reverse never happens; jobs are never downgraded).
+    const upgrade = shouldUpgradeToJob(lead.leadType, hasStructuredPrimary);
+    lead = await updateLead(lead.id, {
+      ...intakePayload,
+      ...(upgrade ? { leadType: "job", messageKind: null } : {}),
+    });
     // Cancel any pending follow-up — they engaged, no need to nudge
     after(() =>
       cancelFollowupsForLead(lead!.id, "intake_completed").catch((err) =>
@@ -189,22 +250,36 @@ export async function POST(
     });
   }
 
-  // Score + AI assess + email/push the owner. Runs after the response so the
-  // form still returns instantly, but via `after()` (not bare `void`) so Vercel
-  // keeps the function alive until it finishes — otherwise the lead alert, the
-  // core product promise, silently never fires in prod. assessAndNotify catches
-  // its own errors internally.
-  after(() => assessAndNotify(lead!.id, businessId, answers ?? {}));
+  // The non-job valve only applies to "Something else" submissions, and never to
+  // an existing job lead (post-upgrade leads always have a structured primary
+  // answer, which blocks the valve — so reading leadType after the update is safe).
+  const runValve = shouldRunValve({
+    isNewLead: wasNewLead,
+    existingLeadType: wasNewLead ? null : lead!.leadType,
+    hasStructuredPrimary,
+    serviceRequested: intakePayload.serviceRequested,
+  });
+
+  // Classify (valve) + score + AI assess + email/push the owner. Runs after the
+  // response so the form still returns instantly, but via `after()` (not bare
+  // `void`) so Vercel keeps the function alive until it finishes — otherwise the
+  // lead alert, the core product promise, silently never fires in prod.
+  // assessAndNotify catches its own errors internally.
+  after(() =>
+    assessAndNotify(lead!.id, businessId, answers ?? {}, {
+      runValve,
+      serviceRequested: intakePayload.serviceRequested,
+    })
+  );
 
   // Closing message for the confirmation screen. Generated inline (not deferred)
   // because the form has nothing to show without it; it falls back to the
   // generic line on any failure, so a slow or down model never blocks a lead.
-  const config = await getVerticalConfig(business.vertical);
   const reassurance = config
     ? await generateReassurance({
         businessName: business.businessName,
         callerName: callerName.trim(),
-        questions: config.questions,
+        questions,
         answers: answers ?? {},
         serviceRequested: intakePayload.serviceRequested ?? undefined,
       })
@@ -214,7 +289,7 @@ export async function POST(
   // service category. Only returned when a rule exists: on a call the fallback
   // line carries the conversation into the next question, but on a confirmation
   // screen "we can't quote yet" is noise, so we simply show nothing.
-  const quote = config ? await quoteForAnswers(businessId, config.questions, answers ?? {}) : null;
+  const quote = config ? await quoteForAnswers(businessId, questions, answers ?? {}) : null;
 
   return NextResponse.json(
     { leadId: lead!.id, reassurance, priceMessage: quote?.eligible ? quote.message : null },

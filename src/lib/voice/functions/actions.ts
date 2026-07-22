@@ -10,9 +10,10 @@ import { createLead } from "@/lib/db/queries/leads";
 import { updateCall } from "@/lib/db/queries/calls";
 import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
 import { assessLead } from "@/lib/leads/assess";
-import { sendLeadPacketEmail, sendMessageNotificationEmail } from "@/lib/email/notifications";
+import { sendLeadPacketEmail } from "@/lib/email/notifications";
 import { sendLeadPushNotification } from "@/lib/push/send";
-import { buildLeadPushPayload, buildMessagePushPayload } from "@/lib/push/payload";
+import { buildLeadPushPayload } from "@/lib/push/payload";
+import { notifyMessageCaptured } from "@/lib/leads/notify-message";
 import { logger } from "@/lib/logger";
 import { getVisibleQuestions, type Answers } from "@/lib/verticals/filterAnswers";
 import type { FlowContext } from "../state-machine/types";
@@ -140,7 +141,14 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
   // stay null) and send a low-key "new message" alert instead of a lead packet.
   if (leadType === "message") {
     if (!session.isTestCall) {
-      await notifyMessageCaptured(ctx, lead.id, messageKind);
+      await notifyMessageCaptured({
+        business,
+        leadId: lead.id,
+        callerName: session.conversationContext.callerName ?? null,
+        callerPhone: session.callerPhone,
+        messageKind,
+        notes: session.conversationContext.reasonForCall ?? null,
+      });
     }
     return { leadId: lead.id };
   }
@@ -190,41 +198,6 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
   }
 
   return { leadId: lead.id };
-}
-
-/**
- * Low-key operator alert for a captured MESSAGE (non-job). Deliberately NOT the
- * "New Qualified Lead" packet — no scores, no value, no Hot/Warm/Cool. Email is
- * gated on the messageNotification pref (default on); push reuses pushNewLead.
- */
-async function notifyMessageCaptured(ctx: FlowContext, leadId: string, messageKind: string | null): Promise<void> {
-  const { session, business } = ctx;
-  const callerName = session.conversationContext.callerName ?? null;
-  const notes = session.conversationContext.reasonForCall ?? null;
-
-  if (business.notificationPreferences?.messageNotification !== false) {
-    try {
-      await sendMessageNotificationEmail({
-        ownerEmail: business.ownerEmail,
-        ownerName: business.ownerName,
-        businessName: business.businessName,
-        leadId,
-        callerName,
-        callerPhone: session.callerPhone,
-        messageKind,
-        notes,
-      });
-    } catch (err) {
-      logger.error("Failed to send message notification email", { leadId, error: String(err) });
-    }
-  }
-
-  if (business.notificationPreferences?.pushNewLead !== false) {
-    await sendLeadPushNotification(
-      business.id,
-      buildMessagePushPayload({ leadId, callerName, messageKind, notes }),
-    );
-  }
 }
 
 /**

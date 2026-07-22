@@ -72,6 +72,7 @@ export async function processHumanCall(input: ProcessHumanCallInput): Promise<vo
       aiPromptTemplate: verticalConfig.aiPromptTemplate,
     },
     intake,
+    transcriptText: transcript,
   });
 
   // Transcript kept above; discard the audio.

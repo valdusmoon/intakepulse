@@ -24,7 +24,7 @@ import { logger } from "@/lib/logger";
 import type { RealtimeClient } from "../realtime-client";
 import type { FlowContext } from "./types";
 import { matchDeterministicIntent, type GlobalIntent } from "./global-intent";
-import type { MessageKind } from "../types/session";
+import { MESSAGE_KINDS, type MessageKind } from "@/lib/leads/lead-taxonomy";
 import { isNameRefusal, trustDeterministicName, mentionsServiceNeed, isNegatedOptionMatch, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
 import { extractCallerNameLLM } from "./name-extract";
 import { buildClassifyAnswerTool, buildClassifyServiceTool, buildExtractIntakeTool, EXTRACT_ZIP_TOOL } from "./tools";
@@ -674,8 +674,7 @@ function captureOpenerAsReason(ctx: FlowContext): void {
 
 /** Coerce a raw message_kind from the model to a known MessageKind, or undefined. */
 function normalizeMessageKind(raw: unknown): MessageKind | undefined {
-  const kinds: MessageKind[] = ["existing_customer", "billing", "callback", "question", "general"];
-  return typeof raw === "string" && (kinds as string[]).includes(raw) ? (raw as MessageKind) : undefined;
+  return typeof raw === "string" && (MESSAGE_KINDS as string[]).includes(raw) ? (raw as MessageKind) : undefined;
 }
 
 function enterQualificationFor(ctx: FlowContext, client: RealtimeClient, question: VerticalQuestion): void {
