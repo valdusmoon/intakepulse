@@ -74,7 +74,12 @@ export async function POST(req: Request) {
     }
 
     const token = createStreamToken(callSid);
-    return xml(generateStreamTwiml({ wssUrl: serverEnv.VOICE_STREAM_WSS_URL, callSid, token }));
+    return xml(generateStreamTwiml({
+      wssUrl: serverEnv.VOICE_STREAM_WSS_URL,
+      callSid,
+      token,
+      statusCallbackUrl: `${env.APP_URL}/api/twilio/stream/status`,
+    }));
   } catch (error) {
     logger.error("Error handling Twilio dial status webhook", { error: String(error) });
     return xml(generateErrorTwiml("We're sorry, an unexpected error occurred."));

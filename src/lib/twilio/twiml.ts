@@ -58,11 +58,22 @@ ${sayDisclosure}  <Dial timeout="${opts.timeoutSeconds}" action="${escapeXml(opt
  * callSid and the signed auth token are passed as <Parameter> elements instead,
  * delivered in the "start" event once the WS connection is already open.
  */
-export function generateStreamTwiml(opts: { wssUrl: string; callSid: string; token: string }): string {
+export function generateStreamTwiml(opts: {
+  wssUrl: string;
+  callSid: string;
+  token: string;
+  /** statusCallback for stream lifecycle events. The stream-stopped event is the
+   *  reliable trigger for post-call finalization — a normal inbound HTTP request,
+   *  unlike the WebSocket-close path, where outbound calls get frozen. */
+  statusCallbackUrl?: string;
+}): string {
+  const statusAttrs = opts.statusCallbackUrl
+    ? ` statusCallback="${escapeXml(opts.statusCallbackUrl)}" statusCallbackMethod="POST"`
+    : "";
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <Stream url="${escapeXml(opts.wssUrl)}">
+    <Stream url="${escapeXml(opts.wssUrl)}"${statusAttrs}>
       <Parameter name="callSid" value="${escapeXml(opts.callSid)}" />
       <Parameter name="token" value="${escapeXml(opts.token)}" />
     </Stream>

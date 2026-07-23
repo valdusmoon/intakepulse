@@ -133,7 +133,9 @@ export async function handleDtmf(
     interruptCurrentResponse(ctx, client, ws);
     ctx.session.dtmfBuffer += digit;
     if (ctx.session.dtmfBuffer.length < 5) return;
-    await applyZip(ctx, client, ctx.session.dtmfBuffer);
+    const keyed = ctx.session.dtmfBuffer;
+    pushCallerTurn(ctx, `${keyed} (entered on keypad)`);
+    await applyZip(ctx, client, keyed);
     return;
   }
 
@@ -141,6 +143,11 @@ export async function handleDtmf(
   const value = dtmfMap?.[digit];
   if (value) {
     interruptCurrentResponse(ctx, client, ws);
+    // Keypad answers used to leave NO trace in the transcript, so a call answered
+    // entirely by keypress read back as the AI talking to itself. Record what the
+    // press MEANT (the option's label), not the raw digit.
+    const label = currentOptions(ctx)?.find((o) => o.value === value)?.label ?? value;
+    pushCallerTurn(ctx, `${label} (pressed ${digit})`);
     await applyStateAnswer(ctx, client, value);
     return;
   }
@@ -801,9 +808,19 @@ async function finishCall(ctx: FlowContext, client: RealtimeClient): Promise<voi
     } catch (err) {
       logger.error("captureLead failed", { correlationId: ctx.session.correlationId, error: String(err) });
     }
+    // Hand off finalization HERE, while the connection is still open and the
+    // process healthy — NOT from the WS-close cleanup, where an outbound HTTP
+    // call gets frozen by the platform (observed in prod: every DB write landed
+    // but the finalize event never reached Inngest, so the lead stayed unscored
+    // and the call never got its summary).
+    try {
+      await ctx.onFinalize?.();
+    } catch (err) {
+      logger.error("onFinalize failed", { correlationId: ctx.session.correlationId, error: String(err) });
+    }
   }
   ctx.session.state = "end";
-  speak(ctx, client, goodbyeLine());
+  speak(ctx, client, goodbyeLine(ctx));
   ctx.session.onResponseDone = () => {
     ctx.onComplete();
   };
@@ -1124,6 +1141,12 @@ function speak(ctx: FlowContext, client: RealtimeClient, text: string): void {
     tool_choice: "none",
   });
   pushSpokenTurn(ctx, text);
+}
+
+/** Record a caller turn that never came through as speech (keypad entry), so the
+ *  transcript the business reads is a complete record of the conversation. */
+function pushCallerTurn(ctx: FlowContext, message: string): void {
+  ctx.session.conversationContext.transcript.push({ role: "user", message });
 }
 
 /** Records the turn we're about to speak so it lands in the transcript in order,

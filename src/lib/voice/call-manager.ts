@@ -90,7 +90,8 @@ export async function loadBusinessCallData(
 export async function buildFlowContext(
   business: BusinessCallData,
   session: SessionState,
-  onComplete: () => void
+  onComplete: () => void,
+  onFinalize?: () => Promise<void>
 ): Promise<FlowContext | null> {
   const [verticalConfig, pricingRules] = await Promise.all([
     getVerticalConfig(business.vertical),
@@ -114,6 +115,7 @@ export async function buildFlowContext(
     },
     pricingRules: pricingRules.filter((r) => r.isActive),
     onComplete,
+    onFinalize,
   };
 }
 

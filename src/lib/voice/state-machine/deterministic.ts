@@ -73,14 +73,38 @@ export function tryMatchOrdinal(transcript: string, options: OptionLike[]): stri
   return options[n - 1].value;
 }
 
+// Spoken digit forms, including the "oh" people naturally use for zero.
+const DIGIT_WORDS: Record<string, string> = {
+  zero: "0", oh: "0", o: "0", nought: "0",
+  one: "1", two: "2", three: "3", four: "4", five: "5",
+  six: "6", seven: "7", eight: "8", nine: "9",
+};
+
 /**
- * Extract a 5-digit US ZIP from a transcript. Whisper transcription normally
- * renders spoken digits as numerals ("oh seven oh three oh" → "07030"), so a
- * simple digit-run match handles the common case without any model call.
+ * Extract a 5-digit US ZIP from a transcript, with no model call.
+ *
+ * A caller reading a ZIP out digit by digit is the NORM, and Whisper renders
+ * that as separated tokens — "0 7 6 4 1", "zero seven six four one", "oh seven
+ * six four one" — none of which a five-in-a-row match can see. (Observed in
+ * prod: a caller said their ZIP twice, correctly, and both attempts failed the
+ * old `\b\d{5}\b` check.) So: take the run-of-five fast path when it's there,
+ * otherwise stitch together every digit-ish token and accept it only when the
+ * total is exactly five — six digits ("076401", a real mis-transcription) or a
+ * stray count stays null and falls through to the model extractor.
  */
 export function tryExtractZipDeterministic(transcript: string): string | null {
-  const match = transcript.match(/\b(\d{5})\b/);
-  return match ? match[1] : null;
+  const direct = transcript.match(/\b(\d{5})\b/);
+  if (direct) return direct[1];
+
+  const digits = transcript
+    .toLowerCase()
+    .replace(/[.,!?;:-]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => (/^\d+$/.test(token) ? token : DIGIT_WORDS[token] ?? ""))
+    .join("");
+
+  return digits.length === 5 ? digits : null;
 }
 
 // Leading conversational filler before a name: "yeah, it's ...", "sure, my name is ...".

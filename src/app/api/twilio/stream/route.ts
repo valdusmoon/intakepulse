@@ -1,6 +1,6 @@
 import { experimental_upgradeWebSocket, type WebSocket, type WebSocketData } from "@vercel/functions";
 import { verifyStreamToken } from "@/lib/twilio/stream-token";
-import { getCallByTwilioSid } from "@/lib/db/queries/calls";
+import { getCallByTwilioSid, updateCall } from "@/lib/db/queries/calls";
 import { inngest } from "@/lib/inngest/client";
 import { buildFlowContext, createSession, endCall, initializeOpenAI, loadBusinessCallData } from "@/lib/voice/call-manager";
 import { captureLeadOnce, deriveIntakeStatus } from "@/lib/voice/functions/actions";
@@ -18,6 +18,10 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const openaiHandler = new OpenAIHandlerService();
+
+/** Sent after the goodbye finishes generating; Twilio echoes it back once the
+ *  audio has actually played out, which is when it's safe to hang up. */
+const GOODBYE_MARK = "goodbye-complete";
 
 /**
  * GET /api/twilio/stream
@@ -61,6 +65,13 @@ function handleConnection(ws: WebSocket): void {
         openaiClient.sendAudio(data.media.payload); // μ-law passthrough, no conversion needed
       } else if (data.event === "dtmf") {
         await engine.handleDtmf(ctx, openaiClient, ws, data.dtmf.digit);
+      } else if (data.event === "mark") {
+        // Twilio echoes a mark back only once it has PLAYED everything queued
+        // before it — so this is the caller having actually heard the goodbye.
+        // Closing on a fixed timer instead used to clip the sign-off.
+        if (data.mark?.name === GOODBYE_MARK) {
+          ws.close(1000, "Conversation complete");
+        }
       } else if (data.event === "stop") {
         await cleanupConnection(ws);
       }
@@ -119,10 +130,27 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
     });
     session.streamSid = data.start.streamSid;
 
-    const ctx = await buildFlowContext(business, session, () => {
-      // The state machine signals completion; we own the actual WS lifecycle.
-      setTimeout(() => ws.close(1000, "Conversation complete"), TIMEOUTS.GOODBYE_DELAY);
-    });
+    const ctx = await buildFlowContext(
+      business,
+      session,
+      () => {
+        // The state machine signals completion; we own the actual WS lifecycle.
+        // Queue a mark behind the goodbye audio — Twilio echoes it back once the
+        // caller has heard it (handled above), which is the real "safe to hang
+        // up" signal. The timer is only a backstop if that never arrives.
+        try {
+          ws.send(JSON.stringify({
+            event: "mark",
+            streamSid: session.streamSid,
+            mark: { name: GOODBYE_MARK },
+          }));
+        } catch {
+          // Socket already gone — the timer below still closes things out.
+        }
+        setTimeout(() => ws.close(1000, "Conversation complete"), TIMEOUTS.GOODBYE_DELAY);
+      },
+      () => finalizeCall(session),
+    );
     if (!ctx) {
       ws.close(1011, "No vertical configuration for this business");
       return false;
@@ -173,6 +201,45 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
   }
 }
 
+/**
+ * Persist the transcript and hand the heavy post-call work to the durable
+ * background job. Called from INSIDE the live call (engine.finishCall via
+ * ctx.onFinalize) because the WS-close path cannot be trusted with an outbound
+ * HTTP request — in prod every DB write landed but the Inngest event never went
+ * out, leaving the lead unscored and the call without a summary. Still called
+ * again from cleanup as a fallback for callers who hang up early; the
+ * finalizeSent flag makes that a no-op when the live path already ran.
+ */
+async function finalizeCall(session: FlowContext["session"]): Promise<void> {
+  if (session.finalizeSent || session.isTestCall) return;
+  session.finalizeSent = true;
+
+  // Write the transcript first so the finalizer's summary has the conversation
+  // even if the socket dies immediately after this.
+  try {
+    await updateCall(session.callId, { transcript: session.conversationContext.transcript });
+  } catch (error) {
+    logger.error("Failed to persist transcript before finalization", {
+      correlationId: session.correlationId,
+      error: String(error),
+    });
+  }
+
+  try {
+    await inngest.send({
+      name: "call/voice.ended",
+      data: { callId: session.callId, businessId: session.businessId },
+    });
+  } catch (error) {
+    // Leave the flag set: the stream status callback is the backstop, and a
+    // retry here would just hit the same dead network path.
+    logger.error("Failed to enqueue voice-call finalization", {
+      correlationId: session.correlationId,
+      error: String(error),
+    });
+  }
+}
+
 async function cleanupConnection(ws: WebSocket): Promise<void> {
   if ((ws as any).cleanupDone) return;
   (ws as any).cleanupDone = true;
@@ -217,21 +284,8 @@ async function cleanupConnection(ws: WebSocket): Promise<void> {
 
   if (ctx) {
     await endCall(ctx.session); // fast: one updateCall with finals + transcript
-
-    // Hand the heavy tail to Inngest. Everything the finalizer needs is now in
-    // the DB (lead row, call transcript) — no in-memory state crosses over.
-    if (!ctx.session.isTestCall) {
-      try {
-        await inngest.send({
-          name: "call/voice.ended",
-          data: { callId: ctx.session.callId, businessId: ctx.session.businessId },
-        });
-      } catch (error) {
-        logger.error("Failed to enqueue voice-call finalization", {
-          correlationId: ctx.session.correlationId,
-          error: String(error),
-        });
-      }
-    }
+    // Fallback for early hangups (the live path in finishCall never ran). A
+    // no-op when finalization already went out.
+    await finalizeCall(ctx.session);
   }
 }

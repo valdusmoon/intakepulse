@@ -163,8 +163,17 @@ export function confirmationLine(ctx: FlowContext): string {
 }
 
 /** Spoken as the last turn before hangup, after confirmation or fallback-voicemail. */
-export function goodbyeLine(): string {
-  return "Thanks for calling — we'll get back to you shortly.";
+/**
+ * The sign-off after the confirmation. Deliberately does NOT repeat the callback
+ * promise — the confirmation line right before it already said the team will
+ * call back, so restating it curtly ("we'll get back to you shortly") read as
+ * abrupt. This just closes warmly and gets off the phone.
+ */
+export function goodbyeLine(ctx?: FlowContext): string {
+  const name = ctx?.session.conversationContext.callerName;
+  return name
+    ? `You're all set, ${name}. Thanks for calling, and take care.`
+    : "You're all set. Thanks for calling, and take care.";
 }
 
 /** Neutral sign-off for a screened call (wrong number / solicitation) — no lead is

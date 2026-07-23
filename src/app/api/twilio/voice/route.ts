@@ -126,7 +126,12 @@ async function handOffToAi(callSid: string, businessId: string): Promise<NextRes
   }
 
   const token = createStreamToken(callSid);
-  return xml(generateStreamTwiml({ wssUrl: serverEnv.VOICE_STREAM_WSS_URL, callSid, token }));
+  return xml(generateStreamTwiml({
+    wssUrl: serverEnv.VOICE_STREAM_WSS_URL,
+    callSid,
+    token,
+    statusCallbackUrl: `${env.APP_URL}/api/twilio/stream/status`,
+  }));
 }
 
 function xml(body: string): NextResponse {

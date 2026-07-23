@@ -78,6 +78,31 @@ describe("tryExtractZipDeterministic", () => {
   it("returns null when there's no 5-digit run", () => {
     expect(tryExtractZipDeterministic("somewhere downtown")).toBeNull();
   });
+
+  // Regression: a real caller read their ZIP out digit by digit, twice, and both
+  // attempts failed — Whisper renders that as separated tokens, which the
+  // five-in-a-row match can't see.
+  it("reads digits spoken one at a time", () => {
+    expect(tryExtractZipDeterministic("0 7 6 4 1")).toBe("07641");
+  });
+  it("reads digits spelled as words", () => {
+    expect(tryExtractZipDeterministic("zero seven six four one")).toBe("07641");
+  });
+  it("reads 'oh' as zero, the way people actually say it", () => {
+    expect(tryExtractZipDeterministic("oh seven six four one")).toBe("07641");
+  });
+  it("handles a partially grouped reading", () => {
+    expect(tryExtractZipDeterministic("076 41")).toBe("07641");
+  });
+  it("ignores surrounding words", () => {
+    expect(tryExtractZipDeterministic("uh, it's 0 7 6 4 1.")).toBe("07641");
+  });
+  it("rejects a six-digit mis-transcription rather than guessing", () => {
+    expect(tryExtractZipDeterministic("076401")).toBeNull();
+  });
+  it("does not treat an incidental number word as a ZIP", () => {
+    expect(tryExtractZipDeterministic("one moment please")).toBeNull();
+  });
 });
 
 describe("cleanSpokenName", () => {

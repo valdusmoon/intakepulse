@@ -69,6 +69,9 @@ export interface SessionState {
 
   // Set once the lead has been created — CREATE_LEAD is idempotent against this.
   leadId?: string;
+  // True once the durable finalization hand-off has been sent for this call, so
+  // the live path and the WS-close fallback can't double-fire it.
+  finalizeSent?: boolean;
   // Set synchronously (before any await) the first time captureLeadOnce is called —
   // guards against the normal-completion path and the early-disconnect drop handler
   // both trying to create a lead if the caller hangs up while the first DB insert

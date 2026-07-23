@@ -16,6 +16,11 @@ export interface FlowContext {
   /** Called once the call is fully wrapped up (lead captured, nothing left to say).
    *  The engine signals completion; the stream route owns actually closing the WS. */
   onComplete: () => void;
+  /** Persist the transcript and hand the heavy post-call work (scoring, assessment,
+   *  notifications, summary) to the durable background job. Invoked from inside the
+   *  LIVE call — the WS-close path can't be trusted with an outbound HTTP call.
+   *  Optional so the test-call harness and unit tests can omit it. */
+  onFinalize?: () => Promise<void>;
 }
 
 export interface ClassificationSuccess {

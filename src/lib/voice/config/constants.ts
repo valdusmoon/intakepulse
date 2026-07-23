@@ -25,8 +25,15 @@ export const TIMEOUTS = {
    */
   MAX_CALL_DURATION: 4.5 * 60 * 1000,
 
-  /** Delay before closing the connection after a natural goodbye */
-  GOODBYE_DELAY: 1200,
+  /**
+   * Backstop only. The connection normally closes when Twilio echoes back the
+   * "goodbye-complete" mark, i.e. once the caller has actually HEARD the
+   * sign-off. response.done fires when OpenAI finishes GENERATING, while
+   * seconds of audio can still be buffered in Twilio — closing on a short fixed
+   * delay chopped the goodbye off mid-sentence and read as abrupt. This timer
+   * only fires if that mark never comes back.
+   */
+  GOODBYE_DELAY: 8_000,
 } as const;
 
 /**
