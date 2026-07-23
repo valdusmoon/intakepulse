@@ -34,6 +34,17 @@ export async function finalizeVoiceCall({ callId }: { callId: string }): Promise
     return;
   }
 
+  // Three separate triggers fire this event on purpose (live call, WS close,
+  // Twilio's stream statusCallback) so finalization can't be lost. The summary
+  // is written LAST, so its presence means a previous run got all the way
+  // through — bail before notifying again. Without this a MESSAGE lead would
+  // alert the owner once per trigger, since (unlike a job, guarded by
+  // priorityScore) it has no score to mark it as already handled.
+  if (call.summary) {
+    logger.debug("finalizeVoiceCall: already finalized, skipping", { callId });
+    return;
+  }
+
   if (call.leadId) {
     const lead = await getLeadById(call.leadId);
     const business = lead ? await getBusinessById(lead.businessId) : null;

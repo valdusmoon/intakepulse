@@ -28,27 +28,31 @@ export async function notifyMessageCaptured(params: {
 }): Promise<void> {
   const { business, leadId, callerName, callerPhone, messageKind, notes } = params;
 
-  if (business.notificationPreferences?.messageNotification !== false) {
-    try {
-      await sendMessageNotificationEmail({
-        ownerEmail: business.ownerEmail,
-        ownerName: business.ownerName,
-        businessName: business.businessName,
-        leadId,
-        callerName,
-        callerPhone,
-        messageKind,
-        notes,
-      });
-    } catch (err) {
-      logger.error("Failed to send message notification email", { leadId, error: String(err) });
-    }
-  }
+  // Concurrent, for the same reason as the job alert: the push must not queue
+  // behind an email API round-trip.
+  const emailTask =
+    business.notificationPreferences?.messageNotification !== false
+      ? sendMessageNotificationEmail({
+          ownerEmail: business.ownerEmail,
+          ownerName: business.ownerName,
+          businessName: business.businessName,
+          leadId,
+          callerName,
+          callerPhone,
+          messageKind,
+          notes,
+        }).catch((err) => {
+          logger.error("Failed to send message notification email", { leadId, error: String(err) });
+        })
+      : Promise.resolve();
 
-  if (business.notificationPreferences?.pushNewLead !== false) {
-    await sendLeadPushNotification(
-      business.id,
-      buildMessagePushPayload({ leadId, callerName, messageKind, notes }),
-    );
-  }
+  const pushTask =
+    business.notificationPreferences?.pushNewLead !== false
+      ? sendLeadPushNotification(
+          business.id,
+          buildMessagePushPayload({ leadId, callerName, messageKind, notes }),
+        )
+      : Promise.resolve();
+
+  await Promise.allSettled([emailTask, pushTask]);
 }

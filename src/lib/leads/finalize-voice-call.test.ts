@@ -66,7 +66,7 @@ describe("finalizeVoiceCall", () => {
     expect(notifyMessageCaptured).not.toHaveBeenCalled();
   });
 
-  it("an already-scored job is not re-scored or re-notified (idempotent on retry)", async () => {
+  it("an already-finalized call is a no-op (the summary marks it done)", async () => {
     vi.mocked(getCallById).mockResolvedValue(mockCall({ leadId: "lead-1", summary: "done" }) as never);
     vi.mocked(getLeadById).mockResolvedValue({
       id: "lead-1", businessId: "biz-1", source: "voice_overflow", leadType: "job", priorityScore: 82,
@@ -76,7 +76,21 @@ describe("finalizeVoiceCall", () => {
 
     expect(assessLead).not.toHaveBeenCalled();
     expect(notifyJobLead).not.toHaveBeenCalled();
-    expect(updateCall).not.toHaveBeenCalled(); // summary exists too
+    expect(updateCall).not.toHaveBeenCalled();
+  });
+
+  // Three triggers fire this event; a message has no score to mark it handled,
+  // so without the summary guard the owner got one push per trigger.
+  it("does not re-alert a message lead when the call was already finalized", async () => {
+    vi.mocked(getCallById).mockResolvedValue(mockCall({ leadId: "lead-2", summary: "already summarized" }) as never);
+    vi.mocked(getLeadById).mockResolvedValue({
+      id: "lead-2", businessId: "biz-1", source: "voice_overflow", leadType: "message",
+      messageKind: "billing", priorityScore: null, notes: "invoice question",
+    } as never);
+
+    await finalizeVoiceCall({ callId: "call-1" });
+
+    expect(notifyMessageCaptured).not.toHaveBeenCalled();
   });
 
   it("a message lead gets the low-key alert and is never scored", async () => {

@@ -36,38 +36,43 @@ export async function notifyJobLead(params: {
 
   if (business.notificationPreferences?.qualifiedLead === false) return;
 
-  try {
-    await sendLeadPacketEmail({
-      ownerEmail: business.ownerEmail,
-      ownerName: business.ownerName,
-      businessName: business.businessName,
-      leadId,
-      callerName,
-      callerPhone,
-      urgencyScore: scores.urgencyScore,
-      qualityScore: scores.qualityScore,
-      estimatedValueLow: scores.estimatedValueLow,
-      estimatedValueHigh: scores.estimatedValueHigh,
-      urgencyReasoning: reasoning.urgencyReasoning,
-      qualityReasoning: reasoning.qualityReasoning,
-      recommendedActions: reasoning.recommendedActions,
-      intakeAnswers: answers,
-      questions,
-    });
-  } catch (err) {
+  // Fired CONCURRENTLY, deliberately. Push is the speed-to-lead channel — the
+  // whole product promise is a fast callback — so it must never sit in line
+  // behind an email API round-trip. Awaiting the email first meant a slow
+  // Resend call delayed the alert that actually reaches the owner's phone.
+  const emailTask = sendLeadPacketEmail({
+    ownerEmail: business.ownerEmail,
+    ownerName: business.ownerName,
+    businessName: business.businessName,
+    leadId,
+    callerName,
+    callerPhone,
+    urgencyScore: scores.urgencyScore,
+    qualityScore: scores.qualityScore,
+    estimatedValueLow: scores.estimatedValueLow,
+    estimatedValueHigh: scores.estimatedValueHigh,
+    urgencyReasoning: reasoning.urgencyReasoning,
+    qualityReasoning: reasoning.qualityReasoning,
+    recommendedActions: reasoning.recommendedActions,
+    intakeAnswers: answers,
+    questions,
+  }).catch((err) => {
     logger.error("lead packet email failed", { leadId, error: String(err) });
-  }
+  });
 
-  if (business.notificationPreferences?.pushNewLead !== false) {
-    await sendLeadPushNotification(
-      business.id,
-      buildLeadPushPayload({
-        leadId,
-        callerName,
-        priorityScore: scores.priorityScore,
-        estimatedValueLow: scores.estimatedValueLow,
-        estimatedValueHigh: scores.estimatedValueHigh,
-      }),
-    );
-  }
+  const pushTask =
+    business.notificationPreferences?.pushNewLead !== false
+      ? sendLeadPushNotification(
+          business.id,
+          buildLeadPushPayload({
+            leadId,
+            callerName,
+            priorityScore: scores.priorityScore,
+            estimatedValueLow: scores.estimatedValueLow,
+            estimatedValueHigh: scores.estimatedValueHigh,
+          }),
+        )
+      : Promise.resolve();
+
+  await Promise.allSettled([emailTask, pushTask]);
 }
