@@ -51,6 +51,7 @@ import {
   zipPrompt,
 } from "./call-flow";
 import { voiceReassuranceInstruction } from "@/lib/leads/reassurance";
+import { callbackPhraseForUrgency } from "@/lib/leads/callback-phrase";
 import { captureLeadOnce, checkServiceArea } from "../functions/actions";
 import { quoteForAnswers } from "@/lib/leads/quote";
 import { INTERRUPTION } from "../config/constants";
@@ -805,7 +806,11 @@ async function enterGracefulClose(ctx: FlowContext, client: RealtimeClient): Pro
  */
 function speakConfirmation(ctx: FlowContext, client: RealtimeClient): void {
   const cc = ctx.session.conversationContext;
-  const callbackPhrase = cc.callbackPreference ?? "as soon as possible";
+  // Same urgency-keyed phrase the web form promises (shared module) — the two
+  // channels must never diverge. callbackPreference is a legacy override that
+  // nothing sets since the callback question was removed; a caller-volunteered
+  // preference would still win if extraction ever fills it again.
+  const callbackPhrase = cc.callbackPreference ?? callbackPhraseForUrgency(cc.answers.urgency);
 
   ctx.session.responseActive = true;
   client.createResponse({

@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
+import { callbackPhraseForUrgency } from "@/lib/leads/callback-phrase";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { getVisibleQuestions, type Answers } from "@/lib/verticals/filterAnswers";
 
@@ -277,14 +278,6 @@ function TextQuestion({
 // stripped before submit and sent as free-text serviceRequested instead.
 const OTHER_SERVICE = "__other__";
 
-// Callback wording mirrors the voice confirmation (call-flow.ts:confirmationLine)
-// so a caller and a web submitter are promised the same thing. Urgency is the
-// only signal both channels always capture, so it alone sets the expectation.
-const CALLBACK_TIMING: Record<string, string> = {
-  emergency: "as soon as possible",
-  soon: "today",
-  flexible: "shortly",
-};
 
 /** One answered question rendered for the confirmation read-back, or null when
  *  it was skipped. Option values are mapped back to their labels so the person
@@ -423,7 +416,9 @@ export function IntakeForm({
 
   if (submitted) {
     const firstName = callerName.trim().split(/\s+/)[0];
-    const timing = CALLBACK_TIMING[getAnswerStr("urgency")] ?? "shortly";
+    // Static fallback only — the server's AI-written reassurance (same shared
+    // callback phrase) normally replaces this whole line.
+    const timing = callbackPhraseForUrgency(getAnswerStr("urgency"));
     const readback = visibleQuestions
       .map((q) => ({ label: q.label, value: answerDisplay(q, answers, serviceOther) }))
       .filter((r): r is { label: string; value: string } => !!r.value);

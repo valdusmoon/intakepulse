@@ -130,9 +130,13 @@ describe("confirmationLine", () => {
     expect(confirmationLine(ctx)).toContain("Thanks, Sarah.");
   });
 
-  it("defaults the callback timing to 'as soon as possible' when no preference was captured", () => {
-    const ctx = makeFlowContext({ session: makeSession({ conversationContext: { transcript: [], actionsTaken: [], answers: {} } }) });
-    expect(confirmationLine(ctx)).toContain("will call you back as soon as possible.");
+  it("keys the callback promise to urgency via the shared cross-channel phrase", () => {
+    // Same callbackPhraseForUrgency the web form uses — the channels must agree.
+    const ctxFor = (answers: Record<string, string>) =>
+      makeFlowContext({ session: makeSession({ conversationContext: { transcript: [], actionsTaken: [], answers } }) });
+    expect(confirmationLine(ctxFor({ urgency: "emergency" }))).toContain("will call you back as soon as possible.");
+    expect(confirmationLine(ctxFor({ urgency: "soon" }))).toContain("will call you back as soon as they can.");
+    expect(confirmationLine(ctxFor({}))).toContain("will call you back shortly.");
   });
 
 });

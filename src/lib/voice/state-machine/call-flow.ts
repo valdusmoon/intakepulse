@@ -9,6 +9,7 @@
  * hardcoded key), so adding a new vertical only means writing new seed data.
  */
 
+import { callbackPhraseForUrgency } from "@/lib/leads/callback-phrase";
 import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 import type { OptionLike } from "./deterministic";
 import type { FlowContext } from "./types";
@@ -127,7 +128,11 @@ export function confirmationLine(ctx: FlowContext): string {
   const { session, business, verticalConfig } = ctx;
   const name = session.conversationContext.callerName;
   const zip = session.conversationContext.zipCode;
-  const callback = session.conversationContext.callbackPreference;
+  // Shared urgency-keyed promise (same one the web form shows) unless the caller
+  // volunteered their own preference (legacy field, nothing sets it currently).
+  const callback =
+    session.conversationContext.callbackPreference ??
+    callbackPhraseForUrgency(session.conversationContext.answers.urgency);
 
   // The first question in a vertical's config doubles as its primary
   // category (e.g. damage type, service type) — reference it generically
@@ -150,7 +155,7 @@ export function confirmationLine(ctx: FlowContext): string {
   const parts = [name ? `Thanks, ${name}.` : "Thanks."];
   if (issue) parts.push(`I have this noted as ${aOrAn(issue)} issue${zip ? ` in ZIP code ${zip}` : ""}.`);
   else if (zip) parts.push(`I have this noted for ZIP code ${zip}.`);
-  parts.push(`${business.businessName} has received the request and will call you back${callback ? ` ${callback}` : " as soon as possible"}.`);
+  parts.push(`${business.businessName} has received the request and will call you back ${callback}.`);
   return parts.join(" ");
 }
 

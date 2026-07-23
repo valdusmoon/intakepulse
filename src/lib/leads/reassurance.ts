@@ -2,6 +2,10 @@ import { openai } from "@/lib/openai";
 import { logger } from "@/lib/logger";
 import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
 import type { Answers } from "@/lib/verticals/filterAnswers";
+// Callback wording lives in its own client-safe module so the web form can
+// share it; re-exported for existing importers.
+import { callbackPhraseForUrgency } from "./callback-phrase";
+export { callbackPhraseForUrgency };
 
 /**
  * The closing reassurance a lead sees (web/widget) or hears (voice) once intake
@@ -43,18 +47,6 @@ const NEVER_SAY = [
 
 const bullets = (rules: string[]) => rules.map((r) => `- ${r}`).join("\n");
 
-/** Callback wording both channels commit to, so a caller and a web submitter are
- *  told the same thing. Urgency is the only field every channel always captures.
- *
- *  Every phrase here is deliberately relative, never a clock. We're speaking on
- *  the business's behalf to someone who will hold them to it, and we have no
- *  visibility into their crew's day — so nothing here may name a time, a window,
- *  or a day ("today", "within the hour"). Convey priority, not a deadline. */
-export function callbackPhraseForUrgency(urgency?: unknown): string {
-  if (urgency === "emergency") return "as soon as possible";
-  if (urgency === "soon") return "as soon as they can";
-  return "shortly";
-}
 
 function systemPrompt(businessName: string, callbackPhrase: string): string {
   return `You write the closing message shown to someone who just requested service from a home-services company (restoration, HVAC, plumbing, electrical, contracting).
