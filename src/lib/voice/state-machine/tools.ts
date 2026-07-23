@@ -61,6 +61,15 @@ export function buildExtractIntakeTool(questions: VerticalQuestion[]): FunctionD
       type: "string",
       description: "The 5-digit US ZIP code where the work is needed, only if the caller stated it. Omit otherwise.",
     },
+    // Captured only when volunteered — never asked on a job call. A name changes
+    // no routing or ranking decision (the callback goes to the caller ID either
+    // way), and it's the one unconstrained field speech-to-text reliably mangles,
+    // so asking cost a turn and risked reading a wrong name back.
+    caller_name: {
+      type: "string",
+      description:
+        "The caller's name, ONLY if they clearly introduced themselves (\"Hi, this is Sarah\", \"my name's Dave\"). Omit if they did not say it — never infer a name from context.",
+    },
   };
 
   for (const q of questions) {

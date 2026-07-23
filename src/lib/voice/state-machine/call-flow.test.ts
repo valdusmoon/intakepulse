@@ -119,9 +119,16 @@ describe("confirmationLine", () => {
     expect(confirmationLine(ctx)).not.toContain("I have this noted as");
   });
 
-  it("defaults the caller's name to 'there' when none was captured", () => {
+  it("opens with a plain 'Thanks.' when no name was captured — a job call never asks for one", () => {
     const ctx = makeFlowContext({ session: makeSession({ conversationContext: { transcript: [], actionsTaken: [], answers: {}, callerName: undefined } }) });
-    expect(confirmationLine(ctx)).toContain("Thanks, there.");
+    const line = confirmationLine(ctx);
+    expect(line).toContain("Thanks.");
+    expect(line).not.toContain("Thanks, ");
+  });
+
+  it("greets by name when the caller volunteered one", () => {
+    const ctx = makeFlowContext({ session: makeSession({ conversationContext: { transcript: [], actionsTaken: [], answers: {}, callerName: "Sarah" } }) });
+    expect(confirmationLine(ctx)).toContain("Thanks, Sarah.");
   });
 
   it("defaults the callback timing to 'as soon as possible' when no preference was captured", () => {

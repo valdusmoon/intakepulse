@@ -576,6 +576,9 @@ async function applyExtraction(ctx: FlowContext, client: RealtimeClient, args: u
     cc.serviceAreaEligible = checkServiceArea(ctx, extracted.zipCode).eligible;
   }
 
+  // Volunteered name only — job calls never ask for one.
+  if (extracted.callerName && !cc.callerName) cc.callerName = extracted.callerName;
+
   for (const [key, value] of Object.entries(extracted.answers)) {
     if (!(key in cc.answers)) {
       cc.answers[key] = value;
@@ -716,6 +719,19 @@ async function applyZip(ctx: FlowContext, client: RealtimeClient, zip: string): 
   await advance(ctx, client);
 }
 
+/**
+ * The last beat of a job call: speak the business's approved price guidance, then
+ * head straight for the close.
+ *
+ * The caller's NAME is deliberately not asked for here (it used to be folded onto
+ * the end of this same turn). It changes no decision the product makes — the
+ * callback goes to the caller ID, and ranking comes from urgency, value, and
+ * quality — while being the one unconstrained field speech-to-text reliably
+ * mangles, so a wrong name got read back to the caller ("Thanks, meal"). It's now
+ * extract-only, like timing and coverage: captured when a caller introduces
+ * themselves, never asked for. The message/existing-customer paths still ask,
+ * where knowing WHO left the message is the point.
+ */
 async function enterPriceEligibility(ctx: FlowContext, client: RealtimeClient): Promise<void> {
   ctx.session.state = "price_eligibility";
   // Same quote step the web form runs — the vertical's first question doubles
@@ -729,9 +745,20 @@ async function enterPriceEligibility(ctx: FlowContext, client: RealtimeClient): 
   ctx.session.conversationContext.priceEligible = price.eligible;
   ctx.session.conversationContext.priceMessage = price.message;
 
-  ctx.session.state = "price_guidance"; // momentary — folded into the next spoken turn below
-  ctx.session.state = "name";
-  speak(ctx, client, namePrompt(price.message));
+  ctx.session.state = "price_guidance";
+  speak(ctx, client, price.message);
+  ctx.session.onResponseDone = () => proceedPastPriceGuidance(ctx, client);
+}
+
+/** After the price line there's nothing left to ask on a job call — go to the
+ *  callback-preference question if it's still warranted, else close. */
+function proceedPastPriceGuidance(ctx: FlowContext, client: RealtimeClient): void {
+  if (!shouldAskCallbackPreference(ctx)) {
+    ctx.session.conversationContext.callbackPreference = "as soon as possible";
+    enterClose(ctx, client);
+    return;
+  }
+  enterCallbackPreference(ctx, client);
 }
 
 function enterCallbackPreference(ctx: FlowContext, client: RealtimeClient): void {

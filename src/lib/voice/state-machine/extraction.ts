@@ -11,12 +11,16 @@
  */
 
 import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
+import { looksLikeName } from "./deterministic";
 
 export interface ExtractionResult {
   /** Only set when the caller clearly signalled new vs existing. */
   isNewCustomer?: boolean;
   /** Only set when a well-formed 5-digit ZIP was stated. */
   zipCode?: string;
+  /** Only set when the caller volunteered their name — it is never asked for on
+   *  a job call. Shape-checked, so a stray phrase can't land as a name. */
+  callerName?: string;
   /** Vertical question key → value, validated against that question's options. */
   answers: Record<string, string>;
 }
@@ -32,6 +36,11 @@ export function validateExtraction(questions: VerticalQuestion[], args: unknown)
   if (typeof a.zip_code === "string") {
     const zip = a.zip_code.replace(/\D/g, "");
     if (zip.length === 5) result.zipCode = zip;
+  }
+
+  if (typeof a.caller_name === "string") {
+    const name = a.caller_name.trim();
+    if (looksLikeName(name)) result.callerName = name;
   }
 
   for (const q of questions) {

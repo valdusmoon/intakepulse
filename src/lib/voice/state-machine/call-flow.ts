@@ -135,7 +135,7 @@ export function callbackPreferencePrompt(): string {
 
 export function confirmationLine(ctx: FlowContext): string {
   const { session, business, verticalConfig } = ctx;
-  const name = session.conversationContext.callerName || "there";
+  const name = session.conversationContext.callerName;
   const zip = session.conversationContext.zipCode;
   const callback = session.conversationContext.callbackPreference;
 
@@ -155,7 +155,9 @@ export function confirmationLine(ctx: FlowContext): string {
 
   const issue = [urgencyWord, primaryLabel?.toLowerCase()].filter(Boolean).join(" ");
 
-  const parts = [`Thanks, ${name}.`];
+  // A name only appears when the caller volunteered one (it is never asked for
+  // on a job call), so the greeting has to read naturally without it.
+  const parts = [name ? `Thanks, ${name}.` : "Thanks."];
   if (issue) parts.push(`I have this noted as ${aOrAn(issue)} issue${zip ? ` in ZIP code ${zip}` : ""}.`);
   else if (zip) parts.push(`I have this noted for ZIP code ${zip}.`);
   parts.push(`${business.businessName} has received the request and will call you back${callback ? ` ${callback}` : " as soon as possible"}.`);

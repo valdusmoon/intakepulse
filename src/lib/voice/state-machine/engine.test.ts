@@ -81,11 +81,11 @@ describe("adaptive engine flow", () => {
 
     await engine.handleDtmf(ctx, client, noopWs, "1"); // yes
     expect(ctx.session.conversationContext.answers.has_coverage).toBe("yes");
-    // Everything gathered → price/name.
-    expect(ctx.session.state).toBe("name");
+    // Everything gathered → price guidance (the name is never asked on a job call).
+    expect(ctx.session.state).toBe("price_guidance");
   });
 
-  it("a fully-detailed opener leaves only the name to ask", async () => {
+  it("a fully-detailed opener asks nothing further and goes straight to the price beat", async () => {
     engine.startCall(ctx, client);
     await engine.handleToolCall(ctx, client, "extract_intake", {
       customer_type: "new",
@@ -96,7 +96,7 @@ describe("adaptive engine flow", () => {
       has_coverage: "yes",
     });
     expect(ctx.session.conversationContext.zipCode).toBe("07030");
-    expect(ctx.session.state).toBe("name");
+    expect(ctx.session.state).toBe("price_guidance");
   });
 
   it("infers new-customer when a problem was described but customer_type was omitted", async () => {
@@ -187,8 +187,8 @@ describe("adaptive engine flow", () => {
     await engine.handleTranscript(ctx, client, "today");
     expect(ctx.session.currentQuestionKey).toBe("has_coverage");
     await engine.handleDtmf(ctx, client, noopWs, "1");
-    // Reaches name even though cause/rooms were never asked.
-    expect(ctx.session.state).toBe("name");
+    // Reaches the price beat even though cause/rooms were never asked.
+    expect(ctx.session.state).toBe("price_guidance");
   });
 
   it("'just take a message' takes a name then one open message turn", async () => {
@@ -395,7 +395,7 @@ describe("open-ended service ask + off-list capture", () => {
     expect(ctx.session.state).toBe("qualification");
     expect(ctx.session.currentQuestionKey).toBe("urgency");
     await engine.handleTranscript(ctx, client, "emergency");
-    expect(ctx.session.state).toBe("name");
+    expect(ctx.session.state).toBe("price_guidance");
   });
 });
 
@@ -416,7 +416,7 @@ describe("graceful degradation — light retries, no voicemail dead-ends", () =>
 
     expect(ctx.session.conversationContext.zipSkipped).toBe(true);
     expect(ctx.session.conversationContext.zipCode).toBeUndefined();
-    expect(ctx.session.state).toBe("name"); // never voicemail
+    expect(ctx.session.state).toBe("price_guidance"); // never voicemail
   });
 
   it("marks urgency unknown after one retry and moves on", async () => {
@@ -433,7 +433,7 @@ describe("graceful degradation — light retries, no voicemail dead-ends", () =>
     await engine.handleToolCall(ctx, client, "detect_intent", { intent: "unknown" });
 
     expect(ctx.session.conversationContext.answers.urgency).toBe("unknown");
-    expect(ctx.session.state).toBe("name"); // never voicemail
+    expect(ctx.session.state).toBe("price_guidance"); // never voicemail
   });
 });
 

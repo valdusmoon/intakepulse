@@ -71,6 +71,15 @@ default to a general message — never a dead end.
 
 Adding a vertical = a new service menu + scoring bonuses. Zero new questions, zero code.
 
+**The caller's NAME is extract-only on a job call — never asked** (2026-07-23). It changes no
+decision the product makes: the callback goes to the caller ID, and ranking comes from urgency,
+value, and quality. Meanwhile it's the one unconstrained field speech-to-text reliably mangles
+(observed live: a name read back to the caller as "meal"), and a wrong name is worse than none,
+both on the call and on the callback. It is captured when a caller introduces themselves, and the
+confirmation only uses it when it's there. The **message path still asks** — knowing who left a
+message is the whole point of one. The phone number is always captured automatically from caller
+ID and is never asked for.
+
 ## 4. The storage contract (vertical-independent)
 
 - **`leads`** — one row per captured contact. `source` says where it came from
@@ -92,8 +101,10 @@ Full field-population tables: `docs/intake-capture-contract.md` §1.3.
 
 Open "what's going on?" → one silent extract+triage pass (fills every field volunteered, classifies
 the contact) → code routes: job → adaptively ask ONLY the still-missing normalized fields → ZIP →
-approved price line (verbatim or nothing) folded into the name ask → confirm → capture. Message →
-name + "what should I pass along?" → capture. Junk → polite goodbye, no row.
+approved price line (verbatim or nothing) → confirm → capture. Message → name + "what should I
+pass along?" → capture. Junk → polite goodbye, no row.
+
+A job call therefore asks at most: what happened · where · how urgent. Nothing else.
 
 Invariants: the model speaks exact given lines or classifies into closed enums — nothing else ·
 light retries (ZIP=2, else 1) then graceful degrade · **no call ever dead-ends to voicemail** ·
