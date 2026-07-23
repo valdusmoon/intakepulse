@@ -21,7 +21,6 @@ export type VoiceState =
   | "price_guidance"
   | "name"
   | "wrap_up_reason"
-  | "callback_preference"
   // One "anything important I missed?" beat before confirming — used for messages
   // and routine/partial jobs (an emergency job skips straight to confirmation).
   | "final_check"

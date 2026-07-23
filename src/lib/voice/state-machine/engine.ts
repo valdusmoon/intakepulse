@@ -30,11 +30,8 @@ import { extractCallerNameLLM } from "./name-extract";
 import { buildClassifyAnswerTool, buildClassifyServiceTool, buildExtractIntakeTool, EXTRACT_ZIP_TOOL } from "./tools";
 import { validateExtraction } from "./extraction";
 import {
-  CALLBACK_DTMF,
-  CALLBACK_OPTIONS,
   NEW_OR_EXISTING_DTMF,
   NEW_OR_EXISTING_OPTIONS,
-  callbackPreferencePrompt,
   confirmationLine,
   existingCustomerAck,
   finalCheckPrompt,
@@ -461,11 +458,6 @@ async function applyStateAnswer(ctx: FlowContext, client: RealtimeClient, value:
     return;
   }
 
-  if (ctx.session.state === "callback_preference") {
-    ctx.session.conversationContext.callbackPreference = value;
-    enterClose(ctx, client);
-    return;
-  }
 }
 
 /**
@@ -750,20 +742,10 @@ async function enterPriceEligibility(ctx: FlowContext, client: RealtimeClient): 
   ctx.session.onResponseDone = () => proceedPastPriceGuidance(ctx, client);
 }
 
-/** After the price line there's nothing left to ask on a job call — go to the
- *  callback-preference question if it's still warranted, else close. */
+/** The price line is the last thing a job call says before closing — there is
+ *  nothing left to ask. */
 function proceedPastPriceGuidance(ctx: FlowContext, client: RealtimeClient): void {
-  if (!shouldAskCallbackPreference(ctx)) {
-    ctx.session.conversationContext.callbackPreference = "as soon as possible";
-    enterClose(ctx, client);
-    return;
-  }
-  enterCallbackPreference(ctx, client);
-}
-
-function enterCallbackPreference(ctx: FlowContext, client: RealtimeClient): void {
-  ctx.session.state = "callback_preference";
-  speak(ctx, client, callbackPreferencePrompt());
+  enterClose(ctx, client);
 }
 
 function enterConfirmation(ctx: FlowContext, client: RealtimeClient): void {
@@ -910,12 +892,6 @@ async function degradeAndContinue(ctx: FlowContext, client: RealtimeClient): Pro
     return;
   }
 
-  if (state === "callback_preference") {
-    cc.callbackPreference = cc.callbackPreference ?? "as soon as possible";
-    enterClose(ctx, client);
-    return;
-  }
-
   if (state === "new_or_existing") {
     await jumpToWrapUp(ctx, client, "No problem — I'll take a quick message for the team.", "general");
     return;
@@ -947,18 +923,12 @@ function applyCallerName(ctx: FlowContext, client: RealtimeClient, name: string)
   proceedPastName(ctx, client);
 }
 
-/** Proceed past the name step without a name (couldn't catch it, or they declined) —
- *  the lead is saved with the caller's phone number; the team asks their name on callback. */
+/** Proceed past the name step, with or without a name (they may have declined, or
+ *  it couldn't be caught) — the lead is saved against the caller's phone number
+ *  either way. Only the message/existing-customer paths reach the name state; a
+ *  job call never asks, so this always continues into the wrap-up. */
 function proceedPastName(ctx: FlowContext, client: RealtimeClient): void {
-  const cc = ctx.session.conversationContext;
-  if (ctx.session.isNewCustomer === false) {
-    proceedAfterNameWrapUp(ctx, client);
-  } else if (!shouldAskCallbackPreference(ctx)) {
-    cc.callbackPreference = "as soon as possible";
-    enterClose(ctx, client);
-  } else {
-    enterCallbackPreference(ctx, client);
-  }
+  proceedAfterNameWrapUp(ctx, client);
 }
 
 async function jumpToWrapUp(ctx: FlowContext, client: RealtimeClient, ackLine?: string, kind: MessageKind = "general"): Promise<void> {
@@ -1095,15 +1065,6 @@ async function handleStateFailure(ctx: FlowContext, client: RealtimeClient): Pro
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
-/** Skip the near-duplicate "when should we call you back" question once urgency
- *  already answered it implicitly — only asked when the vertical has no urgency
- *  question at all, or the caller said it's not urgent. */
-function shouldAskCallbackPreference(ctx: FlowContext): boolean {
-  const hasUrgencyQuestion = ctx.verticalConfig.questions.some((q) => q.key === "urgency");
-  if (!hasUrgencyQuestion) return true;
-  return ctx.session.conversationContext.answers.urgency === "flexible";
-}
-
 /** The question the "qualification" state is currently asking — tracked by key
  *  now that questions are selected adaptively rather than by a linear index. */
 function currentQuestion(ctx: FlowContext): VerticalQuestion | undefined {
@@ -1122,8 +1083,6 @@ function currentOptions(ctx: FlowContext): OptionLike[] | null {
   switch (ctx.session.state) {
     case "new_or_existing":
       return NEW_OR_EXISTING_OPTIONS;
-    case "callback_preference":
-      return CALLBACK_OPTIONS;
     case "qualification": {
       const q = currentQuestion(ctx);
       return q ? questionOptions(q) : null;
@@ -1137,8 +1096,6 @@ function currentDtmfMap(ctx: FlowContext): Record<string, string> | undefined {
   switch (ctx.session.state) {
     case "new_or_existing":
       return NEW_OR_EXISTING_DTMF;
-    case "callback_preference":
-      return CALLBACK_DTMF;
     case "qualification": {
       const q = currentQuestion(ctx);
       return q ? questionDtmfMap(q) : undefined;
@@ -1162,8 +1119,6 @@ function retryPromptText(ctx: FlowContext): string {
       return "What's your name?";
     case "wrap_up_reason":
       return wrapUpReasonPrompt(ctx.session.wrapUpReasonMode ?? "existing");
-    case "callback_preference":
-      return callbackPreferencePrompt();
     default:
       return "Could you say that again?";
   }

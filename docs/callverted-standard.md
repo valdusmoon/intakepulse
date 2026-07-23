@@ -104,7 +104,14 @@ the contact) → code routes: job → adaptively ask ONLY the still-missing norm
 approved price line (verbatim or nothing) → confirm → capture. Message → name + "what should I
 pass along?" → capture. Junk → polite goodbye, no row.
 
-A job call therefore asks at most: what happened · where · how urgent. Nothing else.
+**A job call asks exactly three things: what happened · where · how urgent.** Non-emergency calls
+get one extra open beat at the end ("anything important I missed?") — the catch-all for whatever
+the question set didn't anticipate; emergencies skip it and close immediately.
+
+There is deliberately **no "when should we call you back?" question** (removed 2026-07-23). It only
+ever fired when the caller had just said their timing was flexible, so it re-asked a question they
+had already answered, and the team works the ranked queue rather than a stored preference. The
+phone number is never asked for either — it comes from caller ID.
 
 Invariants: the model speaks exact given lines or classifies into closed enums — nothing else ·
 light retries (ZIP=2, else 1) then graceful degrade · **no call ever dead-ends to voicemail** ·

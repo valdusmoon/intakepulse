@@ -19,12 +19,6 @@ export const NEW_OR_EXISTING_OPTIONS: OptionLike[] = [
 ];
 export const NEW_OR_EXISTING_DTMF: Record<string, string> = { "1": "new", "2": "existing" };
 
-export const CALLBACK_OPTIONS: OptionLike[] = [
-  { label: "as soon as possible", value: "asap" },
-  { label: "today", value: "today" },
-  { label: "tomorrow", value: "tomorrow" },
-];
-export const CALLBACK_DTMF: Record<string, string> = { "1": "asap", "2": "today", "3": "tomorrow" };
 
 /** "a" / "an" by the first sound of the following phrase — good enough for the
  *  short category/urgency labels this is used with (e.g. "an emergency water"). */
@@ -127,10 +121,6 @@ export function wrapUpReasonPrompt(mode: "existing" | "message"): string {
   return mode === "message"
     ? "Sure. Briefly, what would you like me to pass along?"
     : "Got it. What should I tell the team you're calling about?";
-}
-
-export function callbackPreferencePrompt(): string {
-  return "When would you like the team to call you back? Press 1 for as soon as possible, press 2 for today, press 3 for tomorrow, or say your answer.";
 }
 
 export function confirmationLine(ctx: FlowContext): string {

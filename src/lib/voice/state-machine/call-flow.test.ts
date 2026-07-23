@@ -7,7 +7,6 @@ import {
   confirmationLine,
   zipPrompt,
   namePrompt,
-  callbackPreferencePrompt,
   goodbyeLine,
 } from "./call-flow";
 import type { VerticalQuestion } from "@/lib/db/schema/verticalConfigs";
@@ -136,17 +135,12 @@ describe("confirmationLine", () => {
     expect(confirmationLine(ctx)).toContain("will call you back as soon as possible.");
   });
 
-  it("uses the captured callback preference when present", () => {
-    const ctx = makeFlowContext({ session: makeSession({ conversationContext: { transcript: [], actionsTaken: [], answers: {}, callbackPreference: "today" } }) });
-    expect(confirmationLine(ctx)).toContain("will call you back today.");
-  });
 });
 
 describe("static prompt lines", () => {
-  it("zipPrompt/namePrompt/callbackPreferencePrompt/goodbyeLine are non-empty and stable", () => {
+  it("zipPrompt/namePrompt/goodbyeLine are non-empty and stable", () => {
     expect(zipPrompt().length).toBeGreaterThan(0);
     expect(namePrompt().length).toBeGreaterThan(0);
-    expect(callbackPreferencePrompt().length).toBeGreaterThan(0);
     expect(goodbyeLine().length).toBeGreaterThan(0);
   });
 
