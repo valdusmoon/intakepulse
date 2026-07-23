@@ -18,6 +18,8 @@ import { notifyMessageCaptured } from "@/lib/leads/notify-message";
 import { notifyJobLead } from "@/lib/leads/notify-job";
 import { generateReassurance, genericReassurance } from "@/lib/leads/reassurance";
 import { quoteForAnswers } from "@/lib/leads/quote";
+import { getPricingRulesByBusiness } from "@/lib/db/queries/pricingRules";
+import { maybeEstimateUnlistedValue } from "@/lib/leads/estimate-unlisted-value";
 import { logger } from "@/lib/logger";
 import type { Answers } from "@/lib/verticals/filterAnswers";
 
@@ -98,14 +100,31 @@ async function assessAndNotify(
       }
     }
 
+    const lead = await getLeadById(leadId);
+    if (!lead) return;
+
+    // Configured prices seed the value estimate (services table is the pricing
+    // source of truth); caller identity feeds the completeness quality score.
+    // An off-list ("Something else") job gets an AI estimate anchored on the
+    // business's price list (null for menu jobs).
+    const pricing = await getPricingRulesByBusiness(business.id);
+    const aiEstimate = await maybeEstimateUnlistedValue({
+      questions,
+      rules: config.scoringRules,
+      answers,
+      serviceRequested: opts.serviceRequested,
+      pricing,
+      vertical: business.vertical,
+    });
     const scores = scoreLeadFromAnswers(answers, config.scoringRules, questions, config.baseValueLow, {
       serviceRequested: opts.serviceRequested,
       signalText: null,
+      callerName: lead.callerName,
+      callerEmail: lead.callerEmail,
+      pricingRules: pricing,
+      aiEstimatedCents: aiEstimate,
     });
     const reasoning = await assessLead(leadId, answers, scores, config.aiPromptTemplate);
-
-    const lead = await getLeadById(leadId);
-    if (!lead) return;
 
     // Shared full "New Qualified Lead" alert (email + push, pref-gated) — the
     // same helper the voice finalizer uses, so the two channels can't drift.

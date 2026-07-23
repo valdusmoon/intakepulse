@@ -32,6 +32,9 @@ export interface TranscriptIntake {
   messageForTeam: string | null;
   /** The service in the caller's own words, if stated — off-list capture parity with voice. */
   serviceRequested: string | null;
+  /** A price the TEAM quoted on the call, in cents — when present it becomes the
+   *  lead's value estimate verbatim (never our benchmark guess). */
+  ownerQuotedCents: { lowCents: number; highCents: number } | null;
   summary: string;
   callerName: string | null;
 }
@@ -60,6 +63,7 @@ function emptyIntake(summary: string): Omit<TranscriptIntake, "extraction"> {
     messageKind: null,
     messageForTeam: null,
     serviceRequested: null,
+    ownerQuotedCents: null,
     summary,
     callerName: null,
   };
@@ -124,6 +128,15 @@ export async function extractIntakeFromTranscript(
             type: "string",
             description:
               "The service/work the caller asked about, in their own words, if any was stated. Include even for messages (e.g. price-shopping).",
+          },
+          quoted_price_low_dollars: {
+            type: "number",
+            description:
+              "Only if the BUSINESS'S TEAM MEMBER stated a price, quote, or estimate for the work during this call: the amount in dollars (for a range, the low end). Never a price the CALLER mentioned, and never your own guess.",
+          },
+          quoted_price_high_dollars: {
+            type: "number",
+            description: "The high end in dollars if the team quoted a range. Omit when a single price was quoted.",
           },
           job_intent: { type: "boolean", description: "The caller wants work done, or discussed a job/service/repair/project/estimate." },
           urgency: { type: "boolean", description: "The caller expressed time pressure or an emergency." },
@@ -210,6 +223,17 @@ export async function extractIntakeFromTranscript(
     typeof signalArgs.service_requested === "string" && signalArgs.service_requested.trim()
       ? signalArgs.service_requested.trim()
       : null;
+  // Sanity-bound the quoted price: > $0 and under $1M, high ≥ low. A single
+  // quoted number is stored as an exact range.
+  const quotedLow = typeof signalArgs.quoted_price_low_dollars === "number" ? signalArgs.quoted_price_low_dollars : null;
+  const quotedHigh = typeof signalArgs.quoted_price_high_dollars === "number" ? signalArgs.quoted_price_high_dollars : null;
+  const ownerQuotedCents =
+    quotedLow != null && quotedLow > 0 && quotedLow < 1_000_000
+      ? {
+          lowCents: Math.round(quotedLow * 100),
+          highCents: Math.round(Math.max(quotedHigh ?? quotedLow, quotedLow) * 100),
+        }
+      : null;
   const summary =
     typeof signalArgs.summary === "string" && signalArgs.summary.trim()
       ? signalArgs.summary.trim()
@@ -219,5 +243,5 @@ export async function extractIntakeFromTranscript(
       ? signalArgs.caller_name.trim()
       : null;
 
-  return { extraction, signal, contactKind, messageKind, messageForTeam, serviceRequested, summary, callerName };
+  return { extraction, signal, contactKind, messageKind, messageForTeam, serviceRequested, ownerQuotedCents, summary, callerName };
 }

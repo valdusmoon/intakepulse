@@ -54,9 +54,13 @@ export async function buildLeadPacket(ctx: FlowContext, opts: { withReasoning?: 
   const urgencyQuestion = verticalConfig.questions.find((q) => q.key === "urgency");
   const urgency = urgencyQuestion?.options?.find((o) => o.value === answers.urgency)?.label ?? null;
 
+  // Deliberately no pricingRules here: the packet is an ephemeral preview (public
+  // demo + test tool) and stays DB-free, so it shows benchmark estimates. Real
+  // leads are scored in finalize-voice-call with the business's configured prices.
   const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions, verticalConfig.baseValueLow, {
     serviceRequested: cc.serviceRequested ?? null,
     signalText: cc.reasonForCall ?? null,
+    callerName: cc.callerName ?? null,
   });
 
   // Optionally run the AI reasoning (not persisted) so the preview matches a real

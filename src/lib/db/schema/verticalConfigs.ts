@@ -27,6 +27,16 @@ export interface ScoringRule {
   answerKey: string;
   answerValue: string;
   urgencyBonus?: number;
+  // v2 benchmark estimate for this service, in cents. Only meaningful on rules
+  // for the primary service question. The business's own pricing_rules override
+  // these; unpriced services get these scaled by the business's calibration
+  // factor (see value-estimate.ts).
+  valueLowCents?: number;
+  valueHighCents?: number;
+  // ── priority_v1 legacy (rules still in an un-reseeded DB) ──
+  // qualityBonus is ignored by the v2 engine (quality is computed structurally
+  // from what was captured); valueBonus still works as a fallback estimate
+  // (base + bonus, high = 2×low) when a rule has no valueLowCents.
   qualityBonus?: number;
   valueBonus?: number; // cents added to estimated value
 }

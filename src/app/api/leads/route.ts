@@ -4,6 +4,8 @@ import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
 import { createLead, getLeadsByBusiness } from "@/lib/db/queries/leads";
 import { validateAndNormalizePhone } from "@/lib/utils/phone-validation";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
+import { getPricingRulesByBusiness } from "@/lib/db/queries/pricingRules";
+import { maybeEstimateUnlistedValue } from "@/lib/leads/estimate-unlisted-value";
 import { scoreLeadFromAnswers, type ScoringResult } from "@/lib/leads/scoring";
 import type { Answers } from "@/lib/verticals/filterAnswers";
 
@@ -57,9 +59,22 @@ export async function POST(req: NextRequest) {
   if (hasAnswers) {
     const config = await getVerticalConfig(business.vertical);
     if (config) {
+      const pricing = await getPricingRulesByBusiness(business.id);
+      const aiEstimate = await maybeEstimateUnlistedValue({
+        questions: config.questions,
+        rules: config.scoringRules,
+        answers,
+        serviceRequested: offListService,
+        pricing,
+        vertical: business.vertical,
+      });
       scores = scoreLeadFromAnswers(answers, config.scoringRules, config.questions, config.baseValueLow, {
         serviceRequested: offListService,
         signalText: notes?.trim() || null,
+        callerName: callerName?.trim() || null,
+        callerEmail: callerEmail?.trim() || null,
+        pricingRules: pricing,
+        aiEstimatedCents: aiEstimate,
       });
     }
   }

@@ -9,9 +9,11 @@ import type { ScoringResult } from "./scoring";
 vi.mock("@/lib/db/queries/leads", () => ({ createLead: vi.fn() }));
 vi.mock("@/lib/db/queries/calls", () => ({ updateCall: vi.fn() }));
 vi.mock("@/lib/leads/assess", () => ({ assessLead: vi.fn() }));
+vi.mock("@/lib/db/queries/pricingRules", () => ({ getPricingRulesByBusiness: vi.fn() }));
 import { createLead } from "@/lib/db/queries/leads";
 import { updateCall } from "@/lib/db/queries/calls";
 import { assessLead } from "@/lib/leads/assess";
+import { getPricingRulesByBusiness } from "@/lib/db/queries/pricingRules";
 import { captureHumanCallLead } from "./capture-human-call";
 
 const QUESTIONS: VerticalQuestion[] = [
@@ -31,6 +33,7 @@ function makeIntake(overrides: Partial<TranscriptIntake> = {}): TranscriptIntake
     messageKind: null,
     messageForTeam: null,
     serviceRequested: null,
+    ownerQuotedCents: null,
     summary: "Team-answered call.",
     callerName: null,
     ...overrides,
@@ -41,6 +44,7 @@ beforeEach(() => {
   vi.mocked(createLead).mockReset().mockResolvedValue({ id: "lead-1" } as never);
   vi.mocked(updateCall).mockReset().mockResolvedValue(undefined as never);
   vi.mocked(assessLead).mockReset().mockResolvedValue({ urgencyReasoning: "u", qualityReasoning: "q", recommendedActions: [] } as never);
+  vi.mocked(getPricingRulesByBusiness).mockReset().mockResolvedValue([] as never);
 });
 
 describe("captureHumanCallLead — three-outcome contract", () => {

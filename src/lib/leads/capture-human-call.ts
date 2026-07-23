@@ -2,6 +2,8 @@ import type { Call } from "@/lib/db/schema/calls";
 import type { VerticalQuestion, ScoringRule } from "@/lib/db/schema/verticalConfigs";
 import { createLead } from "@/lib/db/queries/leads";
 import { updateCall } from "@/lib/db/queries/calls";
+import { getPricingRulesByBusiness } from "@/lib/db/queries/pricingRules";
+import { maybeEstimateUnlistedValue } from "@/lib/leads/estimate-unlisted-value";
 import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
 import { assessLead } from "@/lib/leads/assess";
 import { deriveIntakeStatusFromAnswers } from "@/lib/leads/intake-status";
@@ -36,6 +38,8 @@ export interface HumanCallLeadResult {
 export async function captureHumanCallLead(params: {
   call: Call;
   verticalConfig: {
+    /** Trade label for AI value estimation, e.g. "plumbing". */
+    vertical?: string;
     questions: VerticalQuestion[];
     scoringRules: ScoringRule[];
     baseValueLow: number;
@@ -88,12 +92,34 @@ export async function captureHumanCallLead(params: {
     // (outcome stays "business_answered", set by the Dial status webhook).
     await updateCall(call.id, { leadId: lead.id });
 
+    // Value-estimate precedence for a team-answered call: a price the team
+    // actually quoted on the call wins outright; otherwise the business's
+    // configured prices; otherwise the (calibrated) benchmark; an off-list job
+    // with no quote gets the AI price-list-anchored estimate.
+    const pricing = await getPricingRulesByBusiness(call.businessId);
+    const aiEstimate = intake.ownerQuotedCents
+      ? null
+      : await maybeEstimateUnlistedValue({
+          questions: verticalConfig.questions,
+          rules: verticalConfig.scoringRules,
+          answers,
+          serviceRequested,
+          pricing,
+          vertical: verticalConfig.vertical ?? "home services",
+        });
     const scores = scoreLeadFromAnswers(
       answers,
       verticalConfig.scoringRules,
       verticalConfig.questions,
       verticalConfig.baseValueLow,
-      { serviceRequested, signalText: transcriptText }
+      {
+        serviceRequested,
+        signalText: transcriptText,
+        callerName: intake.callerName,
+        pricingRules: pricing,
+        ownerQuotedCents: intake.ownerQuotedCents,
+        aiEstimatedCents: aiEstimate,
+      }
     );
     await assessLead(lead.id, answers, scores, verticalConfig.aiPromptTemplate);
 

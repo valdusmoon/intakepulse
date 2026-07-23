@@ -6,6 +6,7 @@ vi.mock("@/lib/db/queries/calls", () => ({ getCallById: vi.fn(), updateCall: vi.
 vi.mock("@/lib/db/queries/leads", () => ({ getLeadById: vi.fn() }));
 vi.mock("@/lib/db/queries/businesses", () => ({ getBusinessById: vi.fn() }));
 vi.mock("@/lib/db/queries/verticalConfigs", () => ({ getVerticalConfig: vi.fn() }));
+vi.mock("@/lib/db/queries/pricingRules", () => ({ getPricingRulesByBusiness: vi.fn() }));
 vi.mock("@/lib/leads/assess", () => ({ assessLead: vi.fn() }));
 vi.mock("@/lib/leads/notify-job", () => ({ notifyJobLead: vi.fn() }));
 vi.mock("@/lib/leads/notify-message", () => ({ notifyMessageCaptured: vi.fn() }));
@@ -14,6 +15,7 @@ import { getCallById, updateCall } from "@/lib/db/queries/calls";
 import { getLeadById } from "@/lib/db/queries/leads";
 import { getBusinessById } from "@/lib/db/queries/businesses";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
+import { getPricingRulesByBusiness } from "@/lib/db/queries/pricingRules";
 import { assessLead } from "@/lib/leads/assess";
 import { notifyJobLead } from "@/lib/leads/notify-job";
 import { notifyMessageCaptured } from "@/lib/leads/notify-message";
@@ -42,6 +44,7 @@ beforeEach(() => {
   vi.mocked(getLeadById).mockReset();
   vi.mocked(getBusinessById).mockReset().mockResolvedValue(BUSINESS as never);
   vi.mocked(getVerticalConfig).mockReset().mockResolvedValue({ questions: QUESTIONS, scoringRules: RULES, baseValueLow: 50000, aiPromptTemplate: "t" } as never);
+  vi.mocked(getPricingRulesByBusiness).mockReset().mockResolvedValue([] as never);
   vi.mocked(assessLead).mockReset().mockResolvedValue({ urgencyReasoning: "u", qualityReasoning: "q", recommendedActions: [] } as never);
   vi.mocked(notifyJobLead).mockReset();
   vi.mocked(notifyMessageCaptured).mockReset();

@@ -3,6 +3,8 @@ import { getCallById, updateCall } from "@/lib/db/queries/calls";
 import { getLeadById } from "@/lib/db/queries/leads";
 import { getBusinessById } from "@/lib/db/queries/businesses";
 import { getVerticalConfig } from "@/lib/db/queries/verticalConfigs";
+import { getPricingRulesByBusiness } from "@/lib/db/queries/pricingRules";
+import { maybeEstimateUnlistedValue } from "@/lib/leads/estimate-unlisted-value";
 import { withCustomServiceOptions } from "@/lib/verticals/customOptions";
 import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
 import { assessLead } from "@/lib/leads/assess";
@@ -69,9 +71,25 @@ export async function finalizeVoiceCall({ callId }: { callId: string }): Promise
         if (config) {
           const questions = withCustomServiceOptions(config.questions, business.customServiceOptions);
           const answers = lead.intakeAnswers ?? {};
+          // Configured prices seed the value estimate; caller identity feeds the
+          // completeness quality score. An off-list/unbenchmarked job gets an AI
+          // estimate anchored on the business's price list (null for menu jobs).
+          const pricing = await getPricingRulesByBusiness(business.id);
+          const aiEstimate = await maybeEstimateUnlistedValue({
+            questions,
+            rules: config.scoringRules,
+            answers,
+            serviceRequested: lead.serviceRequested,
+            pricing,
+            vertical: business.vertical,
+          });
           const scores = scoreLeadFromAnswers(answers, config.scoringRules, questions, config.baseValueLow, {
             serviceRequested: lead.serviceRequested,
             signalText: lead.notes,
+            callerName: lead.callerName,
+            callerEmail: lead.callerEmail,
+            pricingRules: pricing,
+            aiEstimatedCents: aiEstimate,
           });
           const reasoning = await assessLead(lead.id, answers, scores, config.aiPromptTemplate);
           await notifyJobLead({

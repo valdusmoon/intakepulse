@@ -21,9 +21,9 @@ export function buildAiPromptTemplate(industryLabel: string): string {
   return `You are an expert ${industryLabel} industry consultant helping a ${industryLabel} company understand an inbound lead.
 
 The lead scoring engine has already computed objective scores based on the intake answers:
-- Urgency score: {urgencyScore}/10
-- Quality score: {qualityScore}/100
-- Estimated job value: {estimatedValueLow} to {estimatedValueHigh} (cents)
+- Urgency score: {urgencyScore}/10 — time sensitivity only
+- Quality score: {qualityScore}/100 — how COMPLETE and qualified the captured information is (service identified, location, urgency answered, coverage, contact identity). It does NOT measure urgency or job size; a 65 means a solid phone capture, 80+ means fully qualified.
+- Estimated job value: {estimatedValueLow} to {estimatedValueHigh} (cents) — from the business's own configured prices when this service is priced, otherwise an industry benchmark
 
 Your job is to write the plain-English explanation for WHY these scores are what they are, using the intake answers below. Do NOT change the scores — they are already computed. Write as if you are briefing the ${industryLabel} company owner at 2am on their phone.
 
@@ -92,20 +92,17 @@ export const UNIVERSAL_FOLLOWUP_QUESTIONS: VerticalQuestion[] = [URGENCY_QUESTIO
 
 // Urgency is the strongest signal we ALWAYS capture (voice asks it; the web form
 // asks it). It drives the urgencyScore (and, via urgencyScore, most of the
-// composite priorityScore that tiers the lead — see scoring.ts). It contributes
-// to qualityScore too, but only modestly: qualityScore measures how QUALIFIED /
-// complete a lead is (coverage, recency, service richness), NOT how urgent it is —
-// otherwise "quality" just becomes urgency in disguise and the intent badge lies.
-// So emergency/soon add real-but-bounded quality; coverage is the bigger quality
-// lever. Caps: URGENCY_CAP 15, QUALITY_CAP 65 (scoring.ts).
+// composite priorityScore that tiers the lead — see scoring.ts). As of
+// priority_v2, rules score ONLY urgency: qualityScore is computed structurally by
+// the engine from what was captured (service, ZIP, urgency answered, coverage,
+// recency, identity), so quality can't become urgency-in-disguise and a perfect
+// voice capture isn't penalized for questions voice never asks.
+// Cap: URGENCY_CAP 15 (scoring.ts).
 export const UNIVERSAL_FOLLOWUP_SCORING_RULES: ScoringRule[] = [
-  { answerKey: "urgency", answerValue: "emergency", urgencyBonus: 13, qualityBonus: 18 },
-  { answerKey: "urgency", answerValue: "soon", urgencyBonus: 6, qualityBonus: 9 },
-  { answerKey: "time_since_issue", answerValue: "today", urgencyBonus: 2, qualityBonus: 5 },
-  { answerKey: "time_since_issue", answerValue: "this_week", urgencyBonus: 1, qualityBonus: 3 },
-  { answerKey: "has_coverage", answerValue: "covered", qualityBonus: 20 },
-  { answerKey: "has_coverage", answerValue: "out_of_pocket", qualityBonus: 8 },
-  { answerKey: "has_coverage", answerValue: "not_sure", qualityBonus: 3 },
+  { answerKey: "urgency", answerValue: "emergency", urgencyBonus: 13 },
+  { answerKey: "urgency", answerValue: "soon", urgencyBonus: 6 },
+  { answerKey: "time_since_issue", answerValue: "today", urgencyBonus: 2 },
+  { answerKey: "time_since_issue", answerValue: "this_week", urgencyBonus: 1 },
 ];
 
 /** Every vertical: [primary service question (asked open-ended on voice),
@@ -135,10 +132,14 @@ const restorationMenuQuestion: VerticalQuestion = {
   required: true,
 };
 
+// Per-service benchmark value RANGES (cents) — priority_v2. These are industry
+// ballparks, not quotes: a business's own pricing_rules always override them, and
+// unpriced services get these scaled by the business's calibration factor
+// (value-estimate.ts). Never spoken to a caller.
 const restorationMenuScoringRules: ScoringRule[] = [
-  { answerKey: "service_type", answerValue: "water", valueBonus: 200000 },
-  { answerKey: "service_type", answerValue: "fire", urgencyBonus: 2, valueBonus: 300000, qualityBonus: 10 },
-  { answerKey: "service_type", answerValue: "mold", qualityBonus: 5, valueBonus: 80000 },
+  { answerKey: "service_type", answerValue: "water", valueLowCents: 250000, valueHighCents: 800000 },
+  { answerKey: "service_type", answerValue: "fire", urgencyBonus: 2, valueLowCents: 400000, valueHighCents: 1500000 },
+  { answerKey: "service_type", answerValue: "mold", valueLowCents: 200000, valueHighCents: 600000 },
 ];
 
 // NOTE (2026-07-22): restoration's former enrichment fields (cause, rooms_affected)
@@ -165,12 +166,12 @@ const hvacMenuQuestion: VerticalQuestion = {
 };
 
 const hvacMenuScoringRules: ScoringRule[] = [
-  { answerKey: "service_type", answerValue: "ac_repair", valueBonus: 35000 },
-  { answerKey: "service_type", answerValue: "heating_repair", valueBonus: 10000 },
-  { answerKey: "service_type", answerValue: "thermostat", valueBonus: 10000 },
-  { answerKey: "service_type", answerValue: "ac_replacement", valueBonus: 485000, qualityBonus: 10 },
-  { answerKey: "service_type", answerValue: "furnace_replacement", valueBonus: 265000, qualityBonus: 10 },
-  { answerKey: "service_type", answerValue: "ductwork", valueBonus: 235000, urgencyBonus: 1 },
+  { answerKey: "service_type", answerValue: "ac_repair", valueLowCents: 30000, valueHighCents: 90000 },
+  { answerKey: "service_type", answerValue: "heating_repair", valueLowCents: 30000, valueHighCents: 90000 },
+  { answerKey: "service_type", answerValue: "thermostat", valueLowCents: 15000, valueHighCents: 45000 },
+  { answerKey: "service_type", answerValue: "ac_replacement", valueLowCents: 500000, valueHighCents: 1000000 },
+  { answerKey: "service_type", answerValue: "furnace_replacement", valueLowCents: 350000, valueHighCents: 750000 },
+  { answerKey: "service_type", answerValue: "ductwork", urgencyBonus: 1, valueLowCents: 150000, valueHighCents: 500000 },
 ];
 
 // ─── Plumbing Vertical ──────────────────────────────────────────────────────────
@@ -191,12 +192,12 @@ const plumbingMenuQuestion: VerticalQuestion = {
 };
 
 const plumbingMenuScoringRules: ScoringRule[] = [
-  { answerKey: "service_type", answerValue: "drain_clog", valueBonus: 5000 },
-  { answerKey: "service_type", answerValue: "leak_repair", valueBonus: 15000 },
-  { answerKey: "service_type", answerValue: "fixture_repair", valueBonus: 10000 },
-  { answerKey: "service_type", answerValue: "water_heater", valueBonus: 90000, qualityBonus: 10 },
-  { answerKey: "service_type", answerValue: "sewer_line", valueBonus: 300000, urgencyBonus: 2, qualityBonus: 10 },
-  { answerKey: "service_type", answerValue: "burst_pipe", urgencyBonus: 2, valueBonus: 50000 },
+  { answerKey: "service_type", answerValue: "drain_clog", valueLowCents: 15000, valueHighCents: 50000 },
+  { answerKey: "service_type", answerValue: "leak_repair", valueLowCents: 25000, valueHighCents: 80000 },
+  { answerKey: "service_type", answerValue: "fixture_repair", valueLowCents: 20000, valueHighCents: 60000 },
+  { answerKey: "service_type", answerValue: "water_heater", valueLowCents: 120000, valueHighCents: 350000 },
+  { answerKey: "service_type", answerValue: "sewer_line", urgencyBonus: 2, valueLowCents: 300000, valueHighCents: 1000000 },
+  { answerKey: "service_type", answerValue: "burst_pipe", urgencyBonus: 2, valueLowCents: 100000, valueHighCents: 400000 },
 ];
 
 // ─── Electrical Vertical ────────────────────────────────────────────────────────
@@ -217,12 +218,12 @@ const electricalMenuQuestion: VerticalQuestion = {
 };
 
 const electricalMenuScoringRules: ScoringRule[] = [
-  { answerKey: "service_type", answerValue: "diagnostic", valueBonus: 7500 },
-  { answerKey: "service_type", answerValue: "outlet_switch", valueBonus: 10000 },
-  { answerKey: "service_type", answerValue: "emergency", urgencyBonus: 3, valueBonus: 30000 },
-  { answerKey: "service_type", answerValue: "panel_upgrade", valueBonus: 150000, qualityBonus: 10 },
-  { answerKey: "service_type", answerValue: "rewiring", valueBonus: 1000000, qualityBonus: 15, urgencyBonus: 1 },
-  { answerKey: "service_type", answerValue: "ev_charger", valueBonus: 150000, qualityBonus: 8 },
+  { answerKey: "service_type", answerValue: "diagnostic", valueLowCents: 15000, valueHighCents: 40000 },
+  { answerKey: "service_type", answerValue: "outlet_switch", valueLowCents: 15000, valueHighCents: 50000 },
+  { answerKey: "service_type", answerValue: "emergency", urgencyBonus: 3, valueLowCents: 30000, valueHighCents: 150000 },
+  { answerKey: "service_type", answerValue: "panel_upgrade", valueLowCents: 180000, valueHighCents: 400000 },
+  { answerKey: "service_type", answerValue: "rewiring", urgencyBonus: 1, valueLowCents: 400000, valueHighCents: 1200000 },
+  { answerKey: "service_type", answerValue: "ev_charger", valueLowCents: 100000, valueHighCents: 250000 },
 ];
 
 // ─── General Contracting Vertical ───────────────────────────────────────────────
@@ -241,9 +242,10 @@ const generalContractingMenuQuestion: VerticalQuestion = {
 };
 
 const generalContractingMenuScoringRules: ScoringRule[] = [
-  { answerKey: "service_type", answerValue: "addition", valueBonus: 635000, qualityBonus: 10 },
-  { answerKey: "service_type", answerValue: "remodel", valueBonus: 435000, qualityBonus: 8 },
-  { answerKey: "service_type", answerValue: "minor_repair", valueBonus: 15000 },
+  { answerKey: "service_type", answerValue: "addition", valueLowCents: 1500000, valueHighCents: 6000000 },
+  { answerKey: "service_type", answerValue: "remodel", valueLowCents: 500000, valueHighCents: 2500000 },
+  { answerKey: "service_type", answerValue: "minor_repair", valueLowCents: 30000, valueHighCents: 120000 },
+  { answerKey: "service_type", answerValue: "general", valueLowCents: 50000, valueHighCents: 200000 },
 ];
 
 // ─── Other (generic fallback) Vertical ──────────────────────────────────────────

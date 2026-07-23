@@ -131,8 +131,8 @@ pattern) — classification stays separate from policy so that door stays open w
 
 ## 7. Lifecycle after capture
 
-1. **Ranked queue** — jobs only, ordered by priorityScore (urgency-weighted, emergency ≥70 /
-   critical-signal ≥80 floors); messages sit in the inbox with kind badges.
+1. **Ranked queue** — jobs only, ordered by priorityScore (see §8); messages sit in the inbox
+   with kind badges.
 2. **Pipeline** — `leadStatus` (`new → qualified → contacted → booked → estimate_sent →
    converted/lost`) is owner-editable on EVERY lead, messages included. `contactedAt` stamps the
    first human touch — the speed-to-lead record the pitch promises.
@@ -144,7 +144,49 @@ pattern) — classification stays separate from policy so that door stays open w
    the dollarized leak — "X Hot leads slipped past N minutes, ~$Y" — which depends on this
    taxonomy staying clean on every channel.
 
-## 8. The change rule
+## 8. The scoring standard (`priority_v2`)
+
+Deterministic, versioned, fully traced (`scoreTrace` on every job). The model never sets a
+number; code computes everything. Engine: `src/lib/leads/scoring.ts` + `value-estimate.ts`.
+
+**Three independent axes, blended 50/30/20 into priorityScore (0–100):**
+
+- **Urgency (50%)** — time sensitivity only. Rule-driven (stated urgency + per-service bonuses
+  like burst pipe / sewer / fire). 1–10 displayed, 0–100 in the blend.
+- **Value (30%)** — the backend dollar estimate on a global log band ($150 → 0, $10,000+ → 100).
+  Source order, most specific truth first:
+  1. **Owner-quoted** — the team stated a price on a recorded call → stored verbatim, never our
+     guess.
+  2. **Configured price** — the business priced this service in Settings (`pricing_rules`); the
+     services table is always the pricing source of truth when it speaks.
+  3. **Calibrated benchmark** — unpriced service, but other services ARE priced: the industry
+     benchmark scaled by the business's median configured-vs-benchmark ratio (clamped 0.25×–4×).
+  4. **Benchmark** — the vertical's per-service range from the scoring rules.
+  5. **AI relative estimate** — an OFF-LIST or custom/unbenchmarked job: the model gets the
+     business's service list with prices as anchors and judges the described job's worth
+     relative to them ("a full repipe is bigger work than a water heater"). Clamped to sane
+     bounds, skipped when the team quoted, null on any doubt (`estimate-unlisted-value.ts`).
+  6. **Base range** — the vertical's floor when nothing above applies.
+  These numbers are backend-only (alerts, ranking, reports). The AI never speaks an estimate —
+  callers only ever hear a business-approved `approvedCustomerMessage`, or nothing (`quote.ts`).
+- **Quality (20%)** — how COMPLETE/QUALIFIED the capture is, channel-fair, computed structurally
+  (never from rules, never from urgency or job size): service identified 35 (off-list words 28) +
+  urgency answered 15 + ZIP 15 + coverage 20/12/5 + recency 5/3/2 + caller identity 10. A perfect
+  voice capture = 65; a fully-qualified web lead = 100. Voice is never penalized for questions it
+  deliberately doesn't ask.
+
+**Tiers** — Hot ≥65 / Warm ≥40 / Cool, always from priorityScore, never from one axis.
+
+**Floors are ordered bands, not flat clamps.** A stated emergency with an identified service maps
+to `70 + 30 × natural/100`; an explicit critical signal (gas smell, active flooding, sewage
+backup…) maps from 80. Emergencies therefore all read Hot but still rank against each other by the
+same blend. "Emergency" with a truly unidentified service does not float to Hot. A big flexible
+job stays Cool and gets the tier-independent **High value** badge (valueScore ≥80) instead.
+
+**Version discipline** — any change to weights, points, floors, bands, or value sources bumps
+`SCORE_VERSION`; old leads stay interpretable against the version that scored them.
+
+## 9. The change rule
 
 Any future feature must state which section of this document it amends. If it doesn't fit the
 §1 identity line — or requires the AI to improvise with a customer — it's out of scope until this

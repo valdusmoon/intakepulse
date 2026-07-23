@@ -28,13 +28,16 @@ export function priorityMeta(urgencyScore: number | null): { label: string; colo
   return { label: "Routine", color: "gray" };
 }
 
-/** Bucket the numeric qualityScore (1-100) into an "intent" label — reuses the
- * existing AI quality score rather than inventing a new scoring dimension. */
+/** Bucket the numeric qualityScore (1-100) into a completeness label. As of
+ * priority_v2, quality measures how COMPLETE/QUALIFIED the captured info is
+ * (service, location, urgency answered, coverage, identity) — a perfect voice
+ * capture lands ~65, a fully-qualified web lead 80+. */
 export function intentMeta(qualityScore: number | null): { label: string; color: BadgeColor } {
-  if (qualityScore == null) return { label: "Intent unclear", color: "gray" };
-  if (qualityScore >= 65) return { label: "High intent", color: "blue" };
-  if (qualityScore >= 35) return { label: "Medium intent", color: "amber" };
-  return { label: "Intent unclear", color: "gray" };
+  if (qualityScore == null) return { label: "Details unknown", color: "gray" };
+  if (qualityScore >= 80) return { label: "Fully qualified", color: "blue" };
+  if (qualityScore >= 55) return { label: "Solid details", color: "blue" };
+  if (qualityScore >= 30) return { label: "Partial details", color: "amber" };
+  return { label: "Sparse details", color: "gray" };
 }
 
 const MESSAGE_KIND_META: Record<string, { label: string; color: BadgeColor }> = {

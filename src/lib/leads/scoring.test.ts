@@ -36,14 +36,16 @@ describe("scoreLeadFromAnswers", () => {
     expect(result.urgencyScore).toBe(10);
   });
 
-  it("clamps qualityScore to 100 even when bonuses exceed the cap", () => {
+  it("ignores legacy rule qualityBonus — quality is structural in v2", () => {
     const rules: ScoringRule[] = [{ answerKey: "service_type", answerValue: "a", qualityBonus: 999 }];
     const result = scoreLeadFromAnswers({ service_type: "a" }, rules, BASE_QUESTIONS, 0);
-    expect(result.qualityScore).toBe(100);
+    // Only the structural service-captured credit, not the 999 bonus.
+    expect(result.qualityScore).toBe(35);
+    expect(result.trace.qualitySignals).toEqual(["service_matched"]);
   });
 
-  it("never drops below the floor of 1 for urgency/quality even with zero matching rules", () => {
-    const result = scoreLeadFromAnswers({ service_type: "z" }, [{ answerKey: "service_type", answerValue: "a", urgencyBonus: 10 }], BASE_QUESTIONS, 0);
+  it("never drops below the floor of 1 for urgency/quality with an empty capture", () => {
+    const result = scoreLeadFromAnswers({}, [{ answerKey: "service_type", answerValue: "a", urgencyBonus: 10 }], BASE_QUESTIONS, 0);
     expect(result.urgencyScore).toBe(1);
     expect(result.qualityScore).toBe(1);
   });
@@ -132,7 +134,7 @@ describe("scoreLeadFromAnswers", () => {
         expect(result.qualityScore).toBeGreaterThanOrEqual(1);
         expect(result.qualityScore).toBeLessThanOrEqual(100);
         expect(result.estimatedValueLow).toBeGreaterThan(0);
-        expect(result.estimatedValueHigh).toBe(result.estimatedValueLow * 2);
+        expect(result.estimatedValueHigh).toBeGreaterThanOrEqual(result.estimatedValueLow);
       });
 
       it(`${v.vertical}: a blank/no-signal answer set never crashes and stays at the floor`, () => {
@@ -274,6 +276,159 @@ describe("scoreLeadFromAnswers", () => {
     it("a small-ticket lead is not flagged high-value", () => {
       const s = scoreIn("plumbing", { service_type: "drain_clog", urgency: "flexible" });
       expect(isHighValueLead(s.estimatedValueLow)).toBe(false);
+    });
+  });
+
+  // ─── priority_v2: structural quality (channel-fair completeness) ─────────────
+  describe("quality = completeness (v2)", () => {
+    it("a perfect VOICE capture (service + urgency + ZIP) scores 65", () => {
+      const s = scoreIn("restoration", { service_type: "water", urgency: "emergency", zip_code: "33618" });
+      expect(s.qualityScore).toBe(65);
+    });
+
+    it("quality is identical for the same capture regardless of urgency level", () => {
+      const emergency = scoreIn("restoration", { service_type: "water", urgency: "emergency", zip_code: "33618" });
+      const flexible = scoreIn("restoration", { service_type: "water", urgency: "flexible", zip_code: "33618" });
+      expect(emergency.qualityScore).toBe(flexible.qualityScore);
+    });
+
+    it("a fully-qualified web capture (coverage + recency + identity) reaches 100", () => {
+      const s = scoreIn(
+        "restoration",
+        { service_type: "water", urgency: "soon", zip_code: "33618", has_coverage: "covered", time_since_issue: "today" },
+        { callerName: "Dana Fox" }
+      );
+      expect(s.qualityScore).toBe(100);
+    });
+
+    it("an off-list service earns quality credit for being identified", () => {
+      const s = scoreIn("restoration", { urgency: "soon", zip_code: "07641" }, { serviceRequested: "pest invasion" });
+      expect(s.qualityScore).toBe(28 + 15 + 15);
+      expect(s.trace.qualitySignals).toContain("service_off_list");
+    });
+
+    it("caller identity (name or email) adds quality", () => {
+      const anon = scoreIn("plumbing", { service_type: "drain_clog", urgency: "soon" });
+      const named = scoreIn("plumbing", { service_type: "drain_clog", urgency: "soon" }, { callerName: "Sam" });
+      expect(named.qualityScore).toBe(anon.qualityScore + 10);
+    });
+  });
+
+  // ─── priority_v2: floors are ordered bands, not flat clamps ──────────────────
+  describe("floor bands preserve ranking within Hot", () => {
+    it("two emergencies with different value rank differently, both at/above the floor", () => {
+      const clog = scoreIn("plumbing", { service_type: "drain_clog", urgency: "emergency" });
+      const sewer = scoreIn("plumbing", { service_type: "sewer_line", urgency: "emergency" });
+      expect(clog.priorityScore).toBeGreaterThanOrEqual(EMERGENCY_PRIORITY_FLOOR);
+      expect(sewer.priorityScore).toBeGreaterThan(clog.priorityScore);
+    });
+
+    it("a better-qualified emergency outranks a bare one within the band", () => {
+      const bare = scoreIn("hvac", { service_type: "ac_repair", urgency: "emergency" });
+      const qualified = scoreIn(
+        "hvac",
+        { service_type: "ac_repair", urgency: "emergency", zip_code: "33618", has_coverage: "covered" },
+        { callerName: "Sam" }
+      );
+      expect(qualified.priorityScore).toBeGreaterThan(bare.priorityScore);
+    });
+
+    it("banded scores never exceed 100 and record the natural pre-floor score", () => {
+      const s = scoreIn(
+        "restoration",
+        { service_type: "fire", urgency: "emergency", zip_code: "33618", has_coverage: "covered", time_since_issue: "today" },
+        { callerName: "Sam", signalText: "actively flooding too" }
+      );
+      expect(s.priorityScore).toBeLessThanOrEqual(100);
+      expect(s.trace.naturalPriority).toBeLessThanOrEqual(s.priorityScore);
+    });
+  });
+
+  // ─── priority_v2: value estimate sources ─────────────────────────────────────
+  describe("value estimate sources", () => {
+    const pricing = (over: Partial<import("./value-estimate").PricingRuleLike> = {}) => ({
+      serviceCategory: "water",
+      pricingType: "preliminary_range" as const,
+      minimumAmount: 140000,
+      maximumAmount: 640000,
+      fixedAmount: null,
+      startingAmount: null,
+      isActive: true,
+      ...over,
+    });
+
+    it("a configured price for the matched service overrides the benchmark", () => {
+      const s = scoreIn("restoration", { service_type: "water", urgency: "soon" }, { pricingRules: [pricing()] });
+      expect(s.estimatedValueLow).toBe(140000);
+      expect(s.estimatedValueHigh).toBe(640000);
+      expect(s.trace.valueSource).toBe("configured_price");
+    });
+
+    it("an UNPRICED service gets the benchmark scaled by the business's calibration factor", () => {
+      // Business prices water at 2x the $2,500 benchmark → fire (unpriced,
+      // benchmark $4,000–$15,000) extrapolates to $8,000–$30,000.
+      const doubled = pricing({ minimumAmount: 500000, maximumAmount: 1600000 });
+      const s = scoreIn("restoration", { service_type: "fire", urgency: "soon" }, { pricingRules: [doubled] });
+      expect(s.trace.valueSource).toBe("calibrated_benchmark");
+      expect(s.trace.valueCalibration).toBe(2);
+      expect(s.estimatedValueLow).toBe(800000);
+      expect(s.estimatedValueHigh).toBe(3000000);
+    });
+
+    it("inspection_required rules carry no numbers and do not affect the estimate", () => {
+      const inspect = pricing({ serviceCategory: "fire", pricingType: "inspection_required", minimumAmount: null, maximumAmount: null });
+      const s = scoreIn("restoration", { service_type: "fire", urgency: "soon" }, { pricingRules: [inspect] });
+      expect(s.trace.valueSource).toBe("benchmark");
+      expect(s.estimatedValueLow).toBe(400000); // fire benchmark low
+    });
+
+    it("a price the TEAM quoted on a recorded call beats every other source", () => {
+      const s = scoreIn(
+        "restoration",
+        { service_type: "water", urgency: "soon" },
+        { pricingRules: [pricing()], ownerQuotedCents: { lowCents: 220000, highCents: 220000 } }
+      );
+      expect(s.estimatedValueLow).toBe(220000);
+      expect(s.estimatedValueHigh).toBe(220000);
+      expect(s.trace.valueSource).toBe("owner_quoted");
+    });
+
+    it("no configured prices at all → the plain benchmark range", () => {
+      const s = scoreIn("restoration", { service_type: "water", urgency: "soon" });
+      expect(s.estimatedValueLow).toBe(250000);
+      expect(s.estimatedValueHigh).toBe(800000);
+      expect(s.trace.valueSource).toBe("benchmark");
+    });
+
+    it("an off-list job uses the AI price-list-anchored estimate when provided", () => {
+      const s = scoreIn(
+        "plumbing",
+        { urgency: "soon" },
+        { serviceRequested: "full pipe gut and replace", aiEstimatedCents: { lowCents: 600000, highCents: 1200000 } }
+      );
+      expect(s.estimatedValueLow).toBe(600000);
+      expect(s.trace.valueSource).toBe("ai_relative");
+    });
+
+    it("an owner-quoted price beats the AI estimate", () => {
+      const s = scoreIn(
+        "plumbing",
+        { urgency: "soon" },
+        {
+          serviceRequested: "full pipe gut and replace",
+          aiEstimatedCents: { lowCents: 600000, highCents: 1200000 },
+          ownerQuotedCents: { lowCents: 450000, highCents: 450000 },
+        }
+      );
+      expect(s.estimatedValueLow).toBe(450000);
+      expect(s.trace.valueSource).toBe("owner_quoted");
+    });
+
+    it("legacy v1 rules (valueBonus, no ranges) still estimate as base + bonus, high = 2x", () => {
+      const rules: ScoringRule[] = [{ answerKey: "service_type", answerValue: "a", valueBonus: 100000 }];
+      const s = scoreLeadFromAnswers({ service_type: "a" }, rules, BASE_QUESTIONS, 50000);
+      expect(s.estimatedValueLow).toBe(150000);
+      expect(s.estimatedValueHigh).toBe(300000);
     });
   });
 

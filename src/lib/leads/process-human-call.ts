@@ -66,6 +66,7 @@ export async function processHumanCall(input: ProcessHumanCallInput): Promise<vo
   await captureHumanCallLead({
     call,
     verticalConfig: {
+      vertical: business.vertical,
       questions,
       scoringRules: verticalConfig.scoringRules,
       baseValueLow: verticalConfig.baseValueLow,
