@@ -57,6 +57,25 @@ export async function getExistingSubscription(): Promise<PushSubscription | null
   return reg.pushManager.getSubscription();
 }
 
+// The browser's subscription and our push_subscriptions row can drift: the row
+// gets pruned (410) or the endpoint rotates while the device still considers
+// itself subscribed — and then the slider shows ON while the server sends to
+// nothing. Re-POSTing the live local subscription is idempotent (upsert by
+// endpoint) and repairs the row. Called fire-and-forget on dashboard load; the
+// module flag keeps it to one POST per page load.
+let synced = false;
+export async function syncLocalSubscription(): Promise<void> {
+  if (synced) return;
+  const sub = await getExistingSubscription();
+  if (!sub) return;
+  synced = true;
+  await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ subscription: sub.toJSON() }),
+  }).catch(() => {});
+}
+
 // Request permission, subscribe, and persist server-side. Returns the subscription
 // on success. Throws with a stable code string on the common failure paths so the
 // caller can show the right message.

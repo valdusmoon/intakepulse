@@ -37,6 +37,41 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+/* Browsers rotate push endpoints (Chrome/FCM does this without warning). Without
+ * this handler the server keeps sending to the dead endpoint — FCM even accepts
+ * the send (201, no 410 to prune) and silently drops it, so alerts just stop
+ * until the user toggles push off/on by hand. Re-subscribe with the same VAPID
+ * key and swap the server row for the new endpoint. */
+self.addEventListener("pushsubscriptionchange", (event) => {
+  const oldEndpoint = event.oldSubscription ? event.oldSubscription.endpoint : null;
+
+  const resubscribe = Promise.resolve(event.newSubscription)
+    .then((sub) => {
+      if (sub) return sub;
+      // The old subscription's options carry the applicationServerKey, so the
+      // worker doesn't need the VAPID public key baked in.
+      const options = (event.oldSubscription && event.oldSubscription.options) || {
+        userVisibleOnly: true,
+      };
+      return self.registration.pushManager.subscribe(options);
+    })
+    .then((sub) =>
+      fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // oldEndpoint lets the server delete the rotated-away row instead of
+        // leaving a dead sibling to 410 later.
+        body: JSON.stringify({ subscription: sub.toJSON(), oldEndpoint }),
+      }),
+    )
+    .catch(() => {
+      // Best effort — if this fails (e.g. signed out), the dashboard's
+      // re-sync-on-load repairs the registration on the next visit.
+    });
+
+  event.waitUntil(resubscribe);
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const target = (event.notification.data && event.notification.data.url) || "/dashboard";

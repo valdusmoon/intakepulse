@@ -63,11 +63,22 @@ export async function sendLeadPushNotification(
           keys: { p256dh: sub.p256dh, auth: sub.auth },
         },
         body,
+        {
+          // A lead alert is worth waking a dozing phone for — "high" tells
+          // FCM/APNs to deliver immediately instead of batching.
+          urgency: "high",
+          // If the device stays unreachable this long, the moment has passed —
+          // the email and dashboard carry it from there. Also keeps rotted
+          // endpoints from accumulating a queue of ancient alerts.
+          TTL: 60 * 60,
+        },
       ),
     ),
   );
 
   let delivered = 0;
+  let pruned = 0;
+  let failed = 0;
   await Promise.all(
     results.map(async (result, i) => {
       if (result.status === "fulfilled") {
@@ -78,9 +89,11 @@ export async function sendLeadPushNotification(
       const status = err?.statusCode;
       // 404 Not Found / 410 Gone → subscription is dead, remove it.
       if (status === 404 || status === 410) {
+        pruned += 1;
         await deletePushSubscriptionByEndpoint(subs[i].endpoint).catch(() => {});
         logger.info("push: pruned expired subscription", { businessId, status });
       } else {
+        failed += 1;
         logger.error("push: send failed", {
           businessId,
           status,
@@ -89,6 +102,16 @@ export async function sendLeadPushNotification(
       }
     }),
   );
+
+  // Always log the fan-out outcome — a silent success is exactly how the
+  // stale-endpoint blackhole hid (201s to a dead endpoint, nothing in the logs).
+  logger.info("push: lead notification fan-out", {
+    businessId,
+    devices: subs.length,
+    delivered,
+    pruned,
+    failed,
+  });
 
   return delivered;
 }

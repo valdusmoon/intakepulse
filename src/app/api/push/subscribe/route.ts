@@ -2,12 +2,17 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
-import { upsertPushSubscription } from "@/lib/db/queries/pushSubscriptions";
+import {
+  deletePushSubscriptionByEndpoint,
+  upsertPushSubscription,
+} from "@/lib/db/queries/pushSubscriptions";
 import { logger } from "@/lib/logger";
 
 // Register (or refresh) a browser's Web Push subscription so the operator gets
 // lead alerts on this device. Body: the JSON of a PushSubscription
-// (`subscription.toJSON()`) → { endpoint, keys: { p256dh, auth } }.
+// (`subscription.toJSON()`) → { endpoint, keys: { p256dh, auth } }, plus an
+// optional oldEndpoint when the browser rotated the subscription (sent by the
+// service worker's pushsubscriptionchange handler) so the dead row gets removed.
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -36,6 +41,12 @@ export async function POST(req: NextRequest) {
     userAgent: req.headers.get("user-agent")?.slice(0, 255) ?? null,
   });
 
-  logger.info("push: subscription registered", { businessId: business.id });
+  const oldEndpoint: string | undefined = body?.oldEndpoint;
+  const rotated = !!oldEndpoint && oldEndpoint !== endpoint;
+  if (rotated) {
+    await deletePushSubscriptionByEndpoint(oldEndpoint).catch(() => {});
+  }
+
+  logger.info("push: subscription registered", { businessId: business.id, rotated });
   return NextResponse.json({ ok: true });
 }

@@ -8,6 +8,7 @@ import {
   isPushSupported,
   isStandalone,
   subscribeToPush,
+  syncLocalSubscription,
   unsubscribeFromPush,
   VAPID_PUBLIC_KEY,
 } from "@/lib/push/client";
@@ -41,6 +42,9 @@ export function usePushNotifications() {
     }
     const sub = await getExistingSubscription();
     setState(sub ? "enabled" : "disabled");
+    // Already subscribed on this device → silently repair the server row in case
+    // it was pruned or the endpoint rotated (once per page load, fire-and-forget).
+    if (sub) void syncLocalSubscription();
   }, []);
 
   useEffect(() => {
