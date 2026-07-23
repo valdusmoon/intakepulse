@@ -203,7 +203,10 @@ export async function POST(
     callerName: callerName.trim(),
     callerPhone: normalizedPhone,
     callerEmail: callerEmail?.trim() || null,
-    smsConsent: true,
+    // The form has no SMS opt-in and the product sends no SMS, so consent was
+    // never actually given. Never flip this to true without a real checkbox —
+    // stored `true` here would look like TCPA consent it isn't.
+    smsConsent: false,
     intakeAnswers: answers ?? {},
     // The caller's own words for their service — set by the form's "Other" option
     // when they request something not on the configured list (off-list, no quote).
