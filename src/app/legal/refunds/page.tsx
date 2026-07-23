@@ -8,7 +8,7 @@ export default function RefundPolicyPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-1">Refund Policy</h1>
-        <p className="text-sm text-gray-400">Last updated: April 2, 2026</p>
+        <p className="text-sm text-gray-400">Last updated: July 23, 2026</p>
       </div>
 
       <p className="text-gray-600 leading-relaxed">
@@ -17,27 +17,31 @@ export default function RefundPolicyPage() {
 
       <Section title="Free Trial">
         <p>
-          All new accounts receive a 14-day free trial. No charge is made during the trial period. You may cancel
-          at any time before the trial ends and you will not be billed. After day 14, your subscription starts at
-          $149/month and renews automatically.
+          All new accounts receive a 14-day free trial. A payment method is collected upfront through Stripe, but
+          no charge is made during the trial. Cancel any time before the trial ends and you will not be billed.
+          After day 14, billing starts on the plan you chose: $149 per month, or $1,499 per year billed upfront.
+          Both renew automatically.
         </p>
       </Section>
 
       <Section title="Cancellations">
         <p>
-          You can cancel your subscription at any time from your billing settings — no phone calls, no forms,
-          no retention pressure. Your account remains active until the end of the current billing period.
-          After that, your account is downgraded and you lose access to subscription features.
+          You can cancel your subscription at any time from your billing settings. No phone calls, no forms, no
+          retention pressure. Your account stays active until the end of the period you have already paid for.
+          After that, your dedicated Callverted number is released and inbound calls stop being handled.
         </p>
         <p>
-          Your existing lead data remains accessible for 90 days after cancellation, after which it is deleted.
+          Your lead and call data is kept for at least 90 days after cancellation so you can request an export, and
+          we delete it on request. Export your leads, calls, and reports to CSV from the dashboard before you lose
+          access if you want a copy in hand.
         </p>
       </Section>
 
       <Section title="Refunds">
         <p>
           We generally do not offer refunds for subscription charges once a billing period has begun, as access
-          to the full Service is granted immediately.
+          to the full Service is granted immediately. Annual plans are billed upfront and are not prorated if you
+          cancel partway through the term. Access runs to the end of the year you paid for.
         </p>
         <p>Refunds are considered in the following situations:</p>
         <ul>

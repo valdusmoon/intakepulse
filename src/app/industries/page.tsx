@@ -7,7 +7,7 @@ import { INDUSTRIES } from "@/lib/marketing/industries";
 export const metadata: Metadata = {
   title: "Industries We Serve | AI Call Answering for the Trades | Callverted",
   description:
-    "Callverted answers the calls your team misses across HVAC, plumbing, restoration, electrical, and general contracting, qualifying each job and sending a ranked lead.",
+    "Callverted answers the calls your team can't take across HVAC, plumbing, restoration, electrical, and general contracting, qualifies each job, and sends a ranked lead.",
   alternates: { canonical: "/industries" },
 };
 
@@ -22,8 +22,9 @@ export default function IndustriesIndex() {
           Built for the calls that can&apos;t wait.
         </h1>
         <p className="text-[#667085] max-w-2xl mx-auto leading-relaxed">
-          Callverted answers the urgent calls your team can&apos;t get to, qualifies the job the way your trade actually
-          works, and sends a ranked, callback-ready lead. Pick your trade to see the flow.
+          Callverted answers the calls your team physically can&apos;t take, under a house, on a roof, driving, or asleep.
+          It qualifies the job the way your trade actually works, sorts real jobs from messages, and sends back a ranked,
+          callback-ready lead. Pick your trade to see the flow.
         </p>
       </section>
 

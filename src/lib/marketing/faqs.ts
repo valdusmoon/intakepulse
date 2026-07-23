@@ -20,7 +20,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: "Can it handle intake for my specific trade?",
-    a: "Yes. The flow is built around the details that matter for your trade: job type, timing, materials, insurance, service area, and urgency. See the industry pages for HVAC, plumbing, restoration, electrical, and general contracting.",
+    a: "Yes. Every trade gets its own service menu, and a caller who needs something not on that menu has their own words captured verbatim rather than being forced into a category. The rest of the intake is deliberately the same everywhere: what happened, how urgent it is, where, plus when it started and how it's being paid for when the caller volunteers them. See the industry pages for HVAC, plumbing, restoration, electrical, and general contracting.",
   },
   {
     q: "Will the AI invent prices?",
@@ -28,7 +28,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: "What happens if the caller wants a person?",
-    a: "Callverted takes down who they are and what they need, marks it accordingly, and alerts your team right away by text and push so someone can call them back fast.",
+    a: "It takes their name and what they need, files it as a callback message, and alerts you by push and email so someone can get back to them fast. It never bridges the call to a person, because a transfer that rings out is worse than a message that lands.",
   },
   {
     q: "How fast can we launch?",
@@ -40,7 +40,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: "What do I actually receive after a call?",
-    a: "A callback-ready lead: the caller's name and number, service type, urgency, estimated job value, a recommended callback window, a short summary, and the full transcript.",
+    a: "A callback-ready lead: the caller's number from caller ID, what they need, how urgent it is, their ZIP, an estimated job value, a priority score that ranks it against everything else waiting, a short summary, and the full transcript.",
   },
   {
     q: "How do I find out about a new lead?",

@@ -2,6 +2,7 @@ import {
   Rocket,
   LayoutDashboard,
   Inbox,
+  Gauge,
   Phone,
   Code2,
   BarChart3,
@@ -13,7 +14,8 @@ import {
 const sections = [
   { id: "getting-started", label: "Getting Started", icon: Rocket },
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "leads", label: "Leads", icon: Inbox },
+  { id: "leads", label: "Leads & Messages", icon: Inbox },
+  { id: "ranking", label: "How Ranking Works", icon: Gauge },
   { id: "calls", label: "Calls", icon: Phone },
   { id: "capture", label: "Capture", icon: Code2 },
   { id: "reports", label: "Reports", icon: BarChart3 },
@@ -130,26 +132,37 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>What Callverted is</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Callverted is an AI voice-overflow receptionist for home-service trades: restoration, HVAC, plumbing, electrical, general contracting, and other service businesses. When a call to your business goes unanswered (or every call, depending on your settings), Callverted picks up, asks a short set of qualifying questions for your trade, and turns the answers into a scored lead. When your team answers a call, Callverted can optionally record, transcribe, and score that call too, so it becomes a ranked lead like any other. Leads also arrive from a public intake form and an embeddable website widget, not just phone calls.
+                  Callverted captures every inbound opportunity for a home-service business (restoration, HVAC, plumbing, electrical, general contracting, and other trades), sorts the real jobs from the messages and the junk, and puts the real jobs in a ranked callback list so your team knows who to call first. Calls your team doesn&apos;t get to are answered by an automated assistant that asks a few short questions and turns the answers into a scored lead. If you turn on call recording, the calls your team <span className="font-medium">does</span> answer are transcribed and captured the same way. Leads also arrive from your public intake link and your website widget.
                 </p>
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>What it deliberately does not do</SubHeading>
+                <BulletList items={[
+                  "It is not a receptionist. The assistant never answers open-ended questions, never invents a price, and never books an appointment.",
+                  "It never transfers a caller to a person. Someone who asks for a human becomes a callback message instead, so your team calls them back.",
+                  "It is not a CRM. Each contact is one record. There is no customer history, no repeat-caller matching, no contact threads.",
+                  "The AI only listens, sorts, and summarizes. Fixed code decides what happens on the call and what gets saved.",
+                ]} />
               </InfoCard>
               <InfoCard>
                 <SubHeading>Signing up</SubHeading>
                 <BulletList items={[
-                  "Enter your business name and contact info.",
-                  "Pick your trade: this determines the qualifying questions callers are asked and how leads are scored.",
-                  "Get a dedicated Callverted phone number for overflow calls.",
-                  "Start your free trial and land in the dashboard.",
+                  "Enter your business name, your name, email, phone, and service area.",
+                  "Pick your trade. It sets your service list, your pricing categories, and the job-value benchmarks used for ranking.",
+                  "Add a card and start the 14-day free trial.",
+                  "Choose your Callverted number by area code. Pick one close to your service area, because that is the number you will publish.",
                 ]} />
               </InfoCard>
               <InfoCard>
                 <SubHeading>Before you go live</SubHeading>
                 <BulletList items={[
-                  "Add your services and preliminary pricing in Settings so the AI has real numbers to read back to callers.",
-                  "Set your call routing: how long your team rings before Callverted takes over, and what it says.",
-                  "Share your intake link or add the website widget so leads can reach you outside of phone calls too.",
+                  "Run a test call. On the Test call page you type what a caller would say and watch the exact conversation, scoring, and lead a real call would produce. No phone needed.",
+                  "Add your services and prices in Settings so the assistant has approved wording to read back, and so your lead value estimates match what you actually charge.",
+                  "Set the number your calls forward to in Settings → Call setup.",
+                  "Turn on push alerts on your phone in Settings → Notifications so a new lead reaches you in seconds.",
+                  "Publish your Callverted number where customers find you: Google Business Profile, your website, Facebook, and directories.",
                 ]} />
-                <Tip>The AI only ever reads back pricing wording you&apos;ve approved. It never invents a number, so it&apos;s worth setting up pricing rules before your line goes live.</Tip>
+                <Tip>Your Callverted number rings your own line first for about 15 seconds. The assistant only picks up when nobody does, so publishing it does not change who normally answers your phone.</Tip>
               </InfoCard>
             </div>
           </section>
@@ -166,22 +179,25 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Status pills</SubHeading>
                 <p className="text-sm text-slate-600">
-                  At the top you&apos;ll see whether your voice line is live, whether the website widget has been used yet, and a callout if any urgent leads are waiting on a callback.
+                  At the top you&apos;ll see whether your voice line is live, whether the website widget has been used yet, how many leads are waiting on a callback, and how many new messages are unread. If you haven&apos;t added a card yet, a &quot;setup mode&quot; pill appears instead, because the line can&apos;t answer real calls until payment is on file.
                 </p>
               </InfoCard>
               <InfoCard>
                 <SubHeading>Metrics</SubHeading>
                 <BulletList items={[
-                  "Captured opportunity value: the combined estimated value of qualified leads this month.",
-                  "Confirmed won revenue: actual amounts your team has reported for won leads, with a trend vs. last period.",
-                  "Urgent awaiting callback: how many high-urgency leads haven't been contacted, and how long the oldest has waited.",
-                  "Average callback time: how quickly your team typically responds, compared with the previous 30 days.",
+                  "Captured opportunity value: the combined estimated value of the jobs captured this month.",
+                  "Confirmed won revenue: the amounts your team reported on leads marked won, with a trend against the previous period.",
+                  "Urgent awaiting callback: how many urgent jobs still haven't been contacted, and how long the oldest has waited.",
+                  "Average callback time: how long it takes you to mark a lead contacted, compared with the previous 30 days.",
                 ]} />
+                <p className="text-sm text-slate-500 pt-1">
+                  Every metric on this page counts jobs only. Messages are deliberately left out so they can&apos;t inflate your numbers.
+                </p>
               </InfoCard>
               <InfoCard>
-                <SubHeading>Priority leads and conversion snapshot</SubHeading>
+                <SubHeading>Priority leads, conversion, and activity</SubHeading>
                 <p className="text-sm text-slate-600">
-                  The priority list ranks leads by urgency, intent, and how long they&apos;ve been waiting, so you know who to call first. The conversion snapshot shows your captured → contacted → booked → won rates and a breakdown of leads by channel.
+                  The priority list ranks jobs by their priority score, so the top of the list is who to call first. The conversion snapshot shows your leads → contacted, contacted → booked, and booked → won rates over the last 90 days, built from the statuses you set yourself, plus a split of which channels your leads came from. Recent activity is a short feed of captured calls, won leads, and callers who hung up.
                 </p>
               </InfoCard>
             </div>
@@ -192,46 +208,108 @@ export default function HelpPage() {
             <SectionHeading
               id="leads"
               icon={Inbox}
-              title="Leads"
-              subtitle="Every captured opportunity, from calls, forms, and manual entry."
+              title="Leads & Messages"
+              subtitle="Every captured contact, from calls, forms, and manual entry."
             />
             <div className="space-y-4">
               <InfoCard>
-                <SubHeading>Lead statuses</SubHeading>
+                <SubHeading>Three outcomes, one per contact</SubHeading>
                 <BulletList items={[
-                  "New: just captured, awaiting a callback.",
-                  "Contacted: you've reached out.",
-                  "Qualified: you've confirmed it's a real opportunity.",
-                  "Booked: an appointment is on the books.",
-                  "Estimate sent: you've quoted the job in person or over the phone.",
-                  "Won: the job closed.",
-                  "Lost: didn't convert.",
+                  "Job: someone with real work for you. It gets scored, ranked in your callback queue, and counted in every metric and report.",
+                  "Message: everything else worth knowing about, tagged as existing customer, billing, callback, question, or general. It is captured and you're alerted, but it is never scored and never counted in your job metrics.",
+                  "Junk: wrong numbers and solicitations. No lead is created at all. The call itself still shows on the Calls page as screened, so you can check nothing real was thrown away.",
                 ]} />
                 <p className="text-sm text-slate-500 pt-1">
-                  You move a lead through these stages yourself from the lead detail page. Nothing advances automatically.
+                  The dividing line: describing a problem they actually have is a job. Asking what you charge without having a problem is a question, so it is filed as a message rather than scored on a job that may not exist. When the assistant isn&apos;t sure, it captures rather than screens.
                 </p>
               </InfoCard>
               <InfoCard>
-                <SubHeading>Priority and intent</SubHeading>
+                <SubHeading>Flipping between job and message</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Every completed intake is scored by AI on two dimensions. Priority reflects urgency (<span className="font-medium">Urgent</span>, <span className="font-medium">Call today</span>, or <span className="font-medium">Routine</span>), and intent reflects how likely the caller is to move forward (<span className="font-medium">High intent</span>, <span className="font-medium">Medium intent</span>, or <span className="font-medium">Intent unclear</span>). Use these to decide who to call back first.
+                  You have the last word. On any lead page, <span className="font-medium">Convert to job</span> moves a message into your pipeline, and <span className="font-medium">File as message</span> pulls a job out of the ranked queue and out of your job metrics. It works in both directions, one tap each way. A promoted message stays unscored on purpose: we won&apos;t invent numbers for a job nobody qualified.
+                </p>
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>Lead statuses</SubHeading>
+                <BulletList items={[
+                  "New: captured, not yet worked. This is what you see on messages and on any intake that didn't finish.",
+                  "Qualified: a job that completed intake and was scored. Jobs land here automatically.",
+                  "Contacted: you've reached out. This stamp is what your average callback time is measured from.",
+                  "Booked: an appointment is on the books.",
+                  "Estimate sent: you've quoted the job.",
+                  "Won: the job closed.",
+                  "Lost: it didn't convert.",
+                ]} />
+                <p className="text-sm text-slate-500 pt-1">
+                  Apart from the automatic jump to Qualified when a job is scored, you move leads through these stages yourself from the lead page. Nothing else advances on its own.
                 </p>
               </InfoCard>
               <InfoCard>
                 <SubHeading>Lead detail page</SubHeading>
                 <BulletList items={[
-                  "Opportunity summary: the AI's reasoning behind the urgency and quality scores, plus recommended next actions.",
-                  "Qualification answers: the trade-specific questions the caller answered.",
-                  "Call evidence: the call summary and full transcript, if the lead came from a phone call. Leads from the intake form or widget won't have a transcript.",
-                  "Timeline: a chronological record of everything that's happened on the lead.",
-                  "Update outcome: set the status, log a confirmed job value once you know the real number, and leave an internal note for your team.",
+                  "Opportunity summary: plain-English reasoning for the urgency and quality scores, plus suggested next actions. The scores are computed by fixed rules; the AI only explains them.",
+                  "Qualification answers: what was actually captured. A request that isn't on your service list shows the caller's own words and an \"Off your service list\" badge, and no price was quoted for it.",
+                  "Call evidence: the summary and full turn-by-turn transcript when the lead came from a phone call. There is no audio to play back. Recordings are transcribed and then deleted.",
+                  "Timeline: when the call came in, when intake finished or was abandoned, when you marked it contacted, and when you marked it won.",
+                  "Update outcome: set the status, log the confirmed job value once you know the real number, and leave an internal note for your team.",
                 ]} />
+                <p className="text-sm text-slate-500 pt-1">
+                  A message shows the note the caller left and its kind badge instead of scores, because there is nothing to score.
+                </p>
               </InfoCard>
               <InfoCard>
-                <SubHeading>Filtering and adding leads</SubHeading>
+                <SubHeading>Filtering, search, and adding leads</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Filter the leads list by status, source, priority, or search by name or phone number. Use <span className="font-medium">Add lead</span> to manually log an opportunity that didn&apos;t come through Callverted: a walk-in, a referral, or a call you took yourself.
+                  Filter the list by type (jobs or messages), priority, source, or status, and search by name or phone number. <span className="font-medium">Export</span> downloads exactly what your filters are showing as a spreadsheet file. Use <span className="font-medium">Add lead</span> to log an opportunity that never came through Callverted: a walk-in, a referral, or a call you took on your cell.
                 </p>
+              </InfoCard>
+            </div>
+          </section>
+
+          {/* ── RANKING ── */}
+          <section>
+            <SectionHeading
+              id="ranking"
+              icon={Gauge}
+              title="How Ranking Works"
+              subtitle="What Hot, Warm, and Cool actually mean."
+            />
+            <div className="space-y-4">
+              <InfoCard>
+                <SubHeading>The priority score</SubHeading>
+                <p className="text-sm text-slate-600">
+                  Every job gets one priority score from 0 to 100: half of it is urgency, three tenths is estimated value, and two tenths is how complete the capture is. <span className="font-medium">Hot</span> is 65 and up, <span className="font-medium">Warm</span> is 40 to 64, and everything else is <span className="font-medium">Cool</span>. The badge always comes from the combined score, never from one piece of it. Messages have no score and show their message kind instead.
+                </p>
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>Urgency</SubHeading>
+                <p className="text-sm text-slate-600">
+                  Comes from what the caller said about timing, plus the kind of work (a burst pipe or a sewer line counts for more than a thermostat). A stated emergency with a clear service always lands in the Hot band, and explicit critical language such as a gas smell, active flooding, or a sewage backup lands higher still. Emergencies are still ordered against each other inside that band, so five emergencies rank in a sensible order instead of tying. &quot;Emergency&quot; with no idea what the job is does not float to Hot.
+                </p>
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>Estimated value</SubHeading>
+                <p className="text-sm text-slate-600">
+                  A back-office number used for ranking, alerts, and reports. It is never spoken to a caller. Callverted uses the most specific truth it has, in this order:
+                </p>
+                <BulletList items={[
+                  "A price your team quoted on a recorded call. Your own words beat any estimate.",
+                  "The price you configured for that service in Settings.",
+                  "An industry benchmark scaled to your pricing, when you priced other services but not this one.",
+                  "The plain industry benchmark for your trade.",
+                  "For a job that isn't on your list at all, an AI estimate that weighs the described work against your own price list. It is skipped whenever there's real doubt.",
+                  "The base range for your trade, when nothing above applies.",
+                ]} />
+                <p className="text-sm text-slate-500 pt-1">
+                  The more services you price in Settings, the closer these estimates get to your real work. A big job that isn&apos;t urgent stays Cool and picks up a separate <span className="font-medium">High value</span> badge, rather than jumping the queue ahead of an emergency.
+                </p>
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>Quality means completeness</SubHeading>
+                <p className="text-sm text-slate-600">
+                  Quality measures how complete and qualified the capture is, not how urgent or how big the job is. Points come from having the service identified, the ZIP, an urgency answer, coverage (insurance, warranty, financing, or out of pocket), how recently it came up, and a name or email. On the leads list it reads as <span className="font-medium">Fully qualified</span>, <span className="font-medium">Solid details</span>, <span className="font-medium">Partial details</span>, or <span className="font-medium">Sparse details</span>.
+                </p>
+                <Tip>A perfect phone capture scores about 65 here and a fully filled-in web form reaches 100. That is intentional: a phone call asks fewer questions on purpose, so a good call is never penalized for the questions it deliberately skipped.</Tip>
               </InfoCard>
             </div>
           </section>
@@ -246,23 +324,42 @@ export default function HelpPage() {
             />
             <div className="space-y-4">
               <InfoCard>
-                <SubHeading>Call outcomes</SubHeading>
+                <SubHeading>What a caller actually hears</SubHeading>
+                <p className="text-sm text-slate-600">
+                  The assistant answers with your business name, says plainly that it is automated, and asks what&apos;s going on. From there a job call asks exactly three things: what happened, the ZIP code where the work is needed, and how urgent it is. If you have approved pricing for that service, it reads your wording back word for word. If you don&apos;t, it says the team will review the details before discussing pricing. Then it confirms what it noted and promises a callback.
+                </p>
                 <BulletList items={[
-                  "Business answered: your team picked up before Callverted stepped in.",
-                  "Captured by Callverted: no one answered in time, so the AI took the call and ran qualification.",
-                  "Caller abandoned: the caller hung up before completing the intake questions.",
+                  "It never asks for a phone number. That comes from caller ID.",
+                  "It never asks for a name on a job call. Speech-to-text mangles names, a wrong name is worse than none, and the callback goes to caller ID anyway. A name is kept if the caller offers one. The message path does ask for a name, since knowing who left a message is the whole point.",
+                  "There is no \"when should we call you back\" question. Your team works the ranked queue instead.",
+                  "Calls wrap up gracefully at around three minutes with whatever was captured, and no caller is ever dumped into voicemail.",
                 ]} />
               </InfoCard>
               <InfoCard>
-                <SubHeading>Call details</SubHeading>
-                <p className="text-sm text-slate-600">
-                  Click <span className="font-medium">Details</span> on any call to expand its AI-generated summary and full turn-by-turn transcript in place. AI-captured calls always have a transcript; team-answered calls have one only when you&apos;ve enabled call recording. Either way, call evidence is text only: when recording is on, the audio is transcribed and then deleted, never stored for playback.
+                <SubHeading>Call outcomes</SubHeading>
+                <BulletList items={[
+                  "Business answered: your team picked up before Callverted stepped in.",
+                  "Captured by Callverted: nobody answered in time, so the assistant took the call and ran intake.",
+                  "Caller abandoned: the caller hung up before finishing.",
+                  "Screened: a wrong number or a solicitation. No lead was created, and the reason is shown on the row.",
+                ]} />
+                <p className="text-sm text-slate-500 pt-1">
+                  Older accounts may still see a &quot;Transferred to team&quot; outcome on historical calls. Callverted no longer bridges a caller to a person under any circumstances.
                 </p>
               </InfoCard>
               <InfoCard>
-                <SubHeading>Metrics and filtering</SubHeading>
+                <SubHeading>Calls your team answers</SubHeading>
                 <p className="text-sm text-slate-600">
-                  The top of the page shows total inbound calls, how many your team answered directly, how many Callverted captured, and your caller completion rate (the share of AI-answered calls that finished enough of the intake to become a lead). Filter by outcome or search by caller number.
+                  With recording switched on, the calls your team answers are recorded, transcribed, and sorted exactly like an AI-handled call, so an answered call still becomes a job, a message, or nothing. Your spoken disclosure plays on both the team line and the assistant line. These calls send no alert, because someone was already on the phone with the customer.
+                </p>
+                <p className="text-sm text-slate-600">
+                  The audio is transcribed and then deleted. Only the text transcript and the summary are kept, so there is never a recording to play back or to store.
+                </p>
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>Call details, metrics, and filtering</SubHeading>
+                <p className="text-sm text-slate-600">
+                  Click <span className="font-medium">Details</span> on any call to expand its summary and full transcript in place. AI-handled calls always have a transcript; team-answered calls only have one when recording is on. The metrics at the top are total inbound calls, how many your team answered, how many Callverted captured, and your caller completion rate (the share of AI-handled calls that produced a lead or reached your team). Filter by outcome, search by caller number, or export the list.
                 </p>
               </InfoCard>
             </div>
@@ -280,21 +377,21 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Direct intake link</SubHeading>
                 <p className="text-sm text-slate-600">
-                  A public qualification form hosted at your own URL. Share it in ads, email signatures, or your Google Business Profile. Copy the link from the Capture page.
+                  A public qualification form at your own Callverted URL. It collects name, phone, email (optional), and ZIP, then walks through your trade&apos;s questions, including a &quot;Something else&quot; option for work that isn&apos;t on your list. Share it in ads, email signatures, or your Google Business Profile. Copy the link from the Capture page.
                 </p>
               </InfoCard>
               <InfoCard>
                 <SubHeading>Website widget</SubHeading>
                 <p className="text-sm text-slate-600">
-                  An embeddable snippet you add to your existing website so visitors can get qualified without leaving your site. Copy the embed code from the Capture page.
+                  An embeddable snippet you paste into your existing website so visitors can get qualified without leaving your site. It runs the same form. Copy the embed code from the Capture page.
                 </p>
               </InfoCard>
               <InfoCard>
-                <SubHeading>Voice overflow</SubHeading>
+                <SubHeading>Voice</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Calls to your Callverted number that go unanswered by your team. Configure how it rings and answers in Settings → Call setup.
+                  Calls to your Callverted number. By default your own line rings first and the assistant only steps in when nobody answers, but you can set it to answer immediately in Settings → Call setup.
                 </p>
-                <Tip>All three channels run the same qualifying questions and pricing rules, and every lead lands in the same place: your Leads list.</Tip>
+                <Tip>All three channels run the same question set and the same approved pricing, and everything lands in your Leads list. The web form asks more questions than a phone call does on purpose, and the scoring accounts for that so no channel is punished for it.</Tip>
               </InfoCard>
             </div>
           </section>
@@ -311,19 +408,22 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Conversion funnel</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Tracks leads from captured through qualified, contacted, and won, and calls out the stage with the biggest drop-off so you know where to focus.
+                  Tracks leads from captured through qualified, contacted, and won over the last 14, 30, or 90 days, and calls out the stage with the biggest drop-off so you know where to focus.
                 </p>
               </InfoCard>
               <InfoCard>
                 <SubHeading>Captured vs. won</SubHeading>
                 <p className="text-sm text-slate-600">
-                  A daily chart comparing leads captured against leads won, over the last 14, 30, or 90 days.
+                  A daily chart comparing leads captured against leads won across the range you pick.
                 </p>
               </InfoCard>
               <InfoCard>
                 <SubHeading>Performance by channel</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Breaks down leads, wins, and confirmed revenue by source (voice overflow, website widget, direct intake, or manual entry) so you can see which channel is actually paying off.
+                  Breaks down leads, wins, and revenue by source (recovered by AI, answered by team, website widget, direct intake, or manual entry) so you can see which channel is actually paying off. Revenue uses your confirmed job value where you reported one, and the estimate where you haven&apos;t.
+                </p>
+                <p className="text-sm text-slate-500 pt-1">
+                  Reports count jobs only. Messages are excluded everywhere, and the <span className="font-medium">Export</span> button downloads whatever range you&apos;re viewing.
                 </p>
               </InfoCard>
             </div>
@@ -341,25 +441,31 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Call setup</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Set the number your team&apos;s calls forward to, how long it rings before Callverted takes over, and whether Callverted rings alongside your team first or answers immediately. You can also customize the AI&apos;s greeting, choose its voice, add extra instructions for the AI, and optionally enable call recording with a spoken disclosure.
+                  Set the number your calls forward to (your office, your cell, or your existing business line) and choose whether Callverted rings your team first or answers immediately. Ring time is a fixed 15 seconds and the assistant&apos;s voice is a fixed product setting; neither is adjustable today. The same tab holds <span className="font-medium">Record &amp; transcribe calls</span>, which is what makes team-answered calls get captured as leads. Turning it on requires a spoken disclosure, which plays on both lines. Some states require every party to consent, and the wording you use is your responsibility.
                 </p>
               </InfoCard>
               <InfoCard>
-                <SubHeading>Services & pricing</SubHeading>
+                <SubHeading>Services &amp; pricing</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Add a pricing rule per service: a range, a fixed price, a starting-at price, or &quot;inspection required.&quot; Whatever wording that produces is exactly what the AI reads back to callers on the phone. It never estimates or invents a number on its own.
+                  Add one entry per service: a range, a fixed price, a starting-at price, or &quot;inspection required.&quot; The card shows you exactly what a caller will hear, and the assistant reads that wording word for word. It never composes a number of its own. If a service has no approved wording, callers are told the team will review the details before discussing pricing.
+                </p>
+                <p className="text-sm text-slate-600">
+                  You can type a service that isn&apos;t in your trade&apos;s preset list and it becomes selectable on calls and on the form too. These prices are also the first source for the estimated value on your leads, so the more you price here, the more your ranking reflects your real work.
                 </p>
               </InfoCard>
               <InfoCard>
                 <SubHeading>Notifications</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Choose whether you get an email for every qualified lead and whether you receive a weekly performance recap. Notifications are sent by email; there&apos;s no SMS notification option currently.
+                  Set the email and mobile number you want on file, then choose what you get alerted about: every qualified lead, messages, and the weekly recap. Alerts go out as a phone push and an email. There is no SMS alert to you.
+                </p>
+                <p className="text-sm text-slate-600">
+                  <span className="font-medium">Push alerts on this device</span> is separate and per device, so switch it on for each phone or computer you want alerted. On an iPhone, add Callverted to your Home Screen first (Share → Add to Home Screen) and open it from there, otherwise iOS will not allow push notifications at all.
                 </p>
               </InfoCard>
               <InfoCard>
                 <SubHeading>Business profile</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Update your business name, owner name, service area, and website. Your trade (vertical) is set during onboarding and shown here, since it determines your qualifying questions.
+                  Update your business name, owner name, service area, and timezone. Call times, reports, and emails are all shown in the timezone you set here. Your trade is shown on this tab but is chosen during onboarding, since it determines your questions, your service list, and your value benchmarks.
                 </p>
               </InfoCard>
             </div>
@@ -377,7 +483,7 @@ export default function HelpPage() {
               <InfoCard>
                 <SubHeading>Plan</SubHeading>
                 <p className="text-sm text-slate-600">
-                  Callverted is one plan: <span className="font-semibold">$149/month</span>, with a 14-day free trial. It includes AI voice overflow, optional answered-call recording and transcription, the public intake form and website widget, AI-driven lead scoring with reasoning and recommended actions, business-approved pricing rules, the full lead dashboard, and email alerts on qualified leads plus a weekly recap. No add-ons, no lead caps.
+                  One plan, two ways to pay: <span className="font-semibold">$149/month</span>, or <span className="font-semibold">$1,499/year</span>, which works out to $125 a month and saves $289 over paying monthly. Both start with a 14-day free trial and include everything: AI call capture, recording and transcription of answered calls, the intake link and website widget, scoring with reasoning and suggested actions, approved pricing rules, the full dashboard and reports, and push plus email alerts with a weekly recap. No add-ons, no lead caps.
                 </p>
               </InfoCard>
               <InfoCard>
@@ -388,6 +494,15 @@ export default function HelpPage() {
                   "Cancellation takes effect at the end of your current billing period.",
                   "Your leads and data are preserved if you come back.",
                 ]} />
+              </InfoCard>
+              <InfoCard>
+                <SubHeading>Pausing instead of canceling</SubHeading>
+                <p className="text-sm text-slate-600">
+                  If work slows down, pause your line from the Billing tab. Your number, settings, and lead history all stay exactly where they are, and one click brings you back. While you&apos;re paused Callverted stops answering, and anyone calling your Callverted number hears a short &quot;temporarily unavailable&quot; message, so pause it only when you don&apos;t want that line in front of customers.
+                </p>
+                <p className="text-sm text-slate-500 pt-1">
+                  Callers hear the same message if billing lapses. An expired trial or a failed payment stops the line answering until the subscription is sorted out.
+                </p>
               </InfoCard>
             </div>
           </section>

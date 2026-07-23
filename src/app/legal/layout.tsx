@@ -25,7 +25,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       {/* Footer */}
       <footer className="border-t border-gray-200 py-6 px-6">
         <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400">
-          <span>© 2026 Callverted · AI voice overflow for home-service businesses</span>
+          <span>© 2026 Callverted · Inbound lead capture for home-service businesses</span>
           <div className="flex gap-5">
             <Link href="/legal/privacy" className="hover:text-gray-700 transition-colors">Privacy</Link>
             <Link href="/legal/terms" className="hover:text-gray-700 transition-colors">Terms</Link>
