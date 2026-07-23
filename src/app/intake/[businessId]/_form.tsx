@@ -372,7 +372,7 @@ export function IntakeForm({
     let serviceRequested: string | undefined;
     if (primaryKey && finalAnswers[primaryKey] === OTHER_SERVICE) {
       serviceRequested = serviceOther.trim() || undefined;
-      outAnswers = { ...finalAnswers };
+      outAnswers = { ...outAnswers };
       delete outAnswers[primaryKey];
     }
     try {
