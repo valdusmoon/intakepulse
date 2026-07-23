@@ -45,7 +45,9 @@ async function main() {
     console.log("No dedicated seed business found — creating one...");
     [business] = await db
       .insert(businesses)
-      .values({ clerkUserId: SEED_CLERK_USER_ID, businessName: "Blue Star Restoration", ownerName: "Jordan Blake", ownerEmail: "jordan@example.test" })
+      // resend.dev test address — safely simulates delivery; never send to fake
+      // domains (they hard-bounce and damage the sending domain's reputation).
+      .values({ clerkUserId: SEED_CLERK_USER_ID, businessName: "Blue Star Restoration", ownerName: "Jordan Blake", ownerEmail: "delivered+owner@resend.dev" })
       .returning();
   }
 
@@ -63,7 +65,8 @@ async function main() {
   await db.update(businesses).set({
     businessName: "Blue Star Restoration",
     ownerName: "Jordan Blake",
-    ownerEmail: "jordan@example.test",
+    // ownerEmail deliberately NOT reset: re-seeding must never clobber a real
+    // operator alert address back to a placeholder.
     serviceArea: "Austin, Round Rock, and surrounding Travis County",
     timezone: "America/Chicago",
     vertical: "restoration",
@@ -131,7 +134,7 @@ async function main() {
       service: "water", urgency: "emergency", recency: "today", coverage: "covered", smsConsent: false, createdAt: ago(2 * HOUR),
     },
     {
-      callerPhone: "+15125550112", callerName: "Priya Nandakumar", callerEmail: "priya.n@example.test", source: "website_widget", intakeStatus: "completed",
+      callerPhone: "+15125550112", callerName: "Priya Nandakumar", callerEmail: "delivered+priya@resend.dev", source: "website_widget", intakeStatus: "completed",
       leadStatus: "new", urgencyScore: 4, qualityScore: 55, estimatedValueLow: 112500, estimatedValueHigh: 225000,
       service: "mold", urgency: "soon", recency: "longer", coverage: "out_of_pocket", smsConsent: true, createdAt: ago(26 * HOUR),
     },
@@ -141,7 +144,7 @@ async function main() {
       intakeAnswers: { service_type: "fire" }, // abandoned mid-intake — only the first answer was ever captured
     },
     {
-      callerPhone: "+15125550114", callerName: "Diane Ostrowski", callerEmail: "diane.ostrowski@example.test", source: "direct_intake", intakeStatus: "completed",
+      callerPhone: "+15125550114", callerName: "Diane Ostrowski", callerEmail: "delivered+diane@resend.dev", source: "direct_intake", intakeStatus: "completed",
       leadStatus: "converted", urgencyScore: 6, qualityScore: 78, estimatedValueLow: 200000, estimatedValueHigh: 400000, confirmedValue: 285000,
       service: "water", urgency: "soon", recency: "this_week", coverage: "out_of_pocket", convertedAt: ago(3 * DAY), smsConsent: true, createdAt: ago(5 * DAY),
     },
@@ -167,7 +170,7 @@ async function main() {
       service: "mold", urgency: "flexible", recency: "longer", coverage: "not_sure", smsConsent: false, createdAt: ago(6 * DAY),
     },
     {
-      callerPhone: "+15125550119", callerName: "James Wilson", callerEmail: "jwilson@example.test", source: "direct_intake", intakeStatus: "completed",
+      callerPhone: "+15125550119", callerName: "James Wilson", callerEmail: "delivered+jwilson@resend.dev", source: "direct_intake", intakeStatus: "completed",
       leadStatus: "booked", urgencyScore: 7, qualityScore: 80, estimatedValueLow: 220000, estimatedValueHigh: 500000,
       service: "water", urgency: "emergency", recency: "today", coverage: "covered", smsConsent: true, createdAt: ago(10 * DAY),
     },
@@ -182,7 +185,7 @@ async function main() {
       service: "fire", urgency: "flexible", recency: "longer", coverage: "covered", smsConsent: false, createdAt: ago(15 * DAY),
     },
     {
-      callerPhone: "+15125550122", callerName: "Emily Foster", callerEmail: "emily.foster@example.test", source: "voice_overflow", callStatus: "missed", intakeStatus: "completed",
+      callerPhone: "+15125550122", callerName: "Emily Foster", callerEmail: "delivered+emily@resend.dev", source: "voice_overflow", callStatus: "missed", intakeStatus: "completed",
       leadStatus: "converted", urgencyScore: 8, qualityScore: 82, estimatedValueLow: 180000, estimatedValueHigh: 360000, confirmedValue: 210000,
       service: "water", urgency: "emergency", recency: "today", coverage: "covered", convertedAt: ago(16 * DAY), smsConsent: true, createdAt: ago(18 * DAY),
     },
@@ -202,7 +205,7 @@ async function main() {
       service: "fire", urgency: "flexible", recency: "longer", coverage: "out_of_pocket", smsConsent: true, createdAt: ago(25 * DAY),
     },
     {
-      callerPhone: "+15125550126", callerName: "Olivia Grant", callerEmail: "olivia.grant@example.test", source: "voice_overflow", callStatus: "missed", intakeStatus: "completed",
+      callerPhone: "+15125550126", callerName: "Olivia Grant", callerEmail: "delivered+olivia@resend.dev", source: "voice_overflow", callStatus: "missed", intakeStatus: "completed",
       leadStatus: "converted", urgencyScore: 6, qualityScore: 70, estimatedValueLow: 150000, estimatedValueHigh: 320000, confirmedValue: 195000,
       service: "water", urgency: "soon", recency: "this_week", coverage: "covered", convertedAt: ago(25 * DAY), smsConsent: false, createdAt: ago(28 * DAY),
     },
