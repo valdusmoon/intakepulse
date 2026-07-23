@@ -4,10 +4,13 @@
  * completion into the state-machine engine. It does NOT decide anything about
  * the conversation itself — that's entirely state-machine/engine.ts.
  *
- * Voice barge-in is intentionally not implemented here: turn_detection.
- * interrupt_response is false (see call-manager.ts), so OpenAI never auto-cuts
- * a response on detected speech. The only thing that interrupts an in-progress
- * response is a DTMF keypress, handled in the stream route via engine.handleDtmf.
+ * Voice barge-in is implemented MANUALLY here (not via turn_detection.
+ * interrupt_response, which stays false in call-manager.ts): on detected caller
+ * speech we call engine.handleBargeIn, which cuts the in-progress audio only
+ * when audio is actually playing and the call isn't in a terminal state — so
+ * code keeps full control over when interruption is allowed, and Twilio's
+ * buffered audio gets cleared too (OpenAI's auto-interrupt can't do that).
+ * DTMF keypresses interrupt via engine.handleDtmf in the stream route as before.
  */
 
 import WebSocket from "ws";
@@ -25,7 +28,7 @@ export class OpenAIHandlerService {
     onFirstResponseDone?: () => void,
   ): void {
     this.handleAudioResponses(openaiClient, twilioWs, ctx);
-    this.handleSilenceReset(openaiClient, twilioWs, ctx);
+    this.handleCallerSpeech(openaiClient, twilioWs, ctx);
     this.handleTranscripts(openaiClient, ctx);
     this.handleFunctionCalls(openaiClient, ctx);
     this.handleResponseDone(openaiClient, ctx, onFirstResponseDone);
@@ -62,10 +65,14 @@ export class OpenAIHandlerService {
     });
   }
 
-  /** Caller making any sound resets the "gone silent" timeout — no interrupt logic here. */
-  private handleSilenceReset(openaiClient: RealtimeClient, twilioWs: WebSocket, ctx: FlowContext): void {
+  /** Caller started speaking: barge in (cut any in-progress AI audio — the
+   *  engine guards when that's allowed) and reset the "gone silent" timeout. */
+  private handleCallerSpeech(openaiClient: RealtimeClient, twilioWs: WebSocket, ctx: FlowContext): void {
     openaiClient.on("input_audio_buffer.speech_started", () => {
       const { session } = ctx;
+
+      engine.handleBargeIn(ctx, openaiClient, twilioWs);
+
       if (session.silenceTimeout) clearTimeout(session.silenceTimeout);
       session.silenceTimeout = setTimeout(() => {
         logger.info("Caller silent for 60s — ending call", { correlationId: session.correlationId });

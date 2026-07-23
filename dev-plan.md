@@ -83,3 +83,17 @@ For the current, code-verified functional map, see `memory/project-overview.md` 
 - [x] **C** — Verification 2026-07-22: tsc clean · 451/451 tests · re-seed + live-model harness 30/30 on the normalized 4-question config · build clean (see below)
 - [x] **Prod re-seed DONE 2026-07-22** — surgical UPDATE of the restoration row via Supabase MCP (questions + scoring_rules from the code as source of truth); verified: all 6 prod verticals now have the identical 4 question keys (service_type, urgency, time_since_issue, has_coverage), restoration 10 rules. Safe against currently-deployed code (config-driven; labels.ts humanizeKey fallback already live)
 - [ ] **Manual UI check** — flip a dev message→job (appears in Type=Job filter, unscored, can be marked Won with $) and back; confirm an old restoration lead with `rooms_affected` stored still renders its answers
+
+---
+
+# SESSION 13: VOICE CALL SMOOTHNESS + DURABLE FINALIZATION (2026-07-22)
+
+> Root-caused from the founder's first real prod AI call: (a) the AI can't be interrupted → feels rigid; (b) the call row stuck at "ringing" with no transcript/score — the post-WebSocket-close grace window on Vercel froze the inline GPT work mid-write (same failure class as the `void send()` email bug). Fixes: audio-layer barge-in + move ALL heavy post-call work to a durable Inngest job.
+
+- [x] **Barge-in (audio layer only)** — `engine.handleBargeIn` (exported) reuses the DTMF interruption routine (clear Twilio buffer + cancel + truncate), wired to OpenAI `input_audio_buffer.speech_started` in `openai-handler.service.ts`. Guards: never in confirmation/create_lead/end states; only when audio is actually playing (classification-only turns can't be cancelled). State machine control flow untouched — "code decides" preserved. Side benefit: prevents the active-response collision when a caller talks over a prompt.
+- [x] **Durable finalization** — `captureLead` slimmed to lead insert + call link ONLY (no more mid-call dead air between confirmation and goodbye); `endCall` slimmed to one fast updateCall (summary removed); stream-route cleanup = fast writes + one `call/voice.ended` Inngest event; NEW `src/lib/leads/finalize-voice-call.ts` (runner-agnostic, reads everything from DB, idempotent via priorityScore/summary checks) does scoring + assessment + notifications + summary; NEW Inngest fn `finalize-voice-call` registered in `/api/inngest`.
+- [x] **Shared job alert** — NEW `src/lib/leads/notify-job.ts` (full lead-packet email + push, pref-gated, never throws); used by the voice finalizer AND the web submit route (single implementation, channels can't drift).
+- [x] **Early-hangup messages no longer dropped** — cleanup now also captures a message-path call that gave a name or reason (previously lost: deriveIntakeStatus 'not_started' guard skipped them).
+- [x] **Verification 2026-07-22** — tsc clean · 458/458 tests across 21 files (7 new finalizer tests incl. critical-signal floor from lead notes, idempotency, voice_test guard; captureLead tests updated to fast-persist contract) · eslint 0 errors · build clean
+- [ ] **Deploy note** — after this deploys, RE-SYNC the Inngest app (PUT /api/inngest or via Inngest dashboard) so `finalize-voice-call` registers
+- [ ] **Live re-test** — repeat the AI call: interrupt it mid-sentence (should stop talking), hang up early (lead + transcript + summary should all still appear), check dead-air gap before goodbye is gone

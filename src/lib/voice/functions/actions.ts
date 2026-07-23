@@ -8,13 +8,6 @@
 import { quoteForCategory, type QuoteResult } from "@/lib/leads/quote";
 import { createLead } from "@/lib/db/queries/leads";
 import { updateCall } from "@/lib/db/queries/calls";
-import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
-import { assessLead } from "@/lib/leads/assess";
-import { sendLeadPacketEmail } from "@/lib/email/notifications";
-import { sendLeadPushNotification } from "@/lib/push/send";
-import { buildLeadPushPayload } from "@/lib/push/payload";
-import { notifyMessageCaptured } from "@/lib/leads/notify-message";
-import { logger } from "@/lib/logger";
 import { getVisibleQuestions, type Answers } from "@/lib/verticals/filterAnswers";
 import type { FlowContext } from "../state-machine/types";
 
@@ -94,14 +87,20 @@ export function deriveIntakeStatus(ctx: FlowContext): "not_started" | "started" 
 }
 
 /**
- * Creates the lead and runs it through the SAME scoring pipeline the web
- * intake form uses (scoreLeadFromAnswers + assessLead) — voice answers are
- * captured under the vertical's own question keys specifically so this works
- * with zero voice-specific scoring logic. Sends the same notification email
- * used by the web channel.
+ * Persists the lead row and links it to the call — DELIBERATELY nothing more.
+ * This runs inside the live call (between confirmation and goodbye) and inside
+ * the WebSocket-close grace window on early hangups; both are places where a
+ * multi-second GPT round-trip either adds dead air mid-call or gets frozen by
+ * the platform before its writes land (a real prod failure: lead created but
+ * never scored, call stuck "ringing", transcript lost). The heavy tail —
+ * scoring, assessment, operator notifications, call summary — runs in the
+ * durable finalize-voice-call Inngest job, fired by the stream route's cleanup
+ * once all critical state is persisted. Voice answers are captured under the
+ * vertical's own question keys so the finalizer reuses the exact same scoring
+ * pipeline as the web channel with zero voice-specific logic.
  */
 export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> {
-  const { session, business, verticalConfig } = ctx;
+  const { session, business } = ctx;
   // The ZIP is asked for and read back to the caller, but it lives on the call
   // session rather than in answers — fold it in so it survives onto the lead and
   // the owner has a location when they call back. Same key the web form writes.
@@ -135,66 +134,6 @@ export async function captureLead(ctx: FlowContext): Promise<CaptureLeadResult> 
   session.leadId = lead.id;
   if (!session.isTestCall) {
     await updateCall(session.callId, { leadId: lead.id, outcome: "ai_captured" });
-  }
-
-  // Message path: skip scoring/assessment entirely (leadStatus stays 'new', scores
-  // stay null) and send a low-key "new message" alert instead of a lead packet.
-  if (leadType === "message") {
-    if (!session.isTestCall) {
-      await notifyMessageCaptured({
-        business,
-        leadId: lead.id,
-        callerName: session.conversationContext.callerName ?? null,
-        callerPhone: session.callerPhone,
-        messageKind,
-        notes: session.conversationContext.reasonForCall ?? null,
-      });
-    }
-    return { leadId: lead.id };
-  }
-
-  const scores = scoreLeadFromAnswers(answers, verticalConfig.scoringRules, verticalConfig.questions, verticalConfig.baseValueLow, {
-    serviceRequested: session.conversationContext.serviceRequested ?? null,
-    signalText: session.conversationContext.reasonForCall ?? null,
-  });
-  const reasoning = await assessLead(lead.id, answers, scores, verticalConfig.aiPromptTemplate);
-
-  if (!session.isTestCall && business.notificationPreferences?.qualifiedLead !== false) {
-    try {
-      await sendLeadPacketEmail({
-        ownerEmail: business.ownerEmail,
-        ownerName: business.ownerName,
-        businessName: business.businessName,
-        leadId: lead.id,
-        callerName: session.conversationContext.callerName ?? null,
-        callerPhone: session.callerPhone,
-        urgencyScore: scores.urgencyScore,
-        qualityScore: scores.qualityScore,
-        estimatedValueLow: scores.estimatedValueLow,
-        estimatedValueHigh: scores.estimatedValueHigh,
-        urgencyReasoning: reasoning.urgencyReasoning,
-        qualityReasoning: reasoning.qualityReasoning,
-        recommendedActions: reasoning.recommendedActions,
-        intakeAnswers: answers,
-        questions: verticalConfig.questions,
-      });
-    } catch (err) {
-      logger.error("Failed to send lead packet email for voice lead", { leadId: lead.id, error: String(err) });
-    }
-
-    // Push-primary operator alert (PWA/browser), same message as the web path.
-    if (business.notificationPreferences?.pushNewLead !== false) {
-      await sendLeadPushNotification(
-        business.id,
-        buildLeadPushPayload({
-          leadId: lead.id,
-          callerName: session.conversationContext.callerName ?? null,
-          priorityScore: scores.priorityScore,
-          estimatedValueLow: scores.estimatedValueLow,
-          estimatedValueHigh: scores.estimatedValueHigh,
-        }),
-      );
-    }
   }
 
   return { leadId: lead.id };

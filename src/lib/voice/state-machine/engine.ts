@@ -1148,6 +1148,28 @@ export function recordSpokenTranscript(ctx: FlowContext, spoken: string): void {
   if (entry?.role === "assistant") entry.message = text;
 }
 
+/**
+ * Voice barge-in: the caller started speaking while the AI's audio is playing —
+ * stop talking and let them. This is purely an AUDIO-layer interruption: the
+ * caller's words still route through the exact same state machine (their
+ * transcript arrives via handleTranscript as always), so code keeps deciding
+ * every transition; the AI just shuts up when talked over. Guards:
+ *   - Skipped in terminal states (confirmation read-back, create_lead, goodbye)
+ *     where finishing the sentence beats cutting off mid-capture.
+ *   - Skipped when no audio is actually playing — classification-only turns
+ *     never set lastAssistantItem, so a mid-classify utterance can't cancel the
+ *     in-flight tool call.
+ * Side benefit: cancelling the active spoken response here also prevents the
+ * "conversation already has an active response" collision when the caller's
+ * transcript lands while the AI's own turn is still in flight.
+ */
+export function handleBargeIn(ctx: FlowContext, client: RealtimeClient, ws: WebSocket): void {
+  const s = ctx.session;
+  if (s.state === "confirmation" || s.state === "create_lead" || s.state === "end") return;
+  if (!s.lastAssistantItem || s.responseStartTimestamp === undefined) return;
+  interruptCurrentResponse(ctx, client, ws);
+}
+
 /** DTMF cuts off in-progress audio immediately — no VAD false-positive risk
  *  since a keypress is unambiguous. Mirrors the barge-in truncation math, just
  *  triggered by a different event. */

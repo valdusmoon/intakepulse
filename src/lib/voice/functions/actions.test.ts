@@ -17,6 +17,7 @@ vi.mock("@/lib/email/notifications", () => ({ sendLeadPacketEmail: vi.fn(), send
 vi.mock("@/lib/push/send", () => ({ sendLeadPushNotification: vi.fn() }));
 import { getActivePricingRule } from "@/lib/db/queries/pricingRules";
 import { createLead } from "@/lib/db/queries/leads";
+import { updateCall } from "@/lib/db/queries/calls";
 import { assessLead } from "@/lib/leads/assess";
 import { sendLeadPacketEmail, sendMessageNotificationEmail } from "@/lib/email/notifications";
 
@@ -169,15 +170,16 @@ describe("deriveIntakeStatus", () => {
   });
 });
 
-describe("captureLead — job vs message", () => {
+describe("captureLead — fast persist only, heavy tail deferred to finalize-voice-call", () => {
   beforeEach(() => {
     vi.mocked(createLead).mockReset().mockResolvedValue({ id: "lead-1" } as never);
-    vi.mocked(assessLead).mockReset().mockResolvedValue({ urgencyReasoning: "u", qualityReasoning: "q", recommendedActions: [] } as never);
+    vi.mocked(updateCall).mockReset().mockResolvedValue(undefined as never);
+    vi.mocked(assessLead).mockReset();
     vi.mocked(sendLeadPacketEmail).mockReset();
     vi.mocked(sendMessageNotificationEmail).mockReset();
   });
 
-  it("a job call is scored, assessed, and sent as a lead packet, with leadType 'job'", async () => {
+  it("a job call stores leadType 'job' and links the call — nothing heavy runs inline", async () => {
     const ctx = makeFlowContext({
       session: makeSession({
         // no leadType set → defaults to 'job'
@@ -188,12 +190,16 @@ describe("captureLead — job vs message", () => {
     await captureLead(ctx);
 
     expect(createLead).toHaveBeenCalledWith(expect.objectContaining({ leadType: "job", messageKind: null }));
-    expect(assessLead).toHaveBeenCalledTimes(1);
-    expect(sendLeadPacketEmail).toHaveBeenCalledTimes(1);
+    expect(updateCall).toHaveBeenCalledWith("call-1", { leadId: "lead-1", outcome: "ai_captured" });
+    // Scoring/assessment/notifications run in the durable finalizer, NEVER
+    // inline — inline GPT round-trips added dead air mid-call and got frozen
+    // by the platform's post-close grace window on early hangups.
+    expect(assessLead).not.toHaveBeenCalled();
+    expect(sendLeadPacketEmail).not.toHaveBeenCalled();
     expect(sendMessageNotificationEmail).not.toHaveBeenCalled();
   });
 
-  it("a message call is captured with leadType 'message' and is NOT scored, assessed, or sent as a lead packet", async () => {
+  it("a message call stores leadType/messageKind/notes and defers its alert the same way", async () => {
     const ctx = makeFlowContext({
       session: makeSession({
         leadType: "message",
@@ -205,10 +211,8 @@ describe("captureLead — job vs message", () => {
     await captureLead(ctx);
 
     expect(createLead).toHaveBeenCalledWith(expect.objectContaining({ leadType: "message", messageKind: "billing", notes: "question about my invoice" }));
-    // The whole scoring/lead-packet pipeline is skipped for a message.
     expect(assessLead).not.toHaveBeenCalled();
     expect(sendLeadPacketEmail).not.toHaveBeenCalled();
-    // ...but the owner still gets a low-key message alert.
-    expect(sendMessageNotificationEmail).toHaveBeenCalledTimes(1);
+    expect(sendMessageNotificationEmail).not.toHaveBeenCalled();
   });
 });

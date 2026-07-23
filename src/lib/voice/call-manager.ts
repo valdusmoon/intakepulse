@@ -3,7 +3,6 @@
  * data loading, OpenAI Realtime session setup, summary generation, and call finalization.
  */
 
-import { openai } from "@/lib/openai";
 import { serverEnv } from "@/lib/env";
 import { getBusinessById } from "@/lib/db/queries/businesses";
 import { getPricingRulesByBusiness } from "@/lib/db/queries/pricingRules";
@@ -142,9 +141,11 @@ export async function initializeOpenAI(voiceName: string = OPENAI_CONFIG.VOICE):
       threshold: OPENAI_CONFIG.VAD_THRESHOLD,
       prefix_padding_ms: OPENAI_CONFIG.PREFIX_PADDING_MS,
       silence_duration_ms: OPENAI_CONFIG.SILENCE_DURATION_MS,
-      // VAD still detects speech start/stop for reliable end-of-turn detection,
-      // but never acts on it itself — the engine explicitly decides when to
-      // interrupt (DTMF only) or respond (per state transition).
+      // VAD detects speech start/stop but never acts on it itself — the engine
+      // explicitly decides when to interrupt (caller speech via handleBargeIn,
+      // or DTMF) and when to respond (per state transition). interrupt_response
+      // stays false because OpenAI's auto-interrupt can't clear Twilio's
+      // buffered audio and would fire even in terminal states.
       create_response: false,
       interrupt_response: false,
     },
@@ -172,42 +173,17 @@ export async function initializeOpenAIForTest(): Promise<RealtimeClient> {
   return client;
 }
 
-async function generateCallSummary(session: SessionState): Promise<string> {
-  const transcriptText = session.conversationContext.transcript
-    .map((t) => `${t.role === "user" ? "Caller" : "AI"}: ${t.message}`)
-    .join("\n");
-
-  if (!transcriptText.trim()) {
-    return "No conversation recorded.";
-  }
-
-  const prompt = `Summarize this AI overflow-receptionist phone call in 1-2 sentences: the service needed, urgency, and outcome. Do not include names, phone numbers, addresses, or other personal details.
-
-Transcript:
-${transcriptText}
-
-Actions taken: ${session.conversationContext.actionsTaken.join(", ") || "none"}
-
-Summary:`;
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 150,
-      temperature: 0.3,
-    });
-    return completion.choices[0]?.message?.content?.trim() || "Summary unavailable.";
-  } catch (error) {
-    logger.error("Failed to generate call summary", { correlationId: session.correlationId, error: String(error) });
-    return `Call completed with ${session.conversationContext.actionsTaken.length} actions taken.`;
-  }
-}
-
 /**
  * Finalize a call once the voice session ends. Safe to call more than once
  * (e.g. from both the 'stop' event and the WebSocket 'close' handler) —
  * updateCall is a plain overwrite, not additive.
+ *
+ * DELIBERATELY one fast DB write and nothing else: this runs right after the
+ * caller's connection has closed, inside whatever grace period the platform
+ * gives a closed WebSocket's cleanup work. Anything slower (the GPT summary
+ * round-trip used to live here) gets frozen mid-write — observed in prod as a
+ * call stuck at "ringing" with no transcript. The summary now runs in the
+ * durable finalize-voice-call Inngest job, triggered after this persists.
  */
 export async function endCall(session: SessionState): Promise<void> {
   const durationSeconds = Math.floor((Date.now() - session.callStartTime.getTime()) / 1000);
@@ -220,12 +196,6 @@ export async function endCall(session: SessionState): Promise<void> {
       ? "screened"
       : "abandoned";
 
-  // Persist the critical fields first, with no external API call in the way —
-  // this runs right after the caller's connection has already closed, and an
-  // extra OpenAI round-trip for the summary was pushing this past whatever
-  // grace period the platform gives a closed WebSocket's cleanup work, so the
-  // call was never actually finalized (status stuck at "ringing", no transcript
-  // saved) even though captureLead's own DB writes landed fine moments earlier.
   try {
     await updateCall(session.callId, {
       status: "answered",
@@ -239,15 +209,5 @@ export async function endCall(session: SessionState): Promise<void> {
     });
   } catch (error) {
     logger.error("Failed to finalize call", { correlationId: session.correlationId, error: String(error) });
-    return;
-  }
-
-  // Best-effort only — the call is already finalized above regardless of
-  // whether this completes.
-  try {
-    const summary = await generateCallSummary(session);
-    await updateCall(session.callId, { summary });
-  } catch (error) {
-    logger.error("Failed to save call summary", { correlationId: session.correlationId, error: String(error) });
   }
 }

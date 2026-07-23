@@ -1,6 +1,7 @@
 import { experimental_upgradeWebSocket, type WebSocket, type WebSocketData } from "@vercel/functions";
 import { verifyStreamToken } from "@/lib/twilio/stream-token";
 import { getCallByTwilioSid } from "@/lib/db/queries/calls";
+import { inngest } from "@/lib/inngest/client";
 import { buildFlowContext, createSession, endCall, initializeOpenAI, loadBusinessCallData } from "@/lib/voice/call-manager";
 import { captureLeadOnce, deriveIntakeStatus } from "@/lib/voice/functions/actions";
 import { OpenAIHandlerService } from "@/lib/voice/openai-handler.service";
@@ -186,20 +187,51 @@ async function cleanupConnection(ws: WebSocket): Promise<void> {
   if (ctx?.session.silenceTimeout) clearTimeout(ctx.session.silenceTimeout);
   if (openaiClient) openaiClient.close();
 
+  // Everything below runs inside the platform's post-close grace window, so it
+  // is strictly FAST DB writes + one event send — the heavy tail (scoring,
+  // assessment, notifications, summary) happens in the durable
+  // finalize-voice-call Inngest job. A GPT round-trip in this window has been
+  // observed getting frozen mid-write in prod (lead created but never scored,
+  // call stuck "ringing", no transcript).
+
   // Caller hung up before reaching the confirmation state (which normally runs
-  // captureLead itself) — save whatever answers we already collected instead of
-  // losing them. Skipped for calls with zero real engagement (wrong numbers,
-  // dead air) since deriveIntakeStatus returns "not_started" for those.
-  if (ctx && !ctx.session.leadId && deriveIntakeStatus(ctx) !== "not_started") {
-    try {
-      await captureLeadOnce(ctx);
-    } catch (error) {
-      logger.error("Failed to capture partial lead on early disconnect", {
-        correlationId: ctx.session.correlationId,
-        error: String(error),
-      });
+  // captureLead itself) — save whatever we already collected instead of losing
+  // it: a call with any real intake progress, or a message-path call that gave a
+  // name or a reason. Calls with zero engagement (dead air) and screened junk
+  // create nothing, as before.
+  if (ctx && !ctx.session.leadId && !ctx.session.screened && !ctx.session.isTestCall) {
+    const cc = ctx.session.conversationContext;
+    const messageWithContent =
+      ctx.session.leadType === "message" && !!(cc.reasonForCall || cc.callerName);
+    if (deriveIntakeStatus(ctx) !== "not_started" || messageWithContent) {
+      try {
+        await captureLeadOnce(ctx); // fast: lead insert + call link only
+      } catch (error) {
+        logger.error("Failed to capture partial lead on early disconnect", {
+          correlationId: ctx.session.correlationId,
+          error: String(error),
+        });
+      }
     }
   }
 
-  if (ctx) await endCall(ctx.session);
+  if (ctx) {
+    await endCall(ctx.session); // fast: one updateCall with finals + transcript
+
+    // Hand the heavy tail to Inngest. Everything the finalizer needs is now in
+    // the DB (lead row, call transcript) — no in-memory state crosses over.
+    if (!ctx.session.isTestCall) {
+      try {
+        await inngest.send({
+          name: "call/voice.ended",
+          data: { callId: ctx.session.callId, businessId: ctx.session.businessId },
+        });
+      } catch (error) {
+        logger.error("Failed to enqueue voice-call finalization", {
+          correlationId: ctx.session.correlationId,
+          error: String(error),
+        });
+      }
+    }
+  }
 }

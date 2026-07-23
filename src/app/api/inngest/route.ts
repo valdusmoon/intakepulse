@@ -3,6 +3,7 @@ import { inngest } from "@/lib/inngest/client";
 import { weeklyReport } from "@/lib/inngest/functions/weekly-report";
 import { activationNudges } from "@/lib/inngest/functions/activation-nudges";
 import { processHumanCallFn } from "@/lib/inngest/functions/process-human-call";
+import { finalizeVoiceCallFn } from "@/lib/inngest/functions/finalize-voice-call";
 
 // PARKED lifecycle crons (early-stage simplification — 2026-07-12). The code
 // still exists and is fully functional; it's just not registered here, so it
@@ -21,6 +22,7 @@ export const { GET, POST, PUT } = serve({
     weeklyReport,
     activationNudges,
     processHumanCallFn, // event-triggered: call/human-recording.completed
+    finalizeVoiceCallFn, // event-triggered: call/voice.ended
     // trialReminders,   // parked — see note above
     // winbackEmails,    // parked — see note above
     // monthlyRoiRecap,  // parked — see note above

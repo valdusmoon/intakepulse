@@ -15,11 +15,9 @@ import { scoreLeadFromAnswers } from "@/lib/leads/scoring";
 import { assessLead } from "@/lib/leads/assess";
 import { classifyWebIntake, shouldRunValve, shouldUpgradeToJob } from "@/lib/leads/web-intake";
 import { notifyMessageCaptured } from "@/lib/leads/notify-message";
+import { notifyJobLead } from "@/lib/leads/notify-job";
 import { generateReassurance, genericReassurance } from "@/lib/leads/reassurance";
 import { quoteForAnswers } from "@/lib/leads/quote";
-import { sendLeadPacketEmail } from "@/lib/email/notifications";
-import { sendLeadPushNotification } from "@/lib/push/send";
-import { buildLeadPushPayload } from "@/lib/push/payload";
 import { logger } from "@/lib/logger";
 import type { Answers } from "@/lib/verticals/filterAnswers";
 
@@ -109,47 +107,18 @@ async function assessAndNotify(
     const lead = await getLeadById(leadId);
     if (!lead) return;
 
-    if (business.notificationPreferences?.qualifiedLead === false) return;
-
-    // Email and push are independent channels — a failure in one must not skip
-    // the other (push is the primary, more-reliable alert), so the email gets its
-    // own try/catch rather than sharing the outer one.
-    try {
-      await sendLeadPacketEmail({
-        ownerEmail: business.ownerEmail,
-        ownerName: business.ownerName,
-        businessName: business.businessName,
-        leadId,
-        callerName: lead.callerName,
-        callerPhone: lead.callerPhone,
-        urgencyScore: scores.urgencyScore,
-        qualityScore: scores.qualityScore,
-        estimatedValueLow: scores.estimatedValueLow,
-        estimatedValueHigh: scores.estimatedValueHigh,
-        urgencyReasoning: reasoning.urgencyReasoning,
-        qualityReasoning: reasoning.qualityReasoning,
-        recommendedActions: reasoning.recommendedActions,
-        intakeAnswers: answers,
-        questions,
-      });
-    } catch (err) {
-      logger.error("lead packet email failed", { leadId, error: String(err) });
-    }
-
-    // Push-primary operator alert (PWA/browser). Fire alongside the email; never
-    // throws, prunes dead subscriptions itself. Default-on unless turned off.
-    if (business.notificationPreferences?.pushNewLead !== false) {
-      await sendLeadPushNotification(
-        businessId,
-        buildLeadPushPayload({
-          leadId,
-          callerName: lead.callerName,
-          priorityScore: scores.priorityScore,
-          estimatedValueLow: scores.estimatedValueLow,
-          estimatedValueHigh: scores.estimatedValueHigh,
-        }),
-      );
-    }
+    // Shared full "New Qualified Lead" alert (email + push, pref-gated) — the
+    // same helper the voice finalizer uses, so the two channels can't drift.
+    await notifyJobLead({
+      business,
+      leadId,
+      callerName: lead.callerName,
+      callerPhone: lead.callerPhone,
+      scores,
+      reasoning,
+      answers,
+      questions,
+    });
   } catch (err) {
     logger.error("assessAndNotify failed", { leadId, error: String(err) });
   }

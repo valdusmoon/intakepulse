@@ -49,9 +49,12 @@ export const OPENAI_CONFIG = {
   TEMPERATURE: 0.4,
 
   /**
-   * Server VAD tuning — no longer needs to be hair-trigger-sensitive since
-   * voice barge-in is disabled (turn_detection.interrupt_response: false in
-   * call-manager.ts). This still only drives reliable end-of-turn detection.
+   * Server VAD tuning. Drives end-of-turn detection AND manual barge-in:
+   * speech_started triggers engine.handleBargeIn (audio-only interruption,
+   * code-guarded — see openai-handler.service.ts). OpenAI's own
+   * interrupt_response stays false; we cut audio ourselves so Twilio's buffer
+   * gets cleared and terminal states can't be interrupted. Threshold 0.5 keeps
+   * background noise from false-triggering an interruption.
    */
   VAD_THRESHOLD: 0.5,
   PREFIX_PADDING_MS: 300,
