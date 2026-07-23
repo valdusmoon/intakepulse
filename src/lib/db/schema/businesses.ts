@@ -103,6 +103,11 @@ export const businesses = pgTable("businesses", {
   currentPeriodStart: timestamp("current_period_start"),
   currentPeriodEnd: timestamp("current_period_end"),
   canceledAt: timestamp("canceled_at"),
+  /** When the FIRST invoice payment failed in the current past_due spell, so the
+   *  grace window can be measured from it (see PAST_DUE_GRACE_DAYS). Set once on
+   *  the first failure and left alone on subsequent retries; cleared the moment
+   *  the subscription reports a healthy status again. */
+  pastDueSince: timestamp("past_due_since"),
 
   // ─── Lifecycle email idempotency (Phase 3) ─────────────────────────────────
   // Each column records the furthest stage of a given email series already sent

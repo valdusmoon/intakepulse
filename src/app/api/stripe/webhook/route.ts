@@ -84,6 +84,9 @@ export async function POST(req: NextRequest) {
           currentPeriodStart: periodStart ? new Date(periodStart * 1000) : null,
           currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
           trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+          // Recovered (or never really in trouble): stop the grace clock so a
+          // future failure starts a fresh window instead of inheriting an old one.
+          pastDueSince: subscription.status === "past_due" ? undefined : null,
           canceledAt: subscription.cancel_at_period_end
             ? new Date((subscription.current_period_end || subscription.trial_end) * 1000)
             : null,
@@ -154,11 +157,16 @@ export async function POST(req: NextRequest) {
         }
 
         if (company) {
+          // Start the grace clock on the FIRST failure only. Stripe retries the
+          // same invoice several times over roughly two weeks, and each retry
+          // fires this event again; restamping would extend the window forever.
           await db.update(businesses).set({
             subscriptionStatus: "past_due",
+            pastDueSince: company.pastDueSince ?? new Date(),
             updatedAt: new Date(),
           }).where(eq(businesses.id, company.id));
-          console.log(`Payment failed for company ${company.id}, status set to past_due`);
+          const clockNote = company.pastDueSince ? "grace clock already running" : "grace clock started";
+          console.log(`Payment failed for company ${company.id}, status set to past_due (${clockNote})`);
 
           // Dunning email — post-response via `after()` so the webhook can ack
           // Stripe immediately while the send still runs (bare `void` would be
@@ -193,6 +201,17 @@ export async function POST(req: NextRequest) {
         }
 
         if (company) {
+          // A successful invoice ends any past_due spell. subscription.updated
+          // normally carries the status back to active, but clearing here too
+          // means the grace clock can't outlive the problem it was tracking.
+          if (company.pastDueSince) {
+            await db.update(businesses).set({
+              pastDueSince: null,
+              updatedAt: new Date(),
+            }).where(eq(businesses.id, company.id));
+            console.log(`Payment recovered for company ${company.id}, grace clock cleared`);
+          }
+
           // Receipt email — post-response via `after()` so the webhook acks Stripe
           // immediately while the send still runs (bare `void` would be frozen
           // before it fires). Only reaches a real recipient once Stripe is live.

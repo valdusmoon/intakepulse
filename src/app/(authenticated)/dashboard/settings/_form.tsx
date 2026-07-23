@@ -813,6 +813,21 @@ function BillingPanel() {
               ))}
             </div>
 
+            {/* The number release is irreversible and easy to miss, so it is
+                stated before the cancel button, not after. */}
+            <div className="mt-5 rounded-xl border border-[#f3c9c3] bg-cv-red-soft p-4">
+              <p className="text-sm font-bold text-cv-ink">
+                You will lose your Callverted number
+                {billing?.currentPeriodEnd ? ` on ${formatDate(billing.currentPeriodEnd)}` : " at the end of your billing period"}.
+              </p>
+              <p className="text-xs text-cv-muted mt-1">
+                It goes back to the carrier and cannot be recovered, even if you come back later. If that number is on your trucks, your website, or your Google listing, change those over before you cancel.
+              </p>
+              <p className="text-xs text-cv-muted mt-2">
+                Your leads, calls, and history stay in your account either way.
+              </p>
+            </div>
+
             <div className="mt-4 flex gap-3">
               <Button className="flex-1" onClick={() => setShowCancel(false)}>
                 Never mind

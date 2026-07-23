@@ -8,12 +8,12 @@ export async function hasActiveSubscription(
 ): Promise<{ hasAccess: boolean; reason?: string; status?: string }> {
   const business = await db.query.businesses.findFirst({
     where: eq(businesses.clerkUserId, clerkUserId),
-    columns: { subscriptionStatus: true, trialEndsAt: true, canceledAt: true },
+    columns: { subscriptionStatus: true, trialEndsAt: true, canceledAt: true, pastDueSince: true },
   });
 
   if (!business) return { hasAccess: false, reason: "Business not found" };
 
-  const { subscriptionStatus, trialEndsAt, canceledAt } = business;
+  const { subscriptionStatus, trialEndsAt, canceledAt, pastDueSince } = business;
   const now = new Date();
 
   if (!subscriptionStatus) {
@@ -46,6 +46,11 @@ export async function hasActiveSubscription(
   }
 
   if (subscriptionStatus === "past_due") {
+    // Mirrors isBusinessSubscriptionActive: keep access through the retry window
+    // so a failed card doesn't lock someone out of their own lead history.
+    if (isBusinessSubscriptionActive({ subscriptionStatus, trialEndsAt, canceledAt, pastDueSince })) {
+      return { hasAccess: true, status: "past_due_grace" };
+    }
     return { hasAccess: false, reason: "Your payment failed. Please update your payment method.", status: "past_due" };
   }
 
@@ -76,6 +81,7 @@ export function hasPaymentOnFile(business: {
   trialEndsAt: Date | null;
   canceledAt: Date | null;
   stripeSubscriptionId: string | null;
+  pastDueSince?: Date | null;
 }): boolean {
   return !!business.stripeSubscriptionId && isBusinessSubscriptionActive(business);
 }
@@ -114,12 +120,29 @@ export function getSetupStage(business: {
   return "live";
 }
 
+/**
+ * How long a business keeps answering calls after a payment fails.
+ *
+ * A failed invoice is usually an expired card or a bank's fraud hold, not a
+ * customer who decided to leave, and Stripe keeps retrying for roughly two weeks
+ * before giving up. Cutting service on the first failure would take a trades
+ * business's published number off the air while the subscription is still
+ * entirely recoverable, and their customers would hear a broken-sounding
+ * "temporarily unavailable" message in the meantime. Seven days covers the usual
+ * retry attempts and the dunning email, and caps the exposure at about a week of
+ * service. Once Stripe exhausts retries it moves the subscription to 'unpaid',
+ * which gets no grace at all.
+ */
+export const PAST_DUE_GRACE_DAYS = 7;
+const PAST_DUE_GRACE_MS = PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000;
+
 export function isBusinessSubscriptionActive(business: {
   subscriptionStatus: string | null;
   trialEndsAt: Date | null;
   canceledAt: Date | null;
+  pastDueSince?: Date | null;
 }): boolean {
-  const { subscriptionStatus, trialEndsAt, canceledAt } = business;
+  const { subscriptionStatus, trialEndsAt, canceledAt, pastDueSince } = business;
   const now = new Date();
   const GRACE_MS = 60 * 1000;
 
@@ -137,6 +160,15 @@ export function isBusinessSubscriptionActive(business: {
 
   if (subscriptionStatus === "canceled") {
     return !!(canceledAt && canceledAt > now);
+  }
+
+  // Payment failed but Stripe is still retrying. Keep the line answering until
+  // the grace window closes. A missing pastDueSince means the clock was never
+  // started (a status written by some path other than the payment_failed hook),
+  // so fail open rather than silently killing a paying customer's phone.
+  if (subscriptionStatus === "past_due") {
+    if (!pastDueSince) return true;
+    return pastDueSince.getTime() + PAST_DUE_GRACE_MS > now.getTime();
   }
 
   return false;

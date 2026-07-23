@@ -1,0 +1,12 @@
+-- Grace period for failed payments.
+--
+-- Before this, a single failed invoice flipped subscription_status to 'past_due',
+-- which hasPaymentOnFile() read as "no payment on file", so the very next inbound
+-- call was rejected. An expired card took a trades business's published phone
+-- number off the air instantly, while Stripe's own smart retries were still
+-- running and the subscription was entirely recoverable.
+--
+-- This records when the current past_due spell began so the line can keep
+-- answering through the retry window. Set on the first payment_failed, cleared
+-- when the subscription reports a healthy status again.
+ALTER TABLE "businesses" ADD COLUMN "past_due_since" timestamp;
