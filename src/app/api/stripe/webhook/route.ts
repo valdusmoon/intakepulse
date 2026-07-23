@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { businesses } from "@/lib/db/schema/businesses";
 import { getStripe, verifyWebhookSignature } from "@/lib/stripe";
+import { nextPastDueSince } from "@/lib/subscription";
 import { releaseNumber } from "@/lib/twilio/client";
 import { sendDunningEmail, sendReceiptEmail } from "@/lib/email/notifications";
 
@@ -58,25 +59,28 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.updated": {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subscription = event.data.object as any;
-        let businessId = subscription.metadata?.businessId;
 
-        if (!businessId) {
-          const existing = await db.query.businesses.findFirst({
-            where: eq(businesses.stripeSubscriptionId, subscription.id),
-          }) ?? await db.query.businesses.findFirst({
-            where: eq(businesses.stripeCustomerId, subscription.customer as string),
-          });
-          businessId = existing?.id;
-        }
+        // Always load the row: the grace clock below needs its current value, not
+        // just the id.
+        const existing = subscription.metadata?.businessId
+          ? await db.query.businesses.findFirst({ where: eq(businesses.id, subscription.metadata.businessId) })
+          : (await db.query.businesses.findFirst({
+              where: eq(businesses.stripeSubscriptionId, subscription.id),
+            }) ?? await db.query.businesses.findFirst({
+              where: eq(businesses.stripeCustomerId, subscription.customer as string),
+            }));
 
-        if (!businessId) {
+        if (!existing) {
           console.error("No businessId for subscription:", subscription.id);
           break;
         }
+        const businessId = existing.id;
 
         const priceId = subscription.items?.data?.[0]?.price?.id;
         const periodStart = subscription.current_period_start || subscription.trial_start;
         const periodEnd = subscription.current_period_end || subscription.trial_end;
+
+        const pastDueSince = nextPastDueSince(subscription.status, existing.pastDueSince);
 
         await db.update(businesses).set({
           subscriptionStatus: subscription.status,
@@ -84,9 +88,7 @@ export async function POST(req: NextRequest) {
           currentPeriodStart: periodStart ? new Date(periodStart * 1000) : null,
           currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
           trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
-          // Recovered (or never really in trouble): stop the grace clock so a
-          // future failure starts a fresh window instead of inheriting an old one.
-          pastDueSince: subscription.status === "past_due" ? undefined : null,
+          pastDueSince,
           canceledAt: subscription.cancel_at_period_end
             ? new Date((subscription.current_period_end || subscription.trial_end) * 1000)
             : null,
@@ -162,7 +164,7 @@ export async function POST(req: NextRequest) {
           // fires this event again; restamping would extend the window forever.
           await db.update(businesses).set({
             subscriptionStatus: "past_due",
-            pastDueSince: company.pastDueSince ?? new Date(),
+            pastDueSince: nextPastDueSince("past_due", company.pastDueSince),
             updatedAt: new Date(),
           }).where(eq(businesses.id, company.id));
           const clockNote = company.pastDueSince ? "grace clock already running" : "grace clock started";

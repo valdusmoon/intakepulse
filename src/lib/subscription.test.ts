@@ -7,6 +7,7 @@ vi.mock("@/lib/db", () => ({ db: {} }));
 import {
   isBusinessSubscriptionActive,
   hasPaymentOnFile,
+  nextPastDueSince,
   PAST_DUE_GRACE_DAYS,
 } from "./subscription";
 
@@ -125,5 +126,37 @@ describe("hasPaymentOnFile", () => {
         pastDueSince: daysAgo(PAST_DUE_GRACE_DAYS + 1),
       })
     ).toBe(false);
+  });
+});
+
+describe("nextPastDueSince (the shared grace-clock rule)", () => {
+  const now = new Date("2026-07-23T12:00:00Z");
+  const earlier = new Date("2026-07-20T09:00:00Z");
+
+  it("starts the clock the first time past_due is seen", () => {
+    expect(nextPastDueSince("past_due", null, now)).toEqual(now);
+  });
+
+  it("never restamps a clock that is already running", () => {
+    // Stripe retries the same invoice several times; each retry re-fires the
+    // event, and restamping would extend the window forever.
+    expect(nextPastDueSince("past_due", earlier, now)).toEqual(earlier);
+  });
+
+  it("starts the clock for a dispute, which arrives with no failed invoice", () => {
+    // Stripe is configured to leave a disputed subscription past_due
+    // indefinitely, so this is the only thing standing between a chargeback and
+    // free service forever.
+    expect(nextPastDueSince("past_due", undefined, now)).toEqual(now);
+  });
+
+  it("clears the clock on every healthy status", () => {
+    for (const status of ["active", "trialing", "canceled"]) {
+      expect(nextPastDueSince(status, earlier, now)).toBeNull();
+    }
+  });
+
+  it("clears the clock once Stripe gives up and marks it unpaid", () => {
+    expect(nextPastDueSince("unpaid", earlier, now)).toBeNull();
   });
 });

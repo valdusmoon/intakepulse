@@ -136,6 +136,27 @@ export function getSetupStage(business: {
 export const PAST_DUE_GRACE_DAYS = 7;
 const PAST_DUE_GRACE_MS = PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000;
 
+/**
+ * The single rule for the grace clock, shared by every Stripe webhook branch that
+ * writes a subscription status.
+ *
+ * Start it the first time we see past_due from ANY route, not just a failed
+ * invoice: a dispute moves the subscription to past_due with no
+ * invoice.payment_failed behind it, and Stripe is configured to leave a disputed
+ * subscription past_due indefinitely. Without this the clock would stay null and
+ * isBusinessSubscriptionActive's fail-open branch would serve that account free
+ * forever. Never restamp a running clock, or Stripe's repeated retries would
+ * extend the window every time. Any healthy status clears it.
+ */
+export function nextPastDueSince(
+  status: string | null | undefined,
+  current: Date | null | undefined,
+  now: Date = new Date()
+): Date | null {
+  if (status !== "past_due") return null;
+  return current ?? now;
+}
+
 export function isBusinessSubscriptionActive(business: {
   subscriptionStatus: string | null;
   trialEndsAt: Date | null;
