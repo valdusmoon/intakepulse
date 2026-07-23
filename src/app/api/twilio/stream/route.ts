@@ -70,9 +70,34 @@ function handleConnection(ws: WebSocket): void {
         // before it — so this is the caller having actually heard the goodbye.
         // Closing on a fixed timer instead used to clip the sign-off.
         if (data.mark?.name === GOODBYE_MARK) {
+          const now = Date.now();
+          ctx.session.goodbyeEchoAt = now;
+          ctx.session.closedBy ??= "mark-echo";
+          logger.info("Goodbye mark echoed — audio played out, closing", {
+            correlationId: ctx.session.correlationId,
+            msSinceMarkSent: ctx.session.goodbyeMarkSentAt ? now - ctx.session.goodbyeMarkSentAt : null,
+            // Positive = Twilio claims playback finished EARLIER than our byte
+            // math predicts — the echo-arrived-too-soon clip signature.
+            estimatedUnplayedMs: Math.max(0, (ctx.session.audioQueuedUntil ?? 0) - now),
+            marksSent: ctx.session.marksSent ?? 0,
+            marksEchoed: ctx.session.marksEchoed ?? 0,
+          });
           ws.close(1000, "Conversation complete");
+        } else {
+          ctx.session.marksEchoed = (ctx.session.marksEchoed ?? 0) + 1;
+          ctx.session.lastMarkEchoAt = Date.now();
         }
       } else if (data.event === "stop") {
+        // Twilio ended the stream on its side (caller hung up, or Twilio tore the
+        // call down). If this lands mid-goodbye — mark sent but never echoed —
+        // the clip happened upstream of our close logic.
+        ctx.session.closedBy ??= "twilio-stop";
+        logger.info("Twilio stop event received", {
+          correlationId: ctx.session.correlationId,
+          state: ctx.session.state,
+          goodbyeMarkSent: !!ctx.session.goodbyeMarkSentAt,
+          goodbyeEchoed: !!ctx.session.goodbyeEchoAt,
+        });
         await cleanupConnection(ws);
       }
     } catch (error) {
@@ -144,6 +169,7 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
 
         // Also queue a mark behind that audio — if Twilio echoes it back sooner
         // (handled above) we hang up promptly instead of waiting out the timer.
+        let markSendFailed = false;
         try {
           ws.send(JSON.stringify({
             event: "mark",
@@ -152,12 +178,35 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
           }));
         } catch {
           // Socket already gone — the timer below still closes things out.
+          markSendFailed = true;
         }
+        session.goodbyeMarkSentAt = Date.now();
         logger.info("Call complete — waiting for audio playout before hangup", {
           correlationId: session.correlationId,
           waitMs,
+          remainingMs,
+          markSendFailed,
+          marksSent: session.marksSent ?? 0,
+          marksEchoed: session.marksEchoed ?? 0,
         });
-        setTimeout(() => ws.close(1000, "Conversation complete"), waitMs);
+        setTimeout(() => {
+          // The mark echo is supposed to beat this timer every time. If we get
+          // here without it, the timer is what's been closing calls — and if
+          // remaining audio was underestimated, this is where the clip happens.
+          if (!session.goodbyeEchoAt) {
+            session.closedBy ??= "backstop-timer";
+            logger.warn("Goodbye backstop timer fired — mark echo never arrived", {
+              correlationId: session.correlationId,
+              waitMs,
+              msSinceMarkSent: session.goodbyeMarkSentAt ? Date.now() - session.goodbyeMarkSentAt : null,
+              estimatedUnplayedMs: Math.max(0, (session.audioQueuedUntil ?? 0) - Date.now()),
+              marksSent: session.marksSent ?? 0,
+              marksEchoed: session.marksEchoed ?? 0,
+              msSinceLastMarkEcho: session.lastMarkEchoAt ? Date.now() - session.lastMarkEchoAt : null,
+            });
+          }
+          ws.close(1000, "Conversation complete");
+        }, waitMs);
       },
       () => finalizeCall(session),
     );
@@ -176,6 +225,7 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
     openaiHandler.setupEventHandlers(openaiClient, ws, ctx, () => {
       session.silenceTimeout = setTimeout(() => {
         logger.info("No caller speech within 30s of greeting — ending call", { correlationId: session.correlationId });
+        session.closedBy ??= "no-speech";
         ws.close(1000, "No speech detected");
       }, TIMEOUTS.INITIAL_SILENCE);
     });
@@ -198,6 +248,7 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
       logger.warn("Call duration limit reached — forcing disconnect", {
         correlationId: session.correlationId,
       });
+      session.closedBy ??= "max-duration";
       ws.close(1000, "Maximum call duration reached");
     }, TIMEOUTS.MAX_CALL_DURATION);
 
@@ -263,6 +314,26 @@ async function cleanupConnection(ws: WebSocket): Promise<void> {
   if (gracefulTimer) clearTimeout(gracefulTimer);
   if (ctx?.session.silenceTimeout) clearTimeout(ctx.session.silenceTimeout);
   if (openaiClient) openaiClient.close();
+
+  // One greppable line per call answering the goodbye-clip question: which path
+  // closed the WS, whether Twilio ever confirmed full playout (goodbyeEchoed),
+  // and how much audio our byte math says was still unplayed at teardown.
+  if (ctx) {
+    const s = ctx.session;
+    const now = Date.now();
+    logger.info("goodbye diagnostics", {
+      correlationId: s.correlationId,
+      closedBy: s.closedBy ?? "ws-close",
+      state: s.state,
+      goodbyeMarkSent: !!s.goodbyeMarkSentAt,
+      goodbyeEchoed: !!s.goodbyeEchoAt,
+      msMarkSentToEcho:
+        s.goodbyeMarkSentAt && s.goodbyeEchoAt ? s.goodbyeEchoAt - s.goodbyeMarkSentAt : null,
+      estimatedUnplayedMsAtTeardown: Math.max(0, (s.audioQueuedUntil ?? now) - now),
+      marksSent: s.marksSent ?? 0,
+      marksEchoed: s.marksEchoed ?? 0,
+    });
+  }
 
   // Everything below runs inside the platform's post-close grace window, so it
   // is strictly FAST DB writes + one event send — the heavy tail (scoring,

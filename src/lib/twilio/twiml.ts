@@ -66,13 +66,23 @@ export function generateStreamTwiml(opts: {
    *  reliable trigger for post-call finalization — a normal inbound HTTP request,
    *  unlike the WebSocket-close path, where outbound calls get frozen. */
   statusCallbackUrl?: string;
+  /** TwiML to run after the stream's WebSocket closes. Without an action, the
+   *  document ends the instant the WS closes and Twilio hangs up right there —
+   *  which cut the tail of the goodbye still in carrier-side buffers even after
+   *  Twilio's mark echo confirmed IT had finished playing the audio. The action
+   *  endpoint returns a short <Pause/> before <Hangup/> so Twilio's call-control
+   *  layer owns the teardown instead of our socket close. */
+  actionUrl?: string;
 }): string {
   const statusAttrs = opts.statusCallbackUrl
     ? ` statusCallback="${escapeXml(opts.statusCallbackUrl)}" statusCallbackMethod="POST"`
     : "";
+  const actionAttrs = opts.actionUrl
+    ? ` action="${escapeXml(opts.actionUrl)}" method="POST"`
+    : "";
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Connect>
+  <Connect${actionAttrs}>
     <Stream url="${escapeXml(opts.wssUrl)}"${statusAttrs}>
       <Parameter name="callSid" value="${escapeXml(opts.callSid)}" />
       <Parameter name="token" value="${escapeXml(opts.token)}" />

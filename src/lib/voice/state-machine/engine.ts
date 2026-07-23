@@ -1193,6 +1193,14 @@ export function handleBargeIn(ctx: FlowContext, client: RealtimeClient, ws: WebS
 function interruptCurrentResponse(ctx: FlowContext, client: RealtimeClient, ws: WebSocket): void {
   if (ctx.session.streamSid) {
     ws.send(JSON.stringify({ event: "clear", streamSid: ctx.session.streamSid }));
+    // Part of the goodbye diagnostics: a clear flushes Twilio's buffer AND makes
+    // it echo back pending marks for audio that will never play — so a clear
+    // anywhere near the close path would fake an "audio played out" signal.
+    // This log proves whether one fired late in the call.
+    logger.info("Sent clear to Twilio (barge-in/DTMF interrupt)", {
+      correlationId: ctx.session.correlationId,
+      state: ctx.session.state,
+    });
   }
   // Only cancel when a response is actually in flight — cancelling a finished
   // response is rejected by OpenAI ("no active response found"). This is common

@@ -79,6 +79,10 @@ export async function POST(req: Request) {
       callSid,
       token,
       statusCallbackUrl: `${env.APP_URL}/api/twilio/stream/status`,
+      // Teardown guard: when the stream WS closes, Twilio runs a 1s <Pause> then
+      // <Hangup/> instead of dropping the call at the instant of socket close —
+      // gives the goodbye's audio tail time to clear carrier-side buffers.
+      actionUrl: `${env.APP_URL}/api/twilio/voice/after-stream`,
     }));
   } catch (error) {
     logger.error("Error handling Twilio dial status webhook", { error: String(error) });

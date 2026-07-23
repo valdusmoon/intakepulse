@@ -84,6 +84,26 @@ export interface SessionState {
   // is still in flight (leadId isn't set until that insert resolves).
   leadCapturePromise?: Promise<{ leadId: string }>;
 
+  // ── Goodbye-playout diagnostics ────────────────────────────────────────────
+  // The goodbye has been observed clipping in prod through two fixes (fixed
+  // delay, then playout math + Twilio mark echo). These fields exist to answer,
+  // per call, WHICH mechanism actually closed the socket and how far behind
+  // real playback was — see the "goodbye diagnostics" summary logged from the
+  // stream route's cleanup.
+  // Epoch ms when the goodbye-complete mark was queued behind the audio.
+  goodbyeMarkSentAt?: number;
+  // Epoch ms when Twilio echoed that mark back (audio fully played) — unset if
+  // the echo never arrived and a timer/stop closed the call instead.
+  goodbyeEchoAt?: number;
+  // Per-chunk "audio_chunk" marks sent to / echoed back from Twilio. The gap
+  // between them at any moment is how many chunks Twilio still has buffered.
+  marksSent?: number;
+  marksEchoed?: number;
+  lastMarkEchoAt?: number;
+  // Which path ended the WS: "mark-echo" | "backstop-timer" | "twilio-stop" |
+  // "silence-timeout" | "no-speech" | "max-duration" | "ws-close" (peer closed).
+  closedBy?: string;
+
   // ── State machine ──────────────────────────────────────────────────────────
   state: VoiceState;
   // Legacy linear cursor — retained for back-compat; the adaptive engine tracks

@@ -70,6 +70,7 @@ export class OpenAIHandlerService {
         streamSid: session.streamSid,
         mark: { name: "audio_chunk" },
       }));
+      session.marksSent = (session.marksSent ?? 0) + 1;
     });
   }
 
@@ -84,6 +85,7 @@ export class OpenAIHandlerService {
       if (session.silenceTimeout) clearTimeout(session.silenceTimeout);
       session.silenceTimeout = setTimeout(() => {
         logger.info("Caller silent for 60s — ending call", { correlationId: session.correlationId });
+        session.closedBy ??= "silence-timeout";
         twilioWs.close(1000, "Silence timeout");
       }, TIMEOUTS.ONGOING_SILENCE);
     });

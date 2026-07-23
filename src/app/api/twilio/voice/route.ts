@@ -131,6 +131,10 @@ async function handOffToAi(callSid: string, businessId: string): Promise<NextRes
     callSid,
     token,
     statusCallbackUrl: `${env.APP_URL}/api/twilio/stream/status`,
+    // Teardown guard: when the stream WS closes, Twilio runs a 1s <Pause> then
+    // <Hangup/> instead of dropping the call at the instant of socket close —
+    // gives the goodbye's audio tail time to clear carrier-side buffers.
+    actionUrl: `${env.APP_URL}/api/twilio/voice/after-stream`,
   }));
 }
 
