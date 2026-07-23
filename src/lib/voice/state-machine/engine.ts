@@ -25,7 +25,7 @@ import type { RealtimeClient } from "../realtime-client";
 import type { FlowContext } from "./types";
 import { matchDeterministicIntent, type GlobalIntent } from "./global-intent";
 import { MESSAGE_KINDS, type MessageKind } from "@/lib/leads/lead-taxonomy";
-import { isNameRefusal, trustDeterministicName, mentionsServiceNeed, isNegatedOptionMatch, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
+import { isNameRefusal, isLikelyNoiseArtifact, trustDeterministicName, mentionsServiceNeed, isNegatedOptionMatch, tryExtractZipDeterministic, tryMatchOptionLabel, tryMatchOrdinal, type OptionLike } from "./deterministic";
 import { extractCallerNameLLM } from "./name-extract";
 import { buildClassifyAnswerTool, buildClassifyServiceTool, buildExtractIntakeTool, EXTRACT_ZIP_TOOL } from "./tools";
 import { validateExtraction } from "./extraction";
@@ -80,6 +80,18 @@ export function startCall(ctx: FlowContext, client: RealtimeClient): void {
 // ─── Caller input entry points (called from the stream route / openai-handler) ─
 
 export async function handleTranscript(ctx: FlowContext, client: RealtimeClient, transcript: string): Promise<void> {
+  // Whisper's silence/noise hallucinations ("Bye-bye.", "Thank you.") are not
+  // answers — routing them wastes a turn and can push the call down the wrong
+  // branch. Drop them entirely: no transcript entry, no retry counted. The
+  // caller's real answer (or the silence timeout) follows.
+  if (isLikelyNoiseArtifact(transcript)) {
+    logger.debug("Ignoring likely transcription artifact", {
+      correlationId: ctx.session.correlationId,
+      transcript,
+    });
+    return;
+  }
+
   ctx.session.conversationContext.transcript.push({ role: "user", message: transcript });
 
   // Out of time (3-min soft cap fired mid-turn): wrap up now rather than start

@@ -135,9 +135,15 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
       session,
       () => {
         // The state machine signals completion; we own the actual WS lifecycle.
-        // Queue a mark behind the goodbye audio — Twilio echoes it back once the
-        // caller has heard it (handled above), which is the real "safe to hang
-        // up" signal. The timer is only a backstop if that never arrives.
+        // Wait for the audio to finish PLAYING, not merely generating: OpenAI
+        // streams faster than 8kHz real-time, so hanging up on a fixed delay
+        // after response.done cut the sign-off off mid-word. session
+        // .audioQueuedUntil is the measured end of the queued speech.
+        const remainingMs = Math.max(0, (session.audioQueuedUntil ?? 0) - Date.now());
+        const waitMs = Math.min(remainingMs + TIMEOUTS.GOODBYE_TAIL_PADDING, TIMEOUTS.GOODBYE_MAX_WAIT);
+
+        // Also queue a mark behind that audio — if Twilio echoes it back sooner
+        // (handled above) we hang up promptly instead of waiting out the timer.
         try {
           ws.send(JSON.stringify({
             event: "mark",
@@ -147,7 +153,11 @@ async function handleStreamStart(data: any, ws: WebSocket): Promise<boolean> {
         } catch {
           // Socket already gone — the timer below still closes things out.
         }
-        setTimeout(() => ws.close(1000, "Conversation complete"), TIMEOUTS.GOODBYE_DELAY);
+        logger.info("Call complete — waiting for audio playout before hangup", {
+          correlationId: session.correlationId,
+          waitMs,
+        });
+        setTimeout(() => ws.close(1000, "Conversation complete"), waitMs);
       },
       () => finalizeCall(session),
     );

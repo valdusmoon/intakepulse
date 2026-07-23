@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { tryMatchOptionLabel, tryMatchOrdinal, tryExtractZipDeterministic, cleanSpokenName, looksLikeName, isNameRefusal, trustDeterministicName, mentionsServiceNeed, isNegatedOptionMatch, type OptionLike } from "./deterministic";
+import { tryMatchOptionLabel, tryMatchOrdinal, tryExtractZipDeterministic, isLikelyNoiseArtifact, cleanSpokenName, looksLikeName, isNameRefusal, trustDeterministicName, mentionsServiceNeed, isNegatedOptionMatch, type OptionLike } from "./deterministic";
 
 const DAMAGE: OptionLike[] = [
   { label: "Water", value: "water" },
@@ -69,6 +69,23 @@ describe("tryMatchOrdinal", () => {
     expect(tryMatchOrdinal("five", DAMAGE)).toBeNull();
     expect(tryMatchOrdinal("0", DAMAGE)).toBeNull();
   });
+});
+
+describe("isLikelyNoiseArtifact", () => {
+  // Regression: a caller who had said nothing yet produced "Bye for now." and
+  // "Bye-bye." from room noise, costing a turn and a wrong branch.
+  it.each(["Bye.", "Bye-bye.", "Bye for now.", "Thank you.", "Thanks for watching!", "you", "  "])(
+    "drops %j as a transcription artifact",
+    (t) => expect(isLikelyNoiseArtifact(t)).toBe(true)
+  );
+
+  it.each([
+    "my basement is flooding",
+    "it's 07641",
+    "yeah, fire restoration assistance I need",
+    "no",
+    "emergency",
+  ])("keeps real speech %j", (t) => expect(isLikelyNoiseArtifact(t)).toBe(false));
 });
 
 describe("tryExtractZipDeterministic", () => {

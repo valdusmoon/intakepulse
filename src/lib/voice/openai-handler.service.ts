@@ -51,6 +51,14 @@ export class OpenAIHandlerService {
         session.lastAssistantItem = event.item_id;
       }
 
+      // Track when this audio will actually finish playing for the caller.
+      // μ-law @ 8kHz = 8 bytes per millisecond; base64 carries 3 bytes per 4
+      // chars. The queue extends from wherever playback currently stands, which
+      // is `now` if nothing is outstanding.
+      const now = Date.now();
+      const chunkMs = Math.round(((mulawAudio.length * 3) / 4) / 8);
+      session.audioQueuedUntil = Math.max(session.audioQueuedUntil ?? now, now) + chunkMs;
+
       twilioWs.send(JSON.stringify({
         event: "media",
         streamSid: session.streamSid,

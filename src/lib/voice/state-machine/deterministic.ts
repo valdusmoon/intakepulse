@@ -192,6 +192,34 @@ export function looksLikeName(s: string): boolean {
   return true;
 }
 
+/**
+ * Whisper hallucinates stock phrases when handed silence, breathing, or line
+ * noise — "Bye.", "Bye-bye.", "Thank you.", "Thanks for watching." are its
+ * signature artifacts. Observed live: a caller who hadn't said anything yet
+ * produced "Bye for now." and "Bye-bye.", which pushed the call into an
+ * unnecessary clarification turn. VAD picking up room noise makes this more
+ * likely, so these are dropped as non-input rather than routed as answers.
+ *
+ * Deliberately a tight list of phrases that are never a useful intake answer on
+ * their own; a caller genuinely saying goodbye is hanging up anyway, and the
+ * silence timeout still ends a dead call.
+ */
+const NOISE_ARTIFACTS = new Set([
+  "bye", "bye bye", "byebye", "bye for now", "goodbye", "good bye",
+  "thank you", "thanks", "thank you very much", "thanks for watching",
+  "thank you for watching", "you", "yeah", "so", "mm", "mmm", "hmm", "uh", "um", "ah",
+]);
+
+export function isLikelyNoiseArtifact(transcript: string): boolean {
+  const normalized = transcript
+    .toLowerCase()
+    .replace(/[.,!?¡¿"'’\-–—]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return true;
+  return NOISE_ARTIFACTS.has(normalized);
+}
+
 // Words that indicate a caller actually has a restoration problem — used to refuse
 // to SCREEN (irreversibly drop) any call mentioning a real service need. Deliberately
 // the caller's problem nouns, not the industry name ("restoration"), which appears in

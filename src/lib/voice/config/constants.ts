@@ -26,14 +26,16 @@ export const TIMEOUTS = {
   MAX_CALL_DURATION: 4.5 * 60 * 1000,
 
   /**
-   * Backstop only. The connection normally closes when Twilio echoes back the
-   * "goodbye-complete" mark, i.e. once the caller has actually HEARD the
-   * sign-off. response.done fires when OpenAI finishes GENERATING, while
-   * seconds of audio can still be buffered in Twilio — closing on a short fixed
-   * delay chopped the goodbye off mid-sentence and read as abrupt. This timer
-   * only fires if that mark never comes back.
+   * Breathing room after the last queued audio is expected to finish playing,
+   * before hanging up. The hang-up waits on session.audioQueuedUntil (measured
+   * from the μ-law bytes actually sent) rather than on response.done, which
+   * fires when OpenAI finishes GENERATING — seconds before the caller has heard
+   * it. Closing on generation clipped the sign-off mid-sentence.
    */
-  GOODBYE_DELAY: 8_000,
+  GOODBYE_TAIL_PADDING: 900,
+
+  /** Hard ceiling on that wait, so a bad duration estimate can't hold the line open. */
+  GOODBYE_MAX_WAIT: 20_000,
 } as const;
 
 /**

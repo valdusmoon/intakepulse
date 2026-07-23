@@ -72,6 +72,13 @@ export interface SessionState {
   // True once the durable finalization hand-off has been sent for this call, so
   // the live path and the WS-close fallback can't double-fire it.
   finalizeSent?: boolean;
+  // Epoch ms at which every audio chunk sent to Twilio will have finished
+  // PLAYING. OpenAI generates far faster than 8kHz real-time, so response.done
+  // arrives while the caller still has seconds of speech queued — closing the
+  // socket on generation-completion clipped the sign-off mid-sentence. Tracked
+  // from the actual μ-law byte count (8 bytes = 1ms) so the hang-up can wait for
+  // playback rather than guess.
+  audioQueuedUntil?: number;
   // Set synchronously (before any await) the first time captureLeadOnce is called —
   // guards against the normal-completion path and the early-disconnect drop handler
   // both trying to create a lead if the caller hangs up while the first DB insert
