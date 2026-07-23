@@ -55,8 +55,10 @@ export async function POST(req: Request) {
       ));
     }
 
+    // Operator-only kill switch, set directly in the DB. There is no self-serve
+    // pause: it promised "no charge while paused" that nothing implemented.
     if (business.isPaused) {
-      logger.warn("Business is paused — rejecting call", { businessId: business.id });
+      logger.warn("Business is paused, rejecting call", { businessId: business.id });
       return xml(generateErrorTwiml(
         "We're sorry, this service is temporarily unavailable. Please contact the business directly."
       ));

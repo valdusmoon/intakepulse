@@ -496,12 +496,12 @@ export default function HelpPage() {
                 ]} />
               </InfoCard>
               <InfoCard>
-                <SubHeading>Pausing instead of canceling</SubHeading>
+                <SubHeading>If billing lapses</SubHeading>
                 <p className="text-sm text-slate-600">
-                  If work slows down, pause your line from the Billing tab. Your number, settings, and lead history all stay exactly where they are, and one click brings you back. While you&apos;re paused Callverted stops answering, and anyone calling your Callverted number hears a short &quot;temporarily unavailable&quot; message, so pause it only when you don&apos;t want that line in front of customers.
+                  An expired trial or a failed payment stops your line answering, and callers hear a short &quot;temporarily unavailable&quot; message instead. If a card fails we email you a link to update it. Sorting the payment out turns the line straight back on.
                 </p>
                 <p className="text-sm text-slate-500 pt-1">
-                  Callers hear the same message if billing lapses. An expired trial or a failed payment stops the line answering until the subscription is sorted out.
+                  If you cancel outright, your Callverted number is released at the end of the billing period and cannot be recovered, so take it off your truck and listings first. Your leads, calls, and history stay in your account.
                 </p>
               </InfoCard>
             </div>

@@ -170,7 +170,9 @@ export async function PATCH(req: NextRequest) {
     "forwardingNumber", "notificationPreferences",
     "twilioPhoneNumber", "overflowMode", "recordingEnabled", "recordingDisclosure",
     "greetingMessage", "aiInstructions", "voiceName", "callTimeoutSeconds",
-    "isPaused", // pause/resume the live line (churn-deflection alternative to canceling)
+    // isPaused is deliberately NOT writable here. The self-serve pause was removed
+    // because it promised "no charge while paused" that nothing implemented. The
+    // column survives as an operator-only kill switch, set directly in the DB.
     "numberPublished", // activation: owner confirms they published their Callverted number
   ] as const;
   const safeBody = Object.fromEntries(
