@@ -9,8 +9,11 @@ interface LeadPushInput {
   estimatedValueHigh?: number | null;
 }
 
-function usd(n: number): string {
-  return `$${Math.round(n).toLocaleString("en-US")}`;
+/** Money is stored in CENTS everywhere in this codebase — the parameter name says
+ *  so because this formatter previously took the cents value as if it were
+ *  dollars, and pushed "Est. $450,000–$900,000" for a $4,500–$9,000 job. */
+function usd(cents: number): string {
+  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
 }
 
 // One place that turns a scored lead into the notification an operator sees on
