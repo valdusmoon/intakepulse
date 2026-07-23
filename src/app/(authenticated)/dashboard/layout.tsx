@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getBusinessByClerkId } from "@/lib/db/queries/businesses";
-import { getNewLeadsCount, getLeadsByBusiness } from "@/lib/db/queries/leads";
+import { getNewLeadsCount, getLeadsByBusiness, PRE_CONTACT_STATUSES } from "@/lib/db/queries/leads";
 import { type BannerState } from "@/components/dashboard/subscription-banner";
 import { DashboardShell } from "@/components/dashboard/v2/Shell";
 import { hasPaymentOnFile } from "@/lib/subscription";
@@ -59,7 +59,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const bannerState = getBannerState(business);
   const [newLeadsCount, recentNewLeads] = await Promise.all([
     getNewLeadsCount(business.id),
-    getLeadsByBusiness(business.id, { leadStatus: "new", leadType: "job", limit: 5 }),
+    // Same pre-contact scope as the badge count, so the dropdown never shows
+    // fewer leads than the number on the bell.
+    getLeadsByBusiness(business.id, { leadStatus: PRE_CONTACT_STATUSES, leadType: "job", limit: 5 }),
   ]);
   const isVoiceLive = Boolean(
     business.twilioPhoneNumber && !business.isPaused && hasPaymentOnFile(business)

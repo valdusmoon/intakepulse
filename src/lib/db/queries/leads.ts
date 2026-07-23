@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, isNull, or, sql, SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, SQL } from "drizzle-orm";
 import { db } from "../index";
 import { leads, type NewLead } from "../schema/leads";
 
@@ -29,7 +29,8 @@ export async function getLeadByPhoneAndBusiness(callerPhone: string, businessId:
 export async function getLeadsByBusiness(
   businessId: string,
   opts: {
-    leadStatus?: string;
+    // A single status, or several (e.g. the pre-contact set ["new", "qualified"]).
+    leadStatus?: string | string[];
     source?: string;
     // "job" | "message" — scope to a contact kind. Omit for the unified inbox.
     leadType?: string;
@@ -42,7 +43,11 @@ export async function getLeadsByBusiness(
   const { leadStatus, source, leadType, priority, search, limit = 25, offset = 0 } = opts;
 
   const filters: SQL[] = [eq(leads.businessId, businessId), isNull(leads.deletedAt)];
-  if (leadStatus) filters.push(eq(leads.leadStatus, leadStatus));
+  if (Array.isArray(leadStatus)) {
+    if (leadStatus.length > 0) filters.push(inArray(leads.leadStatus, leadStatus));
+  } else if (leadStatus) {
+    filters.push(eq(leads.leadStatus, leadStatus));
+  }
   if (source) filters.push(eq(leads.source, source));
   if (leadType) filters.push(eq(leads.leadType, leadType));
   // Tier thresholds mirror PRIORITY_TIERS in scoring.ts (Hot >= 65, Warm 40-64, Cool < 40).
@@ -86,13 +91,20 @@ export async function deleteLead(id: string) {
   await db.update(leads).set({ deletedAt: new Date() }).where(eq(leads.id, id));
 }
 
+// Statuses meaning "the business hasn't called this lead back yet". Voice jobs
+// are auto-scored within seconds of capture, which moves them new → 'qualified'
+// — so a badge counting only 'new' made fresh AI-captured leads vanish from the
+// bell instantly while stale unscored ones kept it inflated.
+export const PRE_CONTACT_STATUSES = ["new", "qualified"];
+
 export async function getNewLeadsCount(businessId: string) {
-  // Sidebar "new leads" badge = actionable scored jobs only. A non-job message is
-  // leadStatus 'new' too, but it's not a lead to work, so it must not inflate this.
+  // Bell/sidebar badge = jobs awaiting a callback (pre-contact). Scored jobs only —
+  // a non-job message is pre-contact too, but it's not a lead to work, so it must
+  // not inflate this.
   const [row] = await db
     .select({ count: sql<number>`count(*)` })
     .from(leads)
-    .where(and(eq(leads.businessId, businessId), eq(leads.leadStatus, "new"), eq(leads.leadType, "job"), isNull(leads.deletedAt)));
+    .where(and(eq(leads.businessId, businessId), inArray(leads.leadStatus, PRE_CONTACT_STATUSES), eq(leads.leadType, "job"), isNull(leads.deletedAt)));
   return Number(row.count);
 }
 
